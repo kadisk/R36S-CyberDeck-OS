@@ -46,18 +46,32 @@ DEBOOTSTRAP="$(command -v debootstrap || true)"
 
 mkdir -p "$BUILD_DIR"
 
+# Limpa montagens deixadas por uma execução anterior interrompida.
+cleanup_mounts() {
+    for m in proc sys dev/pts dev; do
+        mountpoint -q "$WEB_ROOTFS/$m" 2>/dev/null && umount "$WEB_ROOTFS/$m" 2>/dev/null || true
+    done
+}
+trap cleanup_mounts EXIT
+cleanup_mounts
+
 # ---------------------------------------------------------------------------
-# 4a — base Debian arm64 (2 estágios)
+# 4a — base Debian arm64 (2 estágios). Marcador .cyberdeck-base-ok = estágio 2 ok.
 # ---------------------------------------------------------------------------
-if [ ! -e "$WEB_ROOTFS/etc/os-release" ]; then
+if [ ! -f "$WEB_ROOTFS/.cyberdeck-base-ok" ]; then
+    log "rootfs base incompleto/ausente — (re)construindo do zero"
+    rm -rf "$WEB_ROOTFS"
     log "debootstrap estágio 1 (Debian $SUITE arm64) — pode demorar"
     "$DEBOOTSTRAP" --arch=arm64 --foreign --variant=minbase \
         --include=dbus,systemd-sysv,udev "$SUITE" "$WEB_ROOTFS" "$MIRROR"
     cp "$QEMU" "$WEB_ROOTFS/usr/bin/"
     log "debootstrap estágio 2 (sob qemu)"
-    chroot "$WEB_ROOTFS" /debootstrap/debootstrap --second-stage
+    # IMPORTANTE: NÃO vazar DEBOOTSTRAP_DIR p/ dentro do chroot (usa /debootstrap).
+    env -u DEBOOTSTRAP_DIR chroot "$WEB_ROOTFS" /debootstrap/debootstrap --second-stage
+    touch "$WEB_ROOTFS/.cyberdeck-base-ok"
+    log "base Debian arm64 pronta (estágio 2 ok)"
 else
-    log "rootfs base já existe — pulando debootstrap"
+    log "rootfs base já completo — pulando debootstrap"
 fi
 
 # ---------------------------------------------------------------------------
@@ -106,9 +120,13 @@ chmod +x "$WEB_ROOTFS/root/setup-cog.sh"
 
 log "instalando cog/wpewebkit dentro do chroot (qemu — LENTO)"
 cp "$QEMU" "$WEB_ROOTFS/usr/bin/" 2>/dev/null || true
-mount -t proc none "$WEB_ROOTFS/proc" 2>/dev/null || true
-chroot "$WEB_ROOTFS" /root/setup-cog.sh || die "setup-cog falhou (rede? pacote?)"
-umount "$WEB_ROOTFS/proc" 2>/dev/null || true
+cp -f /etc/resolv.conf "$WEB_ROOTFS/etc/resolv.conf" 2>/dev/null || true
+mount -t proc  none "$WEB_ROOTFS/proc" 2>/dev/null || true
+mount -t sysfs none "$WEB_ROOTFS/sys"  2>/dev/null || true
+mount --bind /dev  "$WEB_ROOTFS/dev"   2>/dev/null || true
+mount --bind /dev/pts "$WEB_ROOTFS/dev/pts" 2>/dev/null || true
+chroot "$WEB_ROOTFS" /root/setup-cog.sh || { cleanup_mounts; die "setup-cog falhou (rede? pacote?)"; }
+cleanup_mounts
 rm -f "$WEB_ROOTFS/root/setup-cog.sh"
 
 log "rootfs web pronto: $WEB_ROOTFS"
