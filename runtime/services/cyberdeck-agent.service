@@ -1,0 +1,15 @@
+[Unit]
+Description=CyberDeck system data agent (JSON em 127.0.0.1:8080 p/ a UI web)
+DefaultDependencies=no
+After=systemd-udevd.service
+Before=cyberdeck-x.service
+Wants=cyberdeck-x.service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/cyberdeck-agent 8080
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

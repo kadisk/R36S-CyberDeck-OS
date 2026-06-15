@@ -146,23 +146,45 @@
   }
   setInterval(tickClock, 1000); tickClock();
 
-  // ---- Dados do sistema (placeholder até o agente local existir) ----------
-  // Na Fase 5: fetch("/api/status") ou WebSocket -> /proc, /sys, rk817.
+  // ---- Dados do sistema AO VIVO (cyberdeck-agent em 127.0.0.1:8080) --------
+  // O agente (C, /proc + /sys + rk817) devolve JSON com CORS liberado. A UI roda
+  // por file:// (sempre renderiza); se o agente cair, os campos só param de atualizar.
+  var AGENT = "http://127.0.0.1:8080/";
   function setBar(barId, valId, pct) {
     var bar = document.getElementById(barId), val = document.getElementById(valId);
     if (bar) bar.style.width = Math.max(0, Math.min(100, pct)) + "%";
     if (val) val.textContent = Math.round(pct) + "%";
   }
-  function refreshStub() {
-    // Valores demonstrativos; substituir por dados reais.
-    setBar("cpu-bar", "cpu-val", 8 + Math.random() * 6);
-    setBar("ram-bar", "ram-val", 34 + Math.random() * 4);
-    set("load-val", "0.12 0.08 0.05");
-    set("temp-val", "42 °C");
-    set("battery", "BAT 87%");
-  }
   function set(id, txt) { var el = document.getElementById(id); if (el) el.textContent = txt; }
-  setInterval(refreshStub, 2000); refreshStub();
+  function fmtUptime(s) {
+    s = Math.floor(s); var d = Math.floor(s / 86400); s %= 86400;
+    var h = Math.floor(s / 3600); s %= 3600; var m = Math.floor(s / 60);
+    return (d ? d + "d " : "") + h + "h " + m + "m";
+  }
+  function applyStatus(j) {
+    if (typeof j.cpu === "number" && j.cpu >= 0) setBar("cpu-bar", "cpu-val", j.cpu);
+    if (j.mem) setBar("ram-bar", "ram-val", j.mem.pct);
+    set("load-val", j.load || "--");
+    if (typeof j.uptime === "number") set("uptime-val", fmtUptime(j.uptime));
+    if (typeof j.temp === "number" && j.temp >= 0) set("temp-val", Math.round(j.temp) + " °C");
+    if (j.battery) {
+      var b = j.battery, tag = (b.pct >= 0 ? "BAT " + b.pct + "%" : "BAT --");
+      if (b.ac === 1) tag += " ⚡";
+      set("battery", tag);
+    }
+    if (j.net && j.net.length) {
+      set("net-iface", j.net[0].iface); set("net-ip", j.net[0].ip);
+      set("net-ssid", j.net.length + " iface(s)");
+    } else { set("net-iface", "(sem rede)"); set("net-ip", "--"); set("net-ssid", "--"); }
+    if (j.host) set("serial-val", j.host);
+  }
+  function refresh() {
+    fetch(AGENT, { cache: "no-store" })
+      .then(function (r) { return r.json(); })
+      .then(applyStatus)
+      .catch(function () { /* agente fora do ar — mantém últimos valores */ });
+  }
+  setInterval(refresh, 2000); refresh();
 
   // Início
   show(0);

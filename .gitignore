@@ -26,8 +26,9 @@ initrd.img*
 # Renderizador de framebuffer: binário compilado (regerável via build.sh)
 /cyberdeck-fb/build/
 
-# Ponte de input: binário compilado (regerável via cyberdeck-input/build.sh)
+# Binários compilados (regeráveis via build.sh de cada um)
 /cyberdeck-input/cyberdeck-input
+/cyberdeck-agent/cyberdeck-agent
 
 # Fase 5: artefatos mainline grandes (imagem Arch-R, kernel, módulos). Texto versionado.
 /artifacts/mainline/*.img

@@ -55,10 +55,10 @@ cp -a "$REPO_DIR/cyberdeck-ui/public" "$RF/usr/share/cyberdeck-ui/"
 install -D -m0755 "$REPO_DIR/runtime/scripts/start-cyberdeck-x.sh" "$RF/usr/local/bin/start-cyberdeck-x.sh"
 install -D -m0755 "$REPO_DIR/runtime/scripts/cyberdeck-kiosk.sh"   "$RF/usr/local/bin/cyberdeck-kiosk.sh"
 install -D -m0644 "$REPO_DIR/runtime/services/cyberdeck-x.service" "$RF/etc/systemd/system/cyberdeck-x.service"
-# ponte de input joypad->teclado (uinput): compila e instala
-( cd "$REPO_DIR/cyberdeck-input" && ./build.sh )
-install -D -m0755 "$REPO_DIR/cyberdeck-input/cyberdeck-input" "$RF/usr/local/bin/cyberdeck-input"
-install -D -m0644 "$REPO_DIR/runtime/services/cyberdeck-input.service" "$RF/etc/systemd/system/cyberdeck-input.service"
+# agente de dados do sistema (JSON em 127.0.0.1:8080): compila e instala
+( cd "$REPO_DIR/cyberdeck-agent" && ./build.sh )
+install -D -m0755 "$REPO_DIR/cyberdeck-agent/cyberdeck-agent" "$RF/usr/local/bin/cyberdeck-agent"
+install -D -m0644 "$REPO_DIR/runtime/services/cyberdeck-agent.service" "$RF/etc/systemd/system/cyberdeck-agent.service"
 mkdir -p "$RF/etc/X11/xorg.conf.d"
 cat > "$RF/etc/X11/xorg.conf.d/99-fbdev.conf" <<'EOF'
 Section "Device"
@@ -100,9 +100,7 @@ mkdir -p /etc/systemd/system/serial-getty@ttyFIQ0.service.d
 printf '[Service]\nExecStart=\nExecStart=-/sbin/agetty --autologin root --noclear %%I 115200 \$TERM\n' \
     > /etc/systemd/system/serial-getty@ttyFIQ0.service.d/autologin.conf
 systemctl enable cyberdeck-x.service
-systemctl enable cyberdeck-input.service
-# uinput no boot (teclado virtual da ponte de input)
-echo uinput > /etc/modules-load.d/uinput.conf
+systemctl enable cyberdeck-agent.service
 echo "root:cyberdeck" | chpasswd
 # zram swap (alivia 1GB RAM p/ o Chromium)
 echo 'ALGO=zstd\nPERCENT=60' > /etc/default/zramswap || true
