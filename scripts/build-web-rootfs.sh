@@ -85,12 +85,29 @@ install -D -m0755 "$REPO_DIR/runtime/scripts/start-cyberdeck-cog.sh" \
 install -D -m0644 "$REPO_DIR/runtime/services/cyberdeck-cog.service" \
     "$WEB_ROOTFS/etc/systemd/system/cyberdeck-cog.service"
 
-# Blob Mali do ArkOS (EGL/GLES), se já extraído
-if [ -d "$MALI_SRC" ] && ls "$MALI_SRC"/libMali* >/dev/null 2>&1; then
-    install -d "$WEB_ROOTFS/opt/mali"
-    cp -a "$MALI_SRC"/. "$WEB_ROOTFS/opt/mali/"
-    echo "/opt/mali" > "$WEB_ROOTFS/etc/ld.so.conf.d/00-mali.conf"
-    log "libMali do ArkOS copiado p/ /opt/mali (provedor EGL/GLES)"
+# Blob Mali do ArkOS (EGL/GLES/GBM fundidos). Para cog --platform=drm (GBM, sem
+# compositor) a variante 'gbm' pura é a indicada. Criamos os symlinks que o WPE
+# espera (libEGL.so.1, libGLESv2.so.2, libgbm.so.1) apontando p/ o blob — como o
+# ArkOS faz. /opt/mali entra ANTES (00-) no ld path p/ vencer o GLVND do Debian.
+if [ -d "$MALI_SRC" ]; then
+    # escolhe a variante: 'gbm' pura > o alvo de libMali.so > qualquer libmali*gbm
+    BLOB=""
+    for c in "libmali-bifrost-g31-rxp0-gbm.so" \
+             "$(readlink -f "$MALI_SRC/libMali.so" 2>/dev/null | xargs -r basename)" \
+             $(cd "$MALI_SRC" && ls libmali*gbm*.so 2>/dev/null); do
+        [ -n "$c" ] && [ -f "$MALI_SRC/$c" ] && { BLOB="$c"; break; }
+    done
+    if [ -n "$BLOB" ]; then
+        install -d "$WEB_ROOTFS/opt/mali"
+        cp -aL "$MALI_SRC/$BLOB" "$WEB_ROOTFS/opt/mali/libmali.so"
+        ( cd "$WEB_ROOTFS/opt/mali"
+          for sl in libEGL.so.1 libEGL.so libGLESv2.so.2 libGLESv2.so \
+                    libgbm.so.1 libgbm.so libGLESv1_CM.so.1; do ln -sf libmali.so "$sl"; done )
+        echo "/opt/mali" > "$WEB_ROOTFS/etc/ld.so.conf.d/00-mali.conf"
+        log "Mali wired: /opt/mali/libmali.so ($BLOB) + symlinks EGL/GLES/GBM"
+    else
+        log "AVISO: nenhum blob Mali utilizável em $MALI_SRC"
+    fi
 else
     log "AVISO: libMali do ArkOS ausente — rode scripts/extract-arkos-mali.sh antes."
     log "       Sem ele, o cog não terá EGL/GLES acelerado (Fase 4b incompleta)."
