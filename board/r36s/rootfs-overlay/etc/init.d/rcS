@@ -36,6 +36,6 @@ echo "  cat /proc/device-tree/model ; dmesg | tail"
 echo "================================================================"
 echo
 
-# Fase 3: probe de tela (framebuffer) + captura do joypad. Roda uma vez por
-# cartão (marcador na BOOT). Grava resultados na partição BOOT (lê-se no PC).
-[ -x /etc/init.d/phase3-probe.sh ] && /etc/init.d/phase3-probe.sh
+# Fase 3: a UI (renderizador de framebuffer) é lançada no tty1 pelo inittab.
+# O probe (phase3-probe.sh) já cumpriu seu papel (geometria + mapa do joypad
+# coletados em 2026-06-15); fica disponível para re-rodar manualmente se preciso.

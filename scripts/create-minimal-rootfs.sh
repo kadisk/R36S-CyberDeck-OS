@@ -76,7 +76,7 @@ busybox_applets() {
 # ----------------------------------------------------------------------------
 build_tree() {
     rm -rf "$ROOTFS_DIR"
-    mkdir -p "$ROOTFS_DIR"/{bin,sbin,usr/bin,usr/sbin,etc/init.d,proc,sys,dev/pts,run,tmp,root,mnt}
+    mkdir -p "$ROOTFS_DIR"/{bin,sbin,usr/bin,usr/sbin,usr/local/bin,etc/init.d,proc,sys,dev/pts,run,tmp,root,mnt}
     chmod 1777 "$ROOTFS_DIR/tmp"
 
     install -m 0755 "$BUSYBOX_CACHE" "$ROOTFS_DIR/bin/busybox"
@@ -102,7 +102,19 @@ build_tree() {
         cp -a "$ROOTFS_OVERLAY/." "$ROOTFS_DIR/"
         log "Overlay aplicado de board/r36s/rootfs-overlay/"
     fi
-    chmod 0755 "$ROOTFS_DIR"/etc/init.d/* 2>/dev/null || true
+    chmod 0755 "$ROOTFS_DIR"/etc/init.d/* "$ROOTFS_DIR"/usr/local/bin/* 2>/dev/null || true
+
+    # Renderizador de framebuffer (Fase 3): compila se houver cross-gcc e instala.
+    local fb_bin="$REPO_DIR/cyberdeck-fb/build/cyberdeck-fb"
+    if [ ! -f "$fb_bin" ] && command -v aarch64-linux-gnu-gcc >/dev/null 2>&1; then
+        bash "$REPO_DIR/cyberdeck-fb/build.sh" >/dev/null 2>&1 || true
+    fi
+    if [ -f "$fb_bin" ]; then
+        install -m 0755 "$fb_bin" "$ROOTFS_DIR/usr/local/bin/cyberdeck-fb"
+        log "cyberdeck-fb (renderizador) instalado em /usr/local/bin"
+    else
+        log "AVISO: cyberdeck-fb não compilado (sem aarch64-linux-gnu-gcc?) — tty1 cairá no shell"
+    fi
 
     mknod -m 600 "$ROOTFS_DIR/dev/console" c 5 1 2>/dev/null || true
     mknod -m 666 "$ROOTFS_DIR/dev/null"    c 1 3 2>/dev/null || true

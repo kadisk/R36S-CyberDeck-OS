@@ -1,0 +1,25 @@
+# Captura real do joypad (event1 = GO-Super Gamepad / odroidgo3-joypad)
+# R36S, 2026-06-15. EV_KEY (press) e EV_ABS (analógicos).
+
+Botões (code : nome : vezes pressionado):
+  0x134  Y(BTN_WEST)      x2
+  0x133  X(BTN_NORTH)     x1
+  0x131  A(BTN_EAST)      x1
+  0x130  B(BTN_SOUTH)     x1
+  0x2c4  F5               x1
+  0x2c1  F2               x1
+  0x2c0  F1               x1
+  0x221  DPAD_DOWN        x1
+  0x223  DPAD_RIGHT       x2
+  0x222  DPAD_LEFT        x1
+  0x220  DPAD_UP          x1
+  0x137  R1(TR)           x1
+  0x136  L1(TL)           x1
+  0x139  R2(TR2)          x1
+  0x138  L2(TL2)          x1
+
+Eixos analógicos (code : nome : min..max observado):
+  0x00  ABS_X (analog L x)   -1800..1800
+  0x01  ABS_Y (analog L y)   -1800..1672
+  0x03  ABS_RX (analog R x)  -1800..1800
+  0x04  ABS_RY (analog R y)  -1788..1007

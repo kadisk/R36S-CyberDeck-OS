@@ -42,7 +42,13 @@ O R36S expõe os botões como um joystick Linux (`/dev/input/js0` e
 
 **17 botões GPIO** no total (4 D-pad + A/B/X/Y + L1/R1/L2/R2 + F1–F5) + **2 eixos
 analógicos** (X/Y) via ADC (`invert-absx`/`invert-absy` ativos; deadzone 0x40,
-fuzz/flat 0x20). Power é separado (RK817).
+fuzz/flat 0x20).
+
+> ✅ **Confirmado no aparelho (2026-06-15):** o joypad é **`/dev/input/event1`**
+> (e `js0`), nome "GO-Super Gamepad". Captura real bate 100% com os códigos do DTB
+> acima. Analógicos: `ABS_X/Y` (esq.) e `ABS_RX/RY` (dir.), faixa ~±1800. Eventos
+> crus e decodificação em `device-captures/joypad-capture-2026-06-15.txt`.
+> (event0 = `rk8xx_pwrkey`/power; event2 = `rk_headset`.) Power é separado (RK817).
 
 > Observação: o **rótulo físico não bate com o código** — o botão rotulado "A" usa
 > `BTN_EAST(0x131)` e o "B" usa `BTN_SOUTH(0x130)`. Validar a sensação no aparelho

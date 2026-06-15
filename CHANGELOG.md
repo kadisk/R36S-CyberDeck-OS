@@ -4,6 +4,24 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added — 2026-06-15 — Fase 3: renderizador 2D no framebuffer + dados do aparelho
+- **Probe rodado no R36S** → dados reais (em `docs/hardware/device-captures/`):
+  tela **640×480 32bpp** (stride 2560), `/dev/dri/card0` presente, backlight
+  `brightness=80/160`; joypad = **`/dev/input/event1`** ("GO-Super Gamepad"),
+  códigos batem 100% com o DTB (D-pad `0x220-3`, A/B/X/Y, L1/R1/L2/R2, F1–F5);
+  analógicos `ABS_X/Y/RX/RY` (~±1800).
+- **`cyberdeck-fb/`** — renderizador 2D em C, **aarch64 estático** (toolchain
+  `aarch64-linux-gnu-gcc`): detecta geometria/bpp em runtime, desenha barra de
+  título + relógio, menu lateral (STATUS/REDE/…/DEVICE), painel STATUS ao vivo
+  (CPU/RAM/uptime/hora) e painel de debug de input; lê o joypad (`/dev/input/event*`)
+  e navega (D-pad/L1/R1; F5 sai). Põe `tty1` em `KD_GRAPHICS`. Fonte 8×16 gerada de
+  PSF (`tools/gen-font.py`).
+- Integração: `create-minimal-rootfs.sh` compila e instala `/usr/local/bin/cyberdeck-fb`;
+  `inittab` lança no `tty1` via `cyberdeck-launch.sh` (cai em shell na tela se sair).
+- Probe (`phase3-probe.sh`) removido do boot automático (já cumpriu o papel).
+- Docs: `docs/graphics/phase3-display-input-plan.md`, `cyberdeck-fb/README.md`,
+  `input-buttons.md` atualizado com a captura real.
+
 ### Added — 2026-06-15 — Fase 2 CONCLUÍDA: boot confirmado no R36S físico ✅
 - **Boot do rootfs próprio confirmado no R36S** (modo `--clone`): foto mostra o
   banner "R36S CyberDeck OS … ROOTFS OK", `raiz: /dev/mmcblk0p2 ext4 rw`, kernel

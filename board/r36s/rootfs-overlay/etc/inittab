@@ -4,11 +4,10 @@
 # Montagens iniciais (proc/sys/dev/...) e banner:
 ::sysinit:/etc/init.d/rcS
 
-# Shell no console serial de debug (ttyFIQ0) e na tela (tty1 = framebuffer).
-# Confirmados funcionando no R36S (2026-06-15). Sem o respawn genérico sem tty
-# (ele gerava "can't access tty; job control turned off").
+# Serial de debug (ttyFIQ0): shell. Tela (tty1): a UI CyberDeck (renderizador de
+# framebuffer); se ela sair/faltar, o launcher cai num shell na própria tela.
 ttyFIQ0::respawn:-/bin/sh
-tty1::respawn:-/bin/sh
+tty1::respawn:/usr/local/bin/cyberdeck-launch.sh
 
 # Encerramento limpo:
 ::ctrlaltdel:/sbin/reboot

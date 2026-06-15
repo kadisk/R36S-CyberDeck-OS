@@ -1,0 +1,57 @@
+===== fbinfo / input (Fri Jan  5 00:28:55 UTC 2018) =====
+## fbset -i
+## /sys/class/graphics/fb0
+  /sys/class/graphics/fb0/virtual_size = 640,480
+  /sys/class/graphics/fb0/bits_per_pixel = 32
+  /sys/class/graphics/fb0/stride = 2560
+  /sys/class/graphics/fb0/modes = U:640x480p-0
+  /sys/class/graphics/fb0/name = 
+## /dev/dri
+total 0
+crw-------    1 0        0         226,   0 Jan  5 00:28 card0
+crw-------    1 0        0         226,  64 Jan  5 00:28 controlD64
+crw-rw----    1 0        0         226, 128 Jan  5 00:28 renderD128
+## /dev/fb*
+crw-------    1 0        0          29,   0 Jan  5 00:28 /dev/fb0
+## /dev/input
+total 0
+crw-------    1 0        0          13,  64 Jan  5 00:28 event0
+crw-------    1 0        0          13,  65 Jan  5 00:28 event1
+crw-------    1 0        0          13,  66 Jan  5 00:28 event2
+crw-rw-r--    1 0        0          13,   0 Jan  5 00:28 js0
+## /proc/bus/input/devices
+I: Bus=0000 Vendor=0000 Product=0000 Version=0000
+N: Name="rk8xx_pwrkey"
+P: Phys=rk8xx_pwrkey/input0
+S: Sysfs=/devices/platform/ff180000.i2c/i2c-0/0-0020/input/input0
+U: Uniq=
+H: Handlers=kbd event0 
+B: PROP=0
+B: EV=3
+B: KEY=10000000000000 0
+
+I: Bus=0019 Vendor=484b Product=1100 Version=0100
+N: Name="GO-Super Gamepad"
+P: Phys=odroidgo3_joypad/input0
+S: Sysfs=/devices/platform/odroidgo3-joypad/input/input1
+U: Uniq=
+H: Handlers=js0 event1 
+B: PROP=0
+B: EV=20000b
+B: KEY=1f 0 0 f00000000 0 0 0 3db000000000000 0 0 0 0
+B: ABS=1b
+B: FF=107030000 0
+
+I: Bus=0000 Vendor=0001 Product=0001 Version=0100
+N: Name="rk_headset"
+P: Phys=
+S: Sysfs=/devices/platform/rk_headset/input/input2
+U: Uniq=
+H: Handlers=event2 
+B: PROP=0
+B: EV=3
+B: KEY=400000000 0 0 0
+
+## backlight
+  /sys/class/backlight/backlight/ brightness=80 max=160
+fb test: escrito ~1228800 bytes em /dev/fb0
