@@ -138,4 +138,5 @@ experiments/     tentativas que NÃO entraram (Wayland/Mali, mainline, uinput)
 ```
 
 Histórico em [`CHANGELOG.md`](CHANGELOG.md); jornada completa e tentativas em
-[`docs/JORNADA.md`](docs/JORNADA.md).
+[`docs/JORNADA.md`](docs/JORNADA.md). **Arquitetura e stack** (Linux + Node.js +
+front-end) como referência reaproveitável em [`docs/STACK.md`](docs/STACK.md).
