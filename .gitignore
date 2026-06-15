@@ -26,6 +26,14 @@ initrd.img*
 # Renderizador de framebuffer: binário compilado (regerável via build.sh)
 /cyberdeck-fb/build/
 
+# Fase 5: artefatos mainline grandes (imagem Arch-R, kernel, módulos). Texto versionado.
+/artifacts/mainline/*.img
+/artifacts/mainline/*.img.gz
+/artifacts/mainline/Image
+/artifacts/mainline/modules/
+/artifacts/mainline/*.ext4
+!/artifacts/mainline/reports/
+
 # Buildroot output
 /buildroot/output/
 /buildroot/dl/

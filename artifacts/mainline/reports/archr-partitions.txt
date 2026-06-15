@@ -1,0 +1,11 @@
+Disco /home/kadisk/Workspaces/Workspace_RS36S/R36S-CyberDeck-OS/artifacts/mainline/ArchR-R36S.aarch64-20260526-original.img: 4,8 GiB, 5151653888 bytes, 10061824 setores
+Unidades: setor de 1 * 512 = 512 bytes
+Tamanho de setor (lógico/físico): 512 bytes / 512 bytes
+Tamanho E/S (mínimo/ótimo): 512 bytes / 512 bytes
+Tipo de rótulo do disco: dos
+Identificador do disco: 0x504b2799
+
+Dispositivo                                                                                                            Inicializar  Início      Fim Setores Tamanho Id Tipo
+/home/kadisk/Workspaces/Workspace_RS36S/R36S-CyberDeck-OS/artifacts/mainline/ArchR-R36S.aarch64-20260526-original.img1 *             32768   557055  524288    256M  c W95 FAT32 (LBA)
+/home/kadisk/Workspaces/Workspace_RS36S/R36S-CyberDeck-OS/artifacts/mainline/ArchR-R36S.aarch64-20260526-original.img2              557056  9994239 9437184    4,5G da Dados Não-FS
+/home/kadisk/Workspaces/Workspace_RS36S/R36S-CyberDeck-OS/artifacts/mainline/ArchR-R36S.aarch64-20260526-original.img3             9994240 10059775   65536     32M 83 Linux

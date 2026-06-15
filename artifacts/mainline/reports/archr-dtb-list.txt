@@ -1,0 +1,12 @@
+# DTBs/overlays na BOOT do Arch-R
+dtbs/rk3326-anbernic-rg351m.dtb
+dtbs/rk3326-anbernic-rg351v.dtb
+dtbs/rk3326-gameconsole-r33s.dtb
+dtbs/rk3326-gameconsole-r36s.dtb
+dtbs/rk3326-gameconsole-soysauce.dtb
+dtbs/rk3326-gameforce-chi.dtb
+dtbs/rk3326-magicx-xu10.dtb
+dtbs/rk3326-odroid-go2.dtb
+dtbs/rk3326-odroid-go2-v11.dtb
+dtbs/rk3326-odroid-go3.dtb
+dtbs/rk3326-powkiddy-rgb10.dtb
