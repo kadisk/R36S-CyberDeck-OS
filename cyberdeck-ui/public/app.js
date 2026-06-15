@@ -71,7 +71,11 @@
   // ---- Gamepad API: NAVEGAÇÃO PRINCIPAL (Chromium expõe o joypad direto) ----
   // Mapeamento non-standard deste joypad = índices na ordem crescente do código
   // evdev (Fase 3). Confirmado: L1=4, R1=5. Verifique os índices na aba TECLAS.
-  var GP_RAW = { B:0, A:1, X:2, Y:3, L1:4, R1:5, L2:6, R2:7, UP:8, DOWN:9, LEFT:10, RIGHT:11 };
+  // Índices confirmados no aparelho (aba TECLAS): A=1,X=2,Y=3,L1=4,R1=5,R2=6,
+  // ↓=9,←=10,→=11,Select=12,Start=13,Fn=16. B=0 e ↑=8 inferidos (ordem evdev;
+  // ↓←→ consecutivos 9/10/11 -> ↑=8). Ajuste aqui se a aba TECLAS divergir.
+  var GP_RAW = { B:0, A:1, X:2, Y:3, L1:4, R1:5, R2:6, L2:7,
+                 UP:8, DOWN:9, LEFT:10, RIGHT:11, SELECT:12, START:13, FN:16 };
   // Se o Chromium reportar mapping="standard", os índices mudam:
   var GP_STD = { A:0, B:1, X:2, Y:3, L1:4, R1:5, L2:6, R2:7, UP:12, DOWN:13, LEFT:14, RIGHT:15 };
   function mapFor(gp) { return gp.mapping === "standard" ? GP_STD : GP_RAW; }
@@ -125,8 +129,10 @@
       edge(gp, M.LEFT,  function () { show(current - 1); });
       edge(gp, M.DOWN,  function () { moveFocus(1); });        // D-pad ↑↓ move foco no menu
       edge(gp, M.UP,    function () { moveFocus(-1); });
-      edge(gp, M.A,     activate);                             // A -> confirmar
-      edge(gp, M.B,     function () { show(0); });             // B -> volta p/ STATUS
+      edge(gp, M.A,      activate);                            // A -> confirmar
+      edge(gp, M.START,  activate);                            // Start -> confirmar (alias)
+      edge(gp, M.B,      function () { show(0); });            // B -> volta p/ STATUS
+      edge(gp, M.SELECT, function () { show(0); });            // Select -> volta p/ STATUS
     }
     requestAnimationFrame(pollGamepad);
   }
