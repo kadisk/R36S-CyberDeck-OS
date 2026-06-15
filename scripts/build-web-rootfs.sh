@@ -34,8 +34,9 @@ MIRROR=http://deb.debian.org/debian
 WEB_ROOTFS="$BUILD_DIR/web-rootfs"
 QEMU="$(command -v qemu-aarch64-static)"
 MALI_SRC="$REPO_DIR/artifacts/arkos-reference/mali"
-# 'cog' já puxa wpewebkit + WPEBackend-fdo como dependências; não fixamos sonames.
-PKGS="cog libegl1 libgles2 libgbm1 fonts-dejavu-core ca-certificates"
+# 'cog' puxa wpewebkit + WPEBackend-fdo. 'cage' = compositor Wayland kiosk (wlroots)
+# usado p/ cog --platform=wl (o caminho DRM puro deu segfault de buffer com o Mali).
+PKGS="cog cage seatd libegl1 libgles2 libgbm1 fonts-dejavu-core ca-certificates"
 
 # debootstrap: usa o do sistema ou o extraído em /tmp/dbs/out
 DEBOOTSTRAP="$(command -v debootstrap || true)"
@@ -90,11 +91,11 @@ install -D -m0644 "$REPO_DIR/runtime/services/cyberdeck-cog.service" \
 # espera (libEGL.so.1, libGLESv2.so.2, libgbm.so.1) apontando p/ o blob — como o
 # ArkOS faz. /opt/mali entra ANTES (00-) no ld path p/ vencer o GLVND do Debian.
 if [ -d "$MALI_SRC" ]; then
-    # escolhe a variante: 'gbm' pura > o alvo de libMali.so > qualquer libmali*gbm
+    # Para cage + cog --platform=wl precisamos da variante WAYLAND-gbm (Wayland-EGL).
     BLOB=""
-    for c in "libmali-bifrost-g31-rxp0-gbm.so" \
+    for c in "libmali-bifrost-g31-rxp0-wayland-gbm.so" \
              "$(readlink -f "$MALI_SRC/libMali.so" 2>/dev/null | xargs -r basename)" \
-             $(cd "$MALI_SRC" && ls libmali*gbm*.so 2>/dev/null); do
+             $(cd "$MALI_SRC" && ls libmali*wayland*gbm*.so libmali*gbm*.so 2>/dev/null); do
         [ -n "$c" ] && [ -f "$MALI_SRC/$c" ] && { BLOB="$c"; break; }
     done
     if [ -n "$BLOB" ]; then
