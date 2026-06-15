@@ -2,15 +2,17 @@
 # sd-flash.sh — grava uma imagem .img num cartão AUTORIZADO (dd seguro). PRECISA SUDO.
 # Recusa cartão não-autorizado ou que falhe nas checagens de segurança.
 #
-# Uso: sudo scripts/sdcard/sd-flash.sh /dev/sdX caminho/imagem.img
+# Uso: sudo scripts/sdcard/sd-flash.sh <nome-do-cartao | /dev/sdX> caminho/imagem.img
 set -eu
 . "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/sdcard-lib.sh"
 
-DEV="${1:-}"; IMG="${2:-}"
-[ -n "$DEV" ] && [ -n "$IMG" ] || die "uso: sudo $0 /dev/sdX imagem.img"
-[ "$(id -u)" -eq 0 ] || die "precisa de root: sudo $0 $DEV $IMG"
-[ -b "$DEV" ] || die "não é device de bloco: $DEV"
+CARD="${1:-}"; IMG="${2:-}"
+[ -n "$CARD" ] && [ -n "$IMG" ] || die "uso: sudo $0 <nome-do-cartao | /dev/sdX> imagem.img"
+[ "$(id -u)" -eq 0 ] || die "precisa de root: sudo $0 $CARD $IMG"
 [ -f "$IMG" ] || die "imagem não encontrada: $IMG"
+sd_resolve_device "$CARD" || exit 1
+DEV="$SD_DEV"
+say "Cartão '$CARD' -> $DEV"
 
 say "============================ GRAVAR SD ============================"
 say "AÇÃO  : gravar imagem no cartão (dd, apaga todo o conteúdo do cartão)"

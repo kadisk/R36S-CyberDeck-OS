@@ -15,27 +15,30 @@ allowlist fica em `authorized-cards.tsv` (local, fora do git).
 
 ## Fluxo
 
+Depois de cadastrar, **use sempre o NOME** do cartão — os scripts descobrem o
+`/dev/sdX` atual pela fingerprint (o device pode mudar a cada conexão).
+
 ```bash
 # 1) ver cartões autorizados + os conectados agora (sem sudo)
 scripts/sdcard/sd-cards.sh
 
-# 2) autorizar um cartão de teste (passo humano deliberado; sem sudo)
+# 2) autorizar um cartão de teste — passo humano, aponta o device físico (sem sudo)
 scripts/sdcard/sd-allow.sh /dev/sdX "cartao-teste-r36s"
 
-# 3) gravar uma imagem (sudo; só em cartão autorizado)
-sudo scripts/sdcard/sd-flash.sh /dev/sdX artifacts/test-images/r36s-cyberdeck-mainline.img
+# 3) gravar uma imagem PELO NOME (sudo; só em cartão autorizado)
+sudo scripts/sdcard/sd-flash.sh cartao-teste-r36s artifacts/test-images/r36s-cyberdeck-mainline.img
 
 # 3b) OU só editar o boot (rw + verboso) sem regravar a imagem (sudo)
-sudo scripts/sdcard/sd-edit-extlinux.sh /dev/sdX
+sudo scripts/sdcard/sd-edit-extlinux.sh cartao-teste-r36s
 
 # 4) remover da lista quando quiser (sem sudo)
-scripts/sdcard/sd-revoke.sh "cartao-teste-r36s"   # ou pela fingerprint
+scripts/sdcard/sd-revoke.sh cartao-teste-r36s   # ou pela fingerprint
 ```
 
-Encadear (exemplo do pedido): cada script já faz a checagem de autorização sozinho,
-então é seguro encadear:
+`<nome | /dev/sdX>`: os scripts de ação aceitam o nome cadastrado **ou** o device
+direto. Encadear é seguro (cada um faz a checagem):
 ```bash
-sudo scripts/sdcard/sd-edit-extlinux.sh /dev/sdX && echo "ok, pode bootar"
+sudo scripts/sdcard/sd-edit-extlinux.sh cartao-teste-r36s && echo "ok, pode bootar"
 ```
 
 ## Segurança (o que os scripts recusam)

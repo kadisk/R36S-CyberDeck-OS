@@ -55,6 +55,33 @@ sd_is_authorized(){ # $1 = fingerprint
 }
 sd_authorized_name(){ grep -E "^$1[[:space:]]" "$ALLOWLIST" 2>/dev/null | head -1 | cut -f2; }
 
+# ---- resolver cartão por NOME (ou fingerprint, ou /dev/sdX) -> SD_DEV ----
+# Permite usar o nome registrado; descobre o /dev/sdX atual pela fingerprint
+# (o device pode mudar a cada conexão). Aceita também /dev/sdX direto.
+sd_resolve_device(){ # $1 = nome | fingerprint | /dev/sdX
+    local arg="$1"; SD_DEV=""
+    if [ -b "$arg" ]; then SD_DEV="$arg"; return 0; fi
+    sd_allowlist_init
+    local fp=""
+    if grep -qE "^$arg[[:space:]]" "$ALLOWLIST" 2>/dev/null; then
+        fp="$arg"                                   # já é uma fingerprint
+    else
+        fp="$(grep -vE '^#' "$ALLOWLIST" 2>/dev/null | awk -F'\t' -v n="$arg" '$2==n{print $1; exit}')"
+    fi
+    [ -n "$fp" ] || { err "'$arg' não é um device nem um cartão cadastrado. Veja: scripts/sdcard/sd-cards.sh"; return 1; }
+    local d b dev
+    for d in /sys/block/sd*; do
+        [ -e "$d" ] || continue
+        b="$(basename "$d")"; dev="/dev/$b"
+        [ "$(cat "$d/removable" 2>/dev/null)" = "1" ] || continue
+        [ "$(sd_size_bytes "$dev")" -gt 0 ] || continue
+        sd_fingerprint "$dev"
+        if [ "$SD_FP" = "$fp" ]; then SD_DEV="$dev"; return 0; fi
+    done
+    err "cartão '$arg' (fingerprint $fp) NÃO está conectado agora. Insira o cartão e tente de novo."
+    return 1
+}
+
 # ---- checagem de segurança (retorna 0 se seguro p/ escrita) ----
 sd_safety_reasons(){ # imprime motivos de RECUSA (vazio = seguro). $1=dev
     local dev="$1" b; b="$(sd_basename "$dev")"

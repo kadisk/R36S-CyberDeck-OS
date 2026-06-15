@@ -5,18 +5,20 @@
 # Fonte: board/r36s/boot/extlinux.conf.cyberdeck
 # Faz backup do extlinux.conf atual em /extlinux/extlinux.conf.bak (uma vez).
 #
-# Uso: sudo scripts/sdcard/sd-edit-extlinux.sh /dev/sdX
+# Uso: sudo scripts/sdcard/sd-edit-extlinux.sh <nome-do-cartao | /dev/sdX>
 set -eu
 SELF="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$SELF/sdcard-lib.sh"
 REPO_DIR="$(cd "$SELF/../.." && pwd)"
 SRC="$REPO_DIR/board/r36s/boot/extlinux.conf.cyberdeck"
 
-DEV="${1:-}"
-[ -n "$DEV" ] || die "uso: sudo $0 /dev/sdX"
-[ "$(id -u)" -eq 0 ] || die "precisa de root: sudo $0 $DEV"
-[ -b "$DEV" ] || die "não é device de bloco: $DEV"
+CARD="${1:-}"
+[ -n "$CARD" ] || die "uso: sudo $0 <nome-do-cartao | /dev/sdX>"
+[ "$(id -u)" -eq 0 ] || die "precisa de root: sudo $0 $CARD"
 [ -f "$SRC" ] || die "template não encontrado: $SRC"
+sd_resolve_device "$CARD" || exit 1
+DEV="$SD_DEV"
+say "Cartão '$CARD' -> $DEV"
 
 say "===================== EDITAR EXTLINUX (BOOT) ====================="
 say "AÇÃO: instalar extlinux.conf (rw + boot verboso) na partição BOOT do cartão"
