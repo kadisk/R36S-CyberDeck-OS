@@ -4,6 +4,18 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added — 2026-06-15 — Fase 2 CONCLUÍDA: boot confirmado no R36S físico ✅
+- **Boot do rootfs próprio confirmado no R36S** (modo `--clone`): foto mostra o
+  banner "R36S CyberDeck OS … ROOTFS OK", `raiz: /dev/mmcblk0p2 ext4 rw`, kernel
+  4.4.189 aarch64 e shell BusyBox na tela. Ver
+  `docs/testing/results/phase2-2026-06-15.md`.
+- **Coleta de hardware no boot** (`/etc/init.d/collect-hwinfo.sh`, chamado pelo rcS):
+  grava `cyberdeck-hwinfo.txt` na partição BOOT (model/dt, `/dev/dri`, `/dev/fb*`,
+  backlight, `/dev/input`, dmesg de painel/DSI/VOP/Mali/RK817, módulos) — lê-se no PC.
+  Ponte para a Fase 3, já que o R36S não tem teclado.
+- `inittab`: removido o respawn genérico sem tty (gerava "can't access tty; job
+  control turned off"); shells confirmados em `ttyFIQ0` e `tty1`.
+
 ### Fixed — 2026-06-15 — Fase 2: MBR clonado do ArkOS (2º teste: tela apagada)
 - 2º flash (já com console=tty1) → **tela totalmente apagada**; ArkOS original
   **boota normal no mesmo slot** (aparelho/slot OK). Comparação setor a setor: no

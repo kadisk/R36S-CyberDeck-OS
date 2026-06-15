@@ -16,6 +16,10 @@ export PATH
 # Garante que todos os applets do busybox existam como symlinks (idempotente).
 /bin/busybox --install -s 2>/dev/null
 
+# Coleta de hardware -> grava relatório na partição BOOT (lê-se no PC depois).
+# É a ponte para a Fase 3 (sem teclado no R36S, coletamos dados assim).
+[ -x /etc/init.d/collect-hwinfo.sh ] && /etc/init.d/collect-hwinfo.sh
+
 # Banner / status — é o sinal visual de que o NOSSO rootfs subiu.
 [ -f /etc/issue ] && cat /etc/issue
 echo

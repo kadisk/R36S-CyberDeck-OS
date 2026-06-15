@@ -13,15 +13,17 @@ Abordagem em fases. Cada fase tem um critério de "feito" verificável.
 - **Feito:** docs/hardware/* completos e confirmados pelo DTB/boot.ini reais.
 - Pendente menor (não bloqueia Fase 2): offset/origem do U-Boot antes da p1.
 
-## Fase 2 — Boot mínimo  ◄ **IMAGEM PRONTA; aguardando teste físico**
-- [x] Reproduzir esquema de partição (p1 BOOT FAT / p2 rootfs ext4) + bootloader.
-- [x] Reutilizar kernel/uInitrd/DTB do ArkOS; `boot.ini` de teste com logs visíveis.
+## Fase 2 — Boot mínimo  ◄ **CONCLUÍDA ✅ (boot confirmado no R36S físico)**
+- [x] Reproduzir esquema de partição + bootloader (via **clone do MBR/boot do ArkOS**).
+- [x] Reutilizar kernel/uInitrd/DTB do ArkOS; `boot.ini` próprio com logs visíveis
+      (`console=tty1`) e `root=UUID` da nossa rootfs.
 - [x] Rootfs mínimo próprio (BusyBox aarch64) com init/inittab/rcS/banner.
 - [x] Geração da imagem `.img` por script, sem root e sem gravar em `/dev/sdX`.
-- [ ] **Gravar em microSD e bootar no R36S físico** (checklist
-      `docs/testing/phase2-boot-checklist.md`).
-- **Feito quando:** o banner "R36S CyberDeck OS minimal rootfs" + shell aparecem
-  no R36S real (serial `ttyFIQ0` e/ou tela).
+- [x] **Boot confirmado no R36S físico** (2026-06-15) — ver
+      `docs/testing/results/phase2-2026-06-15.md`.
+- [x] Coleta automática de hardware no boot (grava na BOOT) para alimentar a Fase 3.
+- **Aprendizado-chave:** NÃO recriar o MBR (sfdisk não bootou — tela apagada);
+  **clonar o MBR+bootloader+FAT do ArkOS** e trocar só `boot.ini`+rootfs.
 
 ## Fase 3 — Tela e input
 - [ ] Painel MIPI-DSI `kd35t133` ativo (640×480) via DRM/KMS.

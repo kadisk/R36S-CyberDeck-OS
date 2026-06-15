@@ -102,7 +102,7 @@ build_tree() {
         cp -a "$ROOTFS_OVERLAY/." "$ROOTFS_DIR/"
         log "Overlay aplicado de board/r36s/rootfs-overlay/"
     fi
-    chmod 0755 "$ROOTFS_DIR/etc/init.d/rcS" 2>/dev/null || true
+    chmod 0755 "$ROOTFS_DIR"/etc/init.d/* 2>/dev/null || true
 
     mknod -m 600 "$ROOTFS_DIR/dev/console" c 5 1 2>/dev/null || true
     mknod -m 666 "$ROOTFS_DIR/dev/null"    c 1 3 2>/dev/null || true

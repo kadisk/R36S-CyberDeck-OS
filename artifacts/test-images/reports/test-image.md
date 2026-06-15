@@ -1,10 +1,10 @@
 # Imagem de teste — R36S CyberDeck OS (Fase 2)
 
-> Gerada por `scripts/create-test-sd-image.sh --clone` em 2026-06-15T00:24:21-03:00.
+> Gerada por `scripts/create-test-sd-image.sh --clone` em 2026-06-15T00:38:41-03:00.
 
 - Arquivo: `/home/kadisk/Workspaces/Workspace_RS36S/R36S-CyberDeck-OS/artifacts/test-images/r36s-cyberdeck-minimal.img`
 - Tamanho: 403701760 bytes
-- sha256: `d9df6b99ce4c033121d4d0c4eafc2ace3d7629510e497113eced9236068e740b`
+- sha256: `3746499257e52084729e64db5665e24c95586ecdf300d18ea88bbea15cc3a008`
 - Estratégia de boot: MBR+bootloader+FAT clonados do ArkOS (byte-a-byte); boot.ini e rootfs trocados
 - rootfs UUID: `c1be7dec-0de0-4a17-9f3a-7e5b00c0de36` (casa com root=UUID do boot.ini)
 - rootfs gravada no setor: 262144

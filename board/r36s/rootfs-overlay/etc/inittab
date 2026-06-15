@@ -5,11 +5,10 @@
 ::sysinit:/etc/init.d/rcS
 
 # Shell no console serial de debug (ttyFIQ0) e na tela (tty1 = framebuffer).
+# Confirmados funcionando no R36S (2026-06-15). Sem o respawn genérico sem tty
+# (ele gerava "can't access tty; job control turned off").
 ttyFIQ0::respawn:-/bin/sh
 tty1::respawn:-/bin/sh
-
-# Rede de segurança: shell no console que o kernel entregou (seja qual for).
-::respawn:-/bin/sh
 
 # Encerramento limpo:
 ::ctrlaltdel:/sbin/reboot
