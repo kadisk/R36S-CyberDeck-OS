@@ -1,0 +1,22 @@
+# systemd unit — lança a CyberDeck UI (HTML/JS) via cog (WPE) no boot. Fase 4.
+# Instalar em /etc/systemd/system/ no rootfs Debian (build-web-rootfs.sh faz isso).
+
+[Unit]
+Description=R36S CyberDeck UI (cog / WPE WebKit, kiosk)
+After=systemd-user-sessions.service dev-dri-card0.device
+Wants=dev-dri-card0.device
+Conflicts=getty@tty1.service
+After=getty@tty1.service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/start-cyberdeck-cog.sh
+Restart=always
+RestartSec=2
+TTYPath=/dev/tty1
+StandardInput=tty
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

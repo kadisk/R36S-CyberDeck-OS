@@ -4,6 +4,21 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added — 2026-06-15 — Fase 4 (scaffolding): runtime web WPE/cog
+- Plano `docs/web-ui/phase4-wpe-plan.md`: rootfs Debian arm64 + `cog`/`wpewebkit`
+  + libMali (do ArkOS) renderizando a UI HTML/JS no DRM (`/dev/dri/card0`).
+  Sub-etapas 4a (Debian boota) → 4b (Mali EGL + cog) → 4c (UI em kiosk).
+- `scripts/build-web-rootfs.sh` (root): debootstrap Debian bookworm arm64 (2
+  estágios, qemu) + instala `cog`+WPE + cyberdeck-ui + serviço; `--package` gera a
+  `.img` (clone do boot ArkOS, p2 maior, rootfs por UUID).
+- `scripts/extract-arkos-mali.sh` (root): extrai `libMali.so` (EGL/GLES/GBM) do
+  rootfs ArkOS (ro) para `artifacts/arkos-reference/mali/` — provedor EGL da Mali-G31.
+- `runtime/scripts/start-cyberdeck-cog.sh` + `runtime/services/cyberdeck-cog.service`:
+  lançam `cog --platform=drm` com a UI em 640x480.
+- Confirmado: Debian bookworm tem `cog`/WPE p/ arm64. **Nada disso roda no rootfs
+  BusyBox atual** — é a virada para um rootfs completo. EGL/Mali é o risco a validar
+  no aparelho.
+
 ### Added — 2026-06-15 — Fase 3: ações A/B (MENU ↔ DETALHE) + seções
 - `cyberdeck-fb`: navegação em **dois níveis** — **A** abre a seção (tela cheia de
   detalhe), **B** volta ao menu. Seções preenchidas:

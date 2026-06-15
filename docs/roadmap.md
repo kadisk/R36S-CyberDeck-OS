@@ -35,10 +35,16 @@ Abordagem em fases. Cada fase tem um critério de "feito" verificável.
 - [ ] (futuro) double-buffering via KMS (`/dev/dri/card0`) p/ evitar flicker.
 - **Confirmado:** UI na tela navegável pelos botões do R36S (2026-06-15).
 
-## Fase 4 — Runtime web
-- [ ] Escolher runtime (WPE WebKit preferido — ver `docs/web-ui/runtime-options.md`).
-- [ ] Renderizar uma página HTML em fullscreen no aparelho.
-- **Feito quando:** `index.html` aparece em kiosk no R36S.
+## Fase 4 — Runtime web (WPE)  ◄ **EM ANDAMENTO (scaffolding pronto)**
+Plano detalhado: `docs/web-ui/phase4-wpe-plan.md`. Exige trocar o rootfs BusyBox
+por um **Debian arm64 + cog/wpewebkit + libMali (do ArkOS)**. Sub-etapas:
+- [ ] **4a** — rootfs Debian arm64 boota no R36S (`scripts/build-web-rootfs.sh`).
+- [ ] **4b** — Mali EGL/GLES (`scripts/extract-arkos-mali.sh`) + `cog` abre DRM.
+- [ ] **4c** — `cog` renderiza `cyberdeck-ui/index.html` em kiosk
+      (`runtime/scripts/start-cyberdeck-cog.sh` + `cyberdeck-cog.service`).
+- **Feito quando:** `index.html` aparece em kiosk no R36S, navegável por botões.
+- **Risco-chave:** EGL/Mali (blob antigo × cog novo) — validável só no aparelho.
+  Fallbacks: cage (Wayland), Chromium, ou manter o renderizador nativo `cyberdeck-fb`.
 
 ## Fase 5 — UI CyberDeck
 - [ ] Seções: terminal, CPU/RAM, rede, bateria, relógio, logs, comandos, device.
