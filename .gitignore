@@ -53,3 +53,4 @@ dist/
 /scripts/sdcard/authorized-cards.tsv
 /scripts/sdcard/images.tsv
 /scripts/sdcard/bindings.tsv
+/artifacts/mainline/custom-dtb/
