@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# sd-flash.sh — grava uma imagem .img num cartão AUTORIZADO (dd seguro). PRECISA SUDO.
+# Recusa cartão não-autorizado ou que falhe nas checagens de segurança.
+#
+# Uso: sudo scripts/sdcard/sd-flash.sh /dev/sdX caminho/imagem.img
+set -eu
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/sdcard-lib.sh"
+
+DEV="${1:-}"; IMG="${2:-}"
+[ -n "$DEV" ] && [ -n "$IMG" ] || die "uso: sudo $0 /dev/sdX imagem.img"
+[ "$(id -u)" -eq 0 ] || die "precisa de root: sudo $0 $DEV $IMG"
+[ -b "$DEV" ] || die "não é device de bloco: $DEV"
+[ -f "$IMG" ] || die "imagem não encontrada: $IMG"
+
+say "============================ GRAVAR SD ============================"
+say "AÇÃO  : gravar imagem no cartão (dd, apaga todo o conteúdo do cartão)"
+say "IMAGEM: $IMG"
+say "  tamanho: $(sd_human_size "$(stat -c %s "$IMG")")"
+say "  sha256 : $(sha256sum "$IMG" | cut -d' ' -f1)"
+sd_require_writable "$DEV"
+
+# desmonta partições do cartão (se o automount montou)
+for p in $(lsblk -nro NAME "$DEV" | tail -n +2); do umount "/dev/$p" 2>/dev/null || true; done
+
+say "Gravando $IMG -> $DEV ..."
+dd if="$IMG" of="$DEV" bs=4M conv=fsync status=progress
+sync
+ok "GRAVAÇÃO CONCLUÍDA em $DEV ('$SD_NAME'). Pode inserir no R36S."
+say "RESULTADO: sucesso"

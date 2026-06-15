@@ -48,3 +48,6 @@ dist/
 # Editores / SO
 *.swp
 .DS_Store
+
+# Allowlist de cartões SD (identidade de hardware local)
+/scripts/sdcard/authorized-cards.tsv
