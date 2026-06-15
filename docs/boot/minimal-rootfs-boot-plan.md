@@ -52,14 +52,23 @@ de ~setor 16384 — **antes** da partição p1. Uma imagem recém-criada não te
 leitura) para a imagem de teste, preservando nosso MBR (setor 0). Sem essa região,
 **o R36S não inicia**.
 
-## O initramfs do ArkOS (uInitrd)
+## O initramfs do ArkOS (uInitrd) — INSPECIONADO
 
 - Formato: uImage U-Boot encapsulando um **cpio newc comprimido em LZ4 (legacy
-  frame, magic `02 21 4c 18`)**. Para inspecionar: instalar `lz4`, remover o
-  cabeçalho de 64 bytes, `lz4 -d`, depois `cpio -idmv`.
-- **Premissa:** como todo initramfs de distro, ele lê `root=` do cmdline, aguarda
-  o dispositivo (`rootwait`), monta e faz `switch_root` para `/sbin/init`. Por isso
-  basta trocar a UUID. (Premissa a confirmar no 1º boot físico.)
+  frame, magic `02 21 4c 18`)**. Descompactado com `lz4 -d` (sem o cabeçalho de
+  64 bytes) → `cpio -idmv`.
+- **Confirmado:** é um **initramfs-tools genérico** do Ubuntu (`/init`,
+  `/scripts/local`, `/conf`), **sem customização do ArkOS** — `conf/conf.d` vazio,
+  **nenhuma UUID embutida**, sem resize, só os scripts padrão (`fixrtc`, `resume`).
+  Ele **lê `root=` do `/proc/cmdline`**, resolve por `/dev/disk/by-uuid/<UUID>`
+  (udev), aguarda (`rootwait`) e faz `switch_root` para `${init}`. **Logo, trocar
+  só a UUID do `root=` é suficiente** — não precisa de initramfs próprio.
+- **ext4 compatível:** nosso rootfs usa o MESMO conjunto de features do rootfs
+  ArkOS (`64bit`, `metadata_csum`, `extent`, …) que o kernel 4.4 comprovadamente
+  monta — então não há incompatibilidade de features.
+- **Bootloader idêntico:** a região copiada (setores 64..32767) é **byte a byte
+  igual** à do ArkOS (idbloader em 64, `LOADER`/U-Boot em 16384, `BL3X`/trust em
+  24576). Portanto U-Boot e kernel são os mesmos que já bootam o ArkOS.
 
 ### Plano B (se o uInitrd não fizer switch_root para o nosso rootfs)
 

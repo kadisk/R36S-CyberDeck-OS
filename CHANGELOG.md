@@ -4,6 +4,18 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Fixed — 2026-06-15 — Fase 2: visibilidade de boot na tela (1º teste físico)
+- 1º flash no R36S não exibiu boot. Diagnóstico estático: U-Boot/kernel são
+  **byte a byte iguais ao ArkOS** (bootloader copiado confere sha256; `LOADER`@16384,
+  `BL3X`@24576), o `uInitrd` é **initramfs-tools genérico** (lê `root=UUID`, sem
+  UUID embutida, faz switch_root) e o ext4 usa as MESMAS features do rootfs ArkOS
+  (mountável pelo 4.4). Causa provável do "tela preta": o kernel logava só em
+  `console=/dev/ttyFIQ0` (serial), invisível sem cabo.
+- **Correção:** `boot.ini` agora inclui `console=tty1` (além de ttyFIQ0) → log do
+  kernel, banner e shell aparecem **na tela** do R36S. Imagem regerada.
+- Docs: checklist ganhou tabela "o que aparece na tela → conclusão" e passo de
+  isolar aparelho/slot (R36S tem 2 slots; o ArkOS original deve bootar no mesmo).
+
 ### Added — 2026-06-14 — Fase 2: boot mínimo experimental (imagem de teste)
 - **Imagem de SD de teste gerável por script**, sem root e sem gravar em `/dev/sdX`:
   `scripts/create-test-sd-image.sh` → `artifacts/test-images/r36s-cyberdeck-minimal.img`

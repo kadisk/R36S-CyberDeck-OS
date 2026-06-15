@@ -42,6 +42,29 @@ ArkOS. Marque cada item ao testar; anote evidências.
 - [ ] **init executa** (BusyBox init → rcS → banner).
 - [ ] **Shell abre** e responde a comandos.
 
+## Diagnóstico do 1º teste (sem cabo serial)
+
+Como U-Boot, kernel, initramfs e ext4 estão **comprovadamente corretos** (idênticos
+ao ArkOS / genéricos), se "não bootar" o passo-chave é **ver onde para**. Por isso o
+`boot.ini` agora tem `console=tty1` → o **log do kernel aparece na TELA**.
+
+Ao reflashar e ligar, observe a tela e classifique:
+
+| O que aparece na tela | Conclusão | Próximo passo |
+|------------------------|-----------|---------------|
+| **Nada / tela apagada, sem backlight** | U-Boot não rodou OU slot errado | confirmar slot (ver abaixo) e gravação |
+| **Backlight liga, tela preta, sem texto** | U-Boot rodou, mas kernel não carregou (FAT/`mmc 1:1`/slot) | testar o outro slot; conferir boot.ini |
+| **Log do kernel rolando e para / "Kernel panic … VFS: Unable to mount root"** | kernel ok; falhou montar nossa raiz | fotografar a mensagem; ver Plano B |
+| **Log do kernel + "R36S CyberDeck OS … ROOTFS OK" + prompt** | ✅ **SUCESSO** | rodar as verificações do shell |
+
+**Isolar o aparelho/slot:** antes de culpar a imagem, confirme que o **cartão ArkOS
+original ainda boota** nesse mesmo R36S e no mesmo slot. Se o ArkOS boota e o nosso
+não, o problema está na nossa imagem (e a tabela acima diz onde). O R36S tem **2
+slots**; use o **mesmo** onde o ArkOS normalmente boota.
+
+> Dica: **fotografe a tela** no ponto em que travar e me mande — a última linha
+> costuma identificar a causa exata.
+
 ## Se NÃO bootar — triagem
 
 | Sintoma | Provável causa | Ação |
