@@ -4,6 +4,18 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added — 2026-06-15 — Fase 5 planejada: mainline + Panfrost (decisão)
+- Fase 4 (WPE com blob Mali) **bloqueada**: validado até a `index.html` CARREGAR no
+  cog DRM, mas segfault no swap de buffer; `cage`/wlroots nem carrega
+  (`undefined symbol: gbm_bo_get_offset`). Causa (objdump nos blobs): o **GBM do
+  blob Mali (2020) é antigo demais** (24 símbolos, sem `gbm_bo_get_offset`) p/ o
+  WPE/wlroots do bookworm. Documentado em `docs/testing/results/phase4-2026-06-15.md`.
+- **Decisão (escolha do usuário): Fase 5 — kernel mainline 6.x + Panfrost + Mesa**
+  (stack aberto, GBM/EGL modernos). Plano em
+  `docs/mainline/phase5-mainline-panfrost-plan.md`, fundamentado nas distros R36S
+  open-source (Arch-R 6.12 LTS, nixos-r36s 6.19+). Estratégia: reusar kernel+DTB
+  mainline (`rk3326-r36s.dtb`) + rootfs Debian Mesa Panfrost. Roadmap atualizado.
+
 ### Added — 2026-06-15 — Fase 4 (scaffolding): runtime web WPE/cog
 - Plano `docs/web-ui/phase4-wpe-plan.md`: rootfs Debian arm64 + `cog`/`wpewebkit`
   + libMali (do ArkOS) renderizando a UI HTML/JS no DRM (`/dev/dri/card0`).

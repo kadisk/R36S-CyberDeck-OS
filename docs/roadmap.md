@@ -35,16 +35,27 @@ Abordagem em fases. Cada fase tem um critério de "feito" verificável.
 - [ ] (futuro) double-buffering via KMS (`/dev/dri/card0`) p/ evitar flicker.
 - **Confirmado:** UI na tela navegável pelos botões do R36S (2026-06-15).
 
-## Fase 4 — Runtime web (WPE)  ◄ **EM ANDAMENTO (scaffolding pronto)**
-Plano detalhado: `docs/web-ui/phase4-wpe-plan.md`. Exige trocar o rootfs BusyBox
-por um **Debian arm64 + cog/wpewebkit + libMali (do ArkOS)**. Sub-etapas:
-- [ ] **4a** — rootfs Debian arm64 boota no R36S (`scripts/build-web-rootfs.sh`).
-- [ ] **4b** — Mali EGL/GLES (`scripts/extract-arkos-mali.sh`) + `cog` abre DRM.
-- [ ] **4c** — `cog` renderiza `cyberdeck-ui/index.html` em kiosk
-      (`runtime/scripts/start-cyberdeck-cog.sh` + `cyberdeck-cog.service`).
-- **Feito quando:** `index.html` aparece em kiosk no R36S, navegável por botões.
-- **Risco-chave:** EGL/Mali (blob antigo × cog novo) — validável só no aparelho.
-  Fallbacks: cage (Wayland), Chromium, ou manter o renderizador nativo `cyberdeck-fb`.
+## Fase 4 — Runtime web (WPE) com blob Mali  ◄ **BLOQUEADA (achado documentado)**
+Plano: `docs/web-ui/phase4-wpe-plan.md`. Resultado em
+`docs/testing/results/phase4-2026-06-15.md`.
+- [x] **4a** — rootfs **Debian arm64 bootou** no R36S.
+- [x] **4b** — Mali EGL/GLES wired; cog DRM **inicializa e a `index.html` CARREGA**.
+- [~] **4c** — bloqueado: cog DRM **segfaulta no swap de buffer**; `cage`/wlroots nem
+      carrega: o **blob Mali (2020) tem GBM antigo** (sem `gbm_bo_get_offset`),
+      incompatível com WPE/wlroots do bookworm. **Não há flag que resolva.**
+- **Conclusão:** web acelerada neste hardware exige driver Mali **aberto e moderno**
+  → ver Fase 5. (O renderizador nativo `cyberdeck-fb` segue como UI funcional.)
+
+## Fase 5 — Kernel mainline + Panfrost + Mesa  ◄ **PLANEJADA (caminho escolhido)**
+Plano: `docs/mainline/phase5-mainline-panfrost-plan.md`. Troca o BSP 4.4 + blob Mali
+por **mainline 6.x + Panfrost + Mesa** (GBM/EGL/GLES modernos) — aí o `cog`/`cage`
+renderiza a UI. Estratégia: **reusar kernel+DTB de distro R36S mainline** (Arch-R/
+nixos-r36s) + rootfs Debian Mesa Panfrost.
+- [ ] Obter Image + `rk3326-r36s.dtb` + módulos mainline.
+- [ ] BOOT mainline (boot.ini novo; testar U-Boot do ArkOS com kernel mainline).
+- [ ] Rootfs: remover blob Mali, instalar Mesa Panfrost + módulos do kernel.
+- [ ] `cage`+`cog --platform=wl` renderiza `cyberdeck-ui` (GBM do Mesa resolve).
+- [ ] Re-mapear joypad (mainline = gpio-keys/adc-joystick).
 
 ## Fase 5 — UI CyberDeck
 - [ ] Seções: terminal, CPU/RAM, rede, bateria, relógio, logs, comandos, device.
