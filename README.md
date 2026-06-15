@@ -1,142 +1,123 @@
 # R36S CyberDeck OS
 
-Uma distribuição Linux embarcada que transforma o **handheld R36S** (Rockchip
-RK3326) em um **CyberDeck portátil** — não em um console de jogos.
+Distribuição Linux embarcada que transforma o **handheld R36S** (Rockchip RK3326)
+num **CyberDeck portátil** — com uma interface em **HTML/CSS/JavaScript** rodando em
+**kiosk** direto no aparelho. **Não é distro de jogos**, não usa EmulationStation,
+não depende de emuladores.
 
-A interface principal é uma aplicação **HTML/CSS/JavaScript** rodando em
-**fullscreen/kiosk** diretamente sobre o hardware, sem desktop tradicional e sem
-EmulationStation.
+> ✅ **Funciona no R36S físico:** a UI web renderiza na tela e é **navegável pelo
+> gamepad**, com dados do sistema **ao vivo** (CPU, RAM, bateria, rede).
 
----
-
-## O que este projeto **é**
-
-- Uma distro Linux mínima e embarcada para o R36S.
-- Um **CyberDeck**: terminal, status do sistema, rede, scripts e ferramentas.
-- Uma UI feita em **HTML/JS**, renderizada em modo kiosk (640×480).
-- Pensada para bootar no **R36S físico** como alvo final.
-
-## O que este projeto **NÃO é**
-
-- ❌ Não é uma distro de jogos / emulação.
-- ❌ Não usa EmulationStation.
-- ❌ Não depende de emuladores ou cores RetroArch.
-- ❌ Não usa o ArkOS como rootfs final.
-- ❌ Não é o projeto `arkos-r36s-dev-lab` (laboratório separado, preservado).
-
-## Por que não é uma distro de jogos
-
-O objetivo é um dispositivo de **uso geral portátil** (cyberdeck): ferramentas de
-sistema, rede, scripts e uma UI própria. Jogos não são o foco; o hardware do R36S
-(tela pequena, gamepad, 2 slots microSD) é aproveitado para uma experiência de
-"computador de bolso hacker", não de console.
-
-## Por que o ArkOS é usado **apenas como referência**
-
-O R36S não tem documentação aberta completa. O ArkOS é uma distro que **já boota
-corretamente** neste hardware. Por isso ele é usado como **fonte de verdade sobre
-o hardware** — kernel, DTB, painel, input, PMIC, áudio, partições e fluxo de boot.
-
-> ⚠️ A imagem ArkOS é **somente leitura**. Nunca é modificada. Apenas inspecionada.
-
-A imagem de referência usada está em:
-
-```
-Backups/ArkOS/ArkOS_2.0_08232024_AeUX_backup_2026-06-03.img
-```
+A história de como se chegou aqui — e **as outras tentativas/imagens que não deram
+certo** — está em [`docs/JORNADA.md`](docs/JORNADA.md).
 
 ---
 
-## Hardware do R36S (resumo — ver `docs/hardware/`)
+## O que é
 
-| Componente   | Detalhe |
-|--------------|---------|
-| SoC          | Rockchip **RK3326** |
-| CPU          | 4× ARM Cortex-A35 (AArch64) |
-| RAM          | ~1 GB |
-| GPU          | ARM **Mali-G31** (Bifrost) |
-| Display      | Painel **MIPI-DSI** `elida,kd35t133`, **640×480**, backlight PWM |
-| PMIC         | **RK817** (power-key, gpio, áudio, bateria, carga) |
-| Áudio        | `rk817-codec` |
-| Input        | **odroidgo2-joypad** (16 botões GPIO + 2 analógicos via SARADC) |
-| Armazenamento| 2× microSD (`mmcblk0` SO + `mmcblk1` dados) via dwmmc_rockchip |
-| DTB ativo    | `rk3326-r35s-linux.dtb` → `rockchip,rk3326-odroidgo3-linux` |
-| Kernel ArkOS | Linux 4.4.189 (BSP Rockchip) |
+- Uma distro Linux enxuta para o R36S, cuja cara é uma **UI web própria** (640×480).
+- Um **CyberDeck**: status do sistema, rede, ferramentas, logs — não um console.
+- A UI ([`cyberdeck-ui/`](cyberdeck-ui/)) é HTML/JS sem dependências, em modo kiosk.
 
-> Sem Wi-Fi/Ethernet internos — rede só via dongle USB (OTG/dwc2).
+## Base e como ela foi montada
+
+A versão que funciona combina **três decisões** descobertas na prática (ver
+[`docs/JORNADA.md`](docs/JORNADA.md) para o porquê de cada uma):
+
+| Camada | Escolha | Por quê |
+|--------|---------|---------|
+| **Boot** | Região de boot **clonada do ArkOS** (U-Boot + **kernel BSP 4.4** + `rk3326-r35s-linux.dtb`) | **Só o kernel+DTB BSP acende o painel** deste lote (mainline não sobe) |
+| **Rootfs** | **Debian bookworm arm64** (debootstrap) | base limpa e atual, sem herdar o ArkOS |
+| **Tela** | **Xorg** com driver **fbdev** em `/dev/fb0` (render por software) | evita Wayland/GBM do blob Mali (antigo demais) |
+| **UI** | **Chromium `--kiosk`** abrindo `file://…/cyberdeck-ui` | navegador padrão, software rendering basta p/ UI leve |
+| **Input** | **Gamepad API** do Chromium (joypad direto) | dispensa uinput/teclado virtual |
+| **Dados** | **`cyberdeck-agent`** (servidor HTTP em C, JSON de `/proc`+`/sys`) | UI viva via `fetch`, sem deps pesadas |
+
+Pipeline de construção ([`scripts/build-x11-rootfs.sh`](scripts/build-x11-rootfs.sh)):
+
+```
+debootstrap Debian bookworm arm64 (2 estágios, qemu-aarch64-static)
+  → instala xserver-xorg (fbdev) + chromium + zram + a cyberdeck-ui
+  → compila e instala cyberdeck-agent (dados do sistema)
+  → clona a região de boot do ArkOS (MBR + bootloader + FAT) byte-a-byte
+  → escreve nosso boot.ini (root=UUID, console=tty1) + DTB do painel
+  → empacota .img (ext4 por UUID) e registra a imagem como 'x11'
+```
+
+> ⚠️ O ArkOS é usado **somente como referência de boot/hardware** — a imagem é
+> **somente leitura** e nunca é modificada. O rootfs final é Debian, não ArkOS.
 
 ---
 
-## Plano técnico (resumo — ver `docs/architecture.md` e `docs/roadmap.md`)
+## Hardware do R36S (resumo — ver [`docs/hardware/`](docs/hardware/))
 
-```
-Bootloader → Kernel + DTB R36S → Rootfs mínimo →
-DRM/KMS / Wayland kiosk → Runtime Web → CyberDeck UI (HTML/JS)
-```
+| Componente | Detalhe |
+|---|---|
+| SoC | Rockchip **RK3326** · 4× Cortex-A35 (AArch64) |
+| RAM | ~1 GB (zram ativo p/ alívio) |
+| GPU | ARM **Mali-G31** (blob antigo — sem GL aberto utilizável) |
+| Display | Painel MIPI-DSI **`elida,kd35t133`**, **640×480**, backlight PWM |
+| PMIC / Áudio | **RK817** (power, bateria, carga) · `rk817-codec` |
+| Input | **odroidgo3-joypad** (`/dev/input/event1`) |
+| Kernel | Linux **4.4.189** (BSP Rockchip, do boot ArkOS) |
 
-Base de construção planejada: **Buildroot** (ver `docs/buildroot/strategy.md`).
-
-## Alvo final
-
-O **R36S físico**. QEMU é usado **apenas** como ferramenta auxiliar de
-desenvolvimento — nunca como alvo final (limitações documentadas em
-`docs/testing/`).
+Sem Wi-Fi/Ethernet internos — rede só via **dongle USB**.
 
 ---
 
-## Como inspecionar a imagem ArkOS (read-only)
+## Como construir e gravar
+
+Pré-requisitos no host: `debootstrap`, `qemu-aarch64-static` (+binfmt),
+`aarch64-linux-gnu-gcc`, `mtools`. As ações que mexem em cartão são **scripts
+`sudo` separados** e seguras (allowlist + fingerprint do cartão).
 
 ```bash
-# 1) Layout de partições + relatório (não precisa sudo, não monta)
-scripts/inspect-arkos-image.sh
+# 1) Construir a imagem (usa todos os cores do host)
+sudo scripts/build-x11-rootfs.sh          # gera a .img e registra a imagem 'x11'
 
-# 2) Montar p1/p2 somente leitura (precisa sudo)
-sudo scripts/mount-arkos-readonly.sh
-#    ... inspecionar mnt/arkos/boot e mnt/arkos/rootfs ...
-sudo scripts/mount-arkos-readonly.sh umount
-
-# 3) Extrair kernel/DTB/boot configs para artifacts/
-sudo scripts/extract-arkos-boot-artifacts.sh
-
-# 4) Decodificar DTBs -> docs/hardware/device-tree-analysis.md
-scripts/identify-r36s-dtb.sh
+# 2) Autorizar seu microSD DE TESTE (uma vez) e gravar por NOME
+sudo scripts/sdcard/sd-allow.sh           # registra o cartão na allowlist
+sudo scripts/sdcard/sd-update.sh <cartao> x11   # grava a imagem 'x11' no cartão
 ```
 
-## Fase 2 — boot mínimo experimental (gerar cartão de teste)
-
-Prova de que um **rootfs nosso** boota no R36S, reutilizando o boot do ArkOS
-(kernel/uInitrd/DTB/U-Boot) mas com `root=` apontando para uma p2 ext4 própria
-(BusyBox + shell). Sem UI/WPE/Cage ainda.
+Iteração rápida (sem regravar 4 GB):
 
 ```bash
-# Gera artifacts/test-images/r36s-cyberdeck-minimal.img (não grava em cartão)
-scripts/create-test-sd-image.sh
-
-# Mostra lsblk + o comando dd recomendado (também não grava)
-scripts/print-flash-command.sh
+sudo scripts/sdcard/sd-update-ui.sh <cartao>    # empurra só a UI (HTML/JS) p/ o cartão
 ```
 
-Depois, **você** grava em um microSD **de teste** (nunca o ArkOS):
+Kit de SD completo em [`scripts/sdcard/`](scripts/sdcard/) (ver o README de lá): grava
+por **nome do cartão** (descobre o `/dev/sdX` sozinho), recusa discos não-removíveis e
+do sistema, e nunca toca no cartão do ArkOS.
 
-```bash
-sudo dd if=artifacts/test-images/r36s-cyberdeck-minimal.img of=/dev/sdX bs=4M status=progress conv=fsync
-```
+---
 
-Detalhes: `docs/boot/minimal-rootfs-boot-plan.md`,
-`docs/boot/sd-card-test-layout.md`, `docs/testing/phase2-boot-checklist.md`.
-A imagem ArkOS permanece **somente leitura** (dela só copiamos a região de
-bootloader RK3326).
+## Controles (navegação pelo gamepad)
+
+| Botão | Ação |
+|---|---|
+| **L1 / R1** e **D-pad ← →** | trocar de aba |
+| **D-pad ↑ ↓** | mover foco no menu |
+| **A** / **Start** | confirmar |
+| **B** / **Select** | voltar pro STATUS |
+
+A aba **TECLAS** mostra um dump ao vivo de botões/eixos (diagnóstico de input).
+
+---
 
 ## Estrutura do repositório
 
 ```
-docs/          documentação (hardware, boot, gráficos, web-ui, buildroot, testing)
-scripts/       inspeção da imagem ArkOS + utilitários de SD/flash
-artifacts/     artefatos extraídos do ArkOS (referência) + relatórios
-board/r36s/    arquivos específicos da placa (boot, overlays, rootfs-overlay)
-buildroot/     defconfig + external tree (planejado)
-cyberdeck-ui/  aplicação web (HTML/CSS/JS) — a interface do CyberDeck
-runtime/       serviço systemd + scripts de inicialização da UI
+cyberdeck-ui/    UI web (HTML/CSS/JS) — a cara do CyberDeck
+cyberdeck-agent/ agente de dados do sistema (servidor HTTP em C → JSON)
+cyberdeck-fb/    UI nativa alternativa (renderizador 2D em C no framebuffer)
+scripts/         build-x11-rootfs.sh + inspeção do ArkOS + kit de SD (sdcard/)
+runtime/         serviços systemd + scripts de inicialização (Xorg/kiosk/agent)
+board/r36s/      arquivos da placa (boot.ini, overlays)
+artifacts/       artefatos de referência extraídos do ArkOS (boot/DTB)
+docs/            documentação + JORNADA.md (como chegamos aqui, becos sem saída)
+experiments/     tentativas que NÃO entraram (Wayland/Mali, mainline, uinput)
 ```
 
-Ver `CHANGELOG.md` para o histórico e `docs/roadmap.md` para as próximas fases.
+Histórico em [`CHANGELOG.md`](CHANGELOG.md); jornada completa e tentativas em
+[`docs/JORNADA.md`](docs/JORNADA.md).

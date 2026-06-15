@@ -57,40 +57,23 @@ imagem `x11`). Detalhes/lições: `docs/testing/results/phase5-x11-2026-06-15.md
       ↑=8,↓=9,←=10,→=11,Select=12,Start=13,Fn=16. **Não precisou de uinput.**
       Diagnóstico: aba **TECLAS** (dump ao vivo de botões/eixos). Push sem rebuild:
       `sd-update-ui.sh`. (A ponte `cyberdeck-input`/uinput ficou dispensável.)
-- [ ] Dados ao vivo + brilho na UI.
-Becos sem saída documentados (não apagar — são conhecimento): web por Wayland/cog
-travou no GBM do blob Mali (Fase 4); mainline+Panfrost não dirige o painel deste
-lote (`docs/testing/results/phase4-2026-06-15.md`, `phase5-mainline-panfrost-plan.md`).
+- [x] **Navegável pelo gamepad** (Gamepad API; mapa confirmado no aparelho).
+- [x] **Dados ao vivo na UI** (`cyberdeck-agent`: CPU/RAM/load/uptime/temp/bateria/
+      brilho/rede via JSON; `app.js` faz `fetch` a cada 2 s).
+- **Feito quando:** ✅ UI web na tela, navegável pelos botões, com dados ao vivo.
 
-## Fase 5b — (arquivada) Kernel mainline + Panfrost + Mesa
-Plano: `docs/mainline/phase5-mainline-panfrost-plan.md`. Troca o BSP 4.4 + blob Mali
-por **mainline 6.x + Panfrost + Mesa** (GBM/EGL/GLES modernos) — aí o `cog`/`cage`
-renderiza a UI. Estratégia: **reusar kernel+DTB de distro R36S mainline** (Arch-R/
-nixos-r36s) + rootfs Debian Mesa Panfrost.
-- [ ] Obter Image + `rk3326-r36s.dtb` + módulos mainline.
-- [ ] BOOT mainline (boot.ini novo; testar U-Boot do ArkOS com kernel mainline).
-- [ ] Rootfs: remover blob Mali, instalar Mesa Panfrost + módulos do kernel.
-- [ ] `cage`+`cog --platform=wl` renderiza `cyberdeck-ui` (GBM do Mesa resolve).
-- [ ] Re-mapear joypad (mainline = gpio-keys/adc-joystick).
+> A narrativa completa (todas as tentativas e becos sem saída) está em
+> [`JORNADA.md`](JORNADA.md). Os caminhos descartados (Wayland/Mali, mainline/Panfrost,
+> ponte uinput) viraram conhecimento documentado e o código foi para `experiments/`.
 
-## Fase 5 — UI CyberDeck
-- [ ] Seções: terminal, CPU/RAM, rede, bateria, relógio, logs, comandos, device.
-- [ ] Navegação por botões/teclado.
-- [ ] Camada de dados do sistema (`/proc`, `/sys`, rk817).
-- **Feito quando:** UV utilizável só com os botões do R36S.
+---
 
-## Fase 6 — Buildroot image
-- [ ] `r36s_cyberdeck_defconfig` gera imagem de SD completa.
-- [ ] BR2_EXTERNAL com pacotes da UI + runtime + serviço.
-- **Feito quando:** `make` produz `cyberdeck-os.img` flashável.
-
-## Fase 7 — Teste em SD card
-- [ ] Gravar SD e bootar no R36S real.
-- [ ] Plano de teste de `docs/testing/r36s-physical-test-plan.md` executado.
-- **Feito quando:** checklist de teste físico passa.
-
-## Fase 8 — Otimização
-- [ ] Tempo de boot, consumo, brilho, suspensão, leitura de bateria.
-
-## Fase 9 — Substituição completa da base ArkOS
-- [ ] Rootfs 100% próprio; ArkOS deixa de ser necessário até como referência.
+## Próximos passos (melhorias sobre a versão que funciona)
+- [ ] Brilho ajustável pela UI (escrever em `/sys/class/backlight/.../brightness`
+      via uma ação do agente).
+- [ ] Terminal real na aba TERMINAL (ponte pty/WebSocket).
+- [ ] Otimizar boot (tempo, serviços) e RAM (zram já ativo).
+- [ ] Ações de FERRAMENTAS (Wi-Fi dongle, reiniciar UI, desligar) ligadas ao agente.
+- [ ] (futuro) Empacotamento reproduzível por Buildroot (`docs/buildroot/strategy.md`).
+- [ ] (futuro, difícil) Rootfs 100% sem depender do boot ArkOS — exige resolver o
+      painel fora do kernel BSP (hoje só o BSP acende). Ver [`JORNADA.md`](JORNADA.md).

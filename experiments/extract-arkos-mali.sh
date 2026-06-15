@@ -8,7 +8,7 @@
 #
 set -eu
 SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-. "$SELF_DIR/phase2-config.sh"
+. "$SELF_DIR/../scripts/phase2-config.sh"
 
 log() { echo "[mali] $*"; }
 die() { echo "[mali][ERRO] $*" >&2; exit 1; }

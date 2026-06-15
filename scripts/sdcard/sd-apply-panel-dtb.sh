@@ -13,7 +13,7 @@ DTB="$REPO/artifacts/mainline/custom-dtb/rk3326-gameconsole-r36s.dtb"
 CARD="${1:-}"
 [ -n "$CARD" ] || die "uso: sudo $0 <nome-do-cartao | /dev/sdX>"
 [ "$(id -u)" -eq 0 ] || die "precisa de root: sudo $0 $CARD"
-[ -f "$DTB" ] || die "DTB do painel não encontrado: $DTB  (rode: scripts/build-panel-dtb.sh)"
+[ -f "$DTB" ] || die "DTB do painel não encontrado: $DTB  (rode: experiments/build-panel-dtb.sh)"
 sd_resolve_device "$CARD" || exit 1
 DEV="$SD_DEV"
 

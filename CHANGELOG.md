@@ -4,6 +4,29 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Changed — 2026-06-15 — Consolidação: foco na versão que funciona + jornada documentada
+- **README.md (raiz) reescrito** focado na distro funcional: o que é, **base**
+  (Debian bookworm + boot BSP clonado do ArkOS + Xorg fbdev + Chromium + Gamepad API
+  + cyberdeck-agent) e **como foi montada** (pipeline do `build-x11-rootfs.sh`).
+- **`docs/JORNADA.md`**: narrativa completa de TODAS as tentativas (Fases 1→5), o que
+  funcionou e o que falhou **e por quê** — para futuros testes/melhorias.
+- **`experiments/`**: scripts dos becos sem saída movidos p/ lá (Wayland/cog/Mali da
+  Fase 4; mainline/Panfrost da 5b; ponte uinput) com README explicando cada um.
+  `scripts/` enxuto, focado no caminho final. Roadmap reescrito (sem fases duplicadas).
+
+### Added — 2026-06-15 — UI viva: dados do sistema ao vivo (cyberdeck-agent)
+- **`cyberdeck-agent`** (servidor HTTP em C, aarch64 estático) em `127.0.0.1:8080`:
+  lê `/proc` + `/sys` (rk817) e devolve JSON (CPU%/RAM/load/uptime/temp/bateria/
+  brilho/rede) com CORS liberado. `app.js` faz `fetch` a cada 2 s e atualiza
+  STATUS/REDE/topbar. UI segue por `file://` (sempre renderiza). Validado via qemu.
+
+### Added — 2026-06-15 — UI navegável pelo gamepad (Gamepad API) + aba TECLAS
+- Navegação **direta pela Gamepad API** do Chromium (dispensa uinput). Mapa do joypad
+  confirmado no aparelho: A=1,X=2,Y=3,L1=4,R1=5,R2=6,↑=8,↓=9,←=10,→=11,Select=12,
+  Start=13,Fn=16,B=0. L1/R1+D-pad ←→ = abas; ↑↓ = foco; A/Start = ok; B/Select = voltar.
+- Aba **TECLAS**: dump ao vivo de teclas/botões/eixos (diagnóstico de input).
+- `sd-update-ui.sh`: empurra só a UI (HTML/JS) no cartão por nome, sem rebuild.
+
 ### Added — 2026-06-15 — Fase 5 VENCIDA: UI web na tela do R36S (BSP + X11 + Chromium) 🎉
 - **A CyberDeck UI (HTML/JS) renderiza no R36S físico!** Objetivo web original
   alcançado. Caminho: kernel BSP 4.4 (painel acende, via clone do boot ArkOS) +

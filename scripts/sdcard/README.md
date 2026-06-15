@@ -25,19 +25,15 @@ scripts/sdcard/sd-cards.sh
 # 2) autorizar um cartão de teste — passo humano, aponta o device físico (sem sudo)
 scripts/sdcard/sd-allow.sh /dev/sdX "cartao-teste-r36s"
 
-# 2b) registrar a imagem por APELIDO (uma vez; sem sudo)
-scripts/sdcard/sd-image.sh add mainline artifacts/test-images/r36s-cyberdeck-mainline.img
+# (a imagem 'x11' — a versão final — é registrada pelo build-x11-rootfs.sh)
 scripts/sdcard/sd-image.sh list
 
 # 3) ATUALIZAR o cartão pela dupla de NOMES — sem dd, sem caminhos (sudo)
-sudo scripts/sdcard/sd-update.sh cartao-teste-r36s mainline   # grava e memoriza o vínculo
+sudo scripts/sdcard/sd-update.sh cartao-teste-r36s x11        # grava e memoriza o vínculo
 sudo scripts/sdcard/sd-update.sh cartao-teste-r36s            # da 2a vez, usa a imagem vinculada
 
-# (alternativa de baixo nível: gravar passando o caminho do .img)
-sudo scripts/sdcard/sd-flash.sh cartao-teste-r36s artifacts/test-images/r36s-cyberdeck-mainline.img
-
-# 3b) OU só editar o boot (rw + verboso) sem regravar a imagem (sudo)
-sudo scripts/sdcard/sd-edit-extlinux.sh cartao-teste-r36s
+# 3b) iterar só a UI web (HTML/JS) sem regravar a imagem (sudo)
+sudo scripts/sdcard/sd-update-ui.sh cartao-teste-r36s
 
 # 4) remover da lista quando quiser (sem sudo)
 scripts/sdcard/sd-revoke.sh cartao-teste-r36s   # ou pela fingerprint
@@ -67,9 +63,15 @@ sudo scripts/sdcard/sd-edit-extlinux.sh cartao-teste-r36s && echo "ok, pode boot
 | `sd-revoke.sh <fp\|nome>` | não | remove da lista |
 | `sd-image.sh add/list/rm` | não | registra imagens por apelido |
 | `sd-update.sh <cartao> [imagem]` | **sim** | grava imagem (apelido) no cartão (nome); memoriza o vínculo |
+| `sd-update-ui.sh <cartao>` | **sim** | atualiza só a UI web (`cyberdeck-ui/public`) sem regravar |
 | `sd-flash.sh <cartao\|/dev/sdX> img` | **sim** | grava imagem por caminho (baixo nível) |
 | `sd-edit-extlinux.sh <cartao\|/dev/sdX>` | **sim** | aplica extlinux (rw+verboso) na BOOT |
 | `sdcard-lib.sh` | — | biblioteca (sourced) |
+
+**Experimentais (não usados na versão final):** `sd-apply-panel-dtb.sh`,
+`sd-fix-panel-dtb.sh`, `sd-try-panel-overlay.sh`, `sd-grab-panel-overlay.sh` — foram
+para forçar o painel em imagens mainline/MultiPanel (que não sobem neste lote). Ver
+[`../../docs/JORNADA.md`](../../docs/JORNADA.md).
 
 Arquivos locais (gitignored): `authorized-cards.tsv` (cartões), `images.tsv`
 (apelidos de imagem), `bindings.tsv` (cartão→imagem).

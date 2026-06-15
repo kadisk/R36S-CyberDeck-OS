@@ -27,7 +27,7 @@ initrd.img*
 /cyberdeck-fb/build/
 
 # Binários compilados (regeráveis via build.sh de cada um)
-/cyberdeck-input/cyberdeck-input
+/experiments/cyberdeck-input/cyberdeck-input
 /cyberdeck-agent/cyberdeck-agent
 
 # Fase 5: artefatos mainline grandes (imagem Arch-R, kernel, módulos). Texto versionado.
