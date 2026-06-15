@@ -1,4 +1,4 @@
-# Offsets de partição (bytes) — gerado em 2026-06-14T21:40:56-03:00
+# Offsets de partição (bytes) — gerado em 2026-06-14T21:44:27-03:00
 # offset = início_em_setores * 512
 
 p1: start_sector=32768 offset_bytes=16777216 size_bytes=117440512  (32768 262143 229376 112M b FAT32 W95)

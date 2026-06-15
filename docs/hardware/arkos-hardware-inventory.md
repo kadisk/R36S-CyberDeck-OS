@@ -14,6 +14,8 @@
 | SoC         | Rockchip **RK3326** | DT |
 | CPU         | 4× ARM **Cortex-A35** (AArch64, `410fd042`) | DT/boot |
 | RAM         | **~1 GB** (`~900 MB` disponível) | boot `Memory:` |
+| Kernel      | **Linux 4.4.189** (`#192 SMP 2025-07-09`, gcc Linaro 7.3) | banner do `Image` |
+| Console dbg | **`/dev/ttyFIQ0`** (FIQ debugger RK3326) | `boot.ini` |
 | Nº de série | `0e0e2dee6de7344f` | rockchip-cpuinfo |
 
 ## Gráficos
@@ -47,7 +49,7 @@
 
 | Componente | Detalhe |
 |------------|---------|
-| Gamepad    | **odroidgo2-joypad**: 16 botões GPIO (sw1–sw16) + 2 eixos analógicos |
+| Gamepad    | DTB ativo: **`odroidgo3-joypad`** ("GO-Super Gamepad") — **17 botões GPIO** + 2 eixos analógicos. Mapa completo em `input-buttons.md`. |
 | ADC        | `rockchip-saradc` `ff288000.saradc` (lê os analógicos; cal adc0=824, adc1=977) |
 
 ## Armazenamento
@@ -70,7 +72,7 @@
 | Componente | Detalhe |
 |------------|---------|
 | Sensor     | `rockchip-thermal` `ff280000.tsadc` |
-| UART       | `ttyS1` 16550A em `ff158000` (console serial de debug) |
+| UART       | `ttyS1` 16550A em `ff158000`; **o console de debug do boot é `/dev/ttyFIQ0`** (FIQ), conforme `boot.ini` |
 
 ## Implicações para o CyberDeck OS
 

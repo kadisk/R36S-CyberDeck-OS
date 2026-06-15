@@ -1,13 +1,13 @@
 # Montagens locais da imagem ArkOS (nunca versionar)
 /mnt/
 
-# Artefatos binários extraídos do ArkOS (grandes; regeráveis via scripts)
-/artifacts/arkos-reference/boot/*
-/artifacts/arkos-reference/dtb/*
-/artifacts/arkos-reference/kernel/*
-!/artifacts/arkos-reference/**/.gitkeep
-# Relatórios de texto SÃO versionados (úteis como referência):
-!/artifacts/arkos-reference/reports/
+# Artefatos extraídos do ArkOS:
+#  - texto (boot.ini, *.dts, relatórios) É versionado — referência de hardware.
+#  - binários grandes (kernel Image, uInitrd, *.dtb) NÃO são versionados
+#    (regeráveis via scripts/extract-arkos-boot-artifacts.sh).
+/artifacts/arkos-reference/kernel/Image
+/artifacts/arkos-reference/kernel/uInitrd
+/artifacts/arkos-reference/kernel/zImage
 
 # Imagens de SD / kernels / dtbs soltos
 *.img

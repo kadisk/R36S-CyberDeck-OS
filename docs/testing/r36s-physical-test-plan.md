@@ -6,8 +6,9 @@ Mali/painel/joypad/PMIC (ver "Limitações"). Tudo abaixo é testado no aparelho
 ## Pré-requisitos
 
 - 1 microSD dedicado para teste (não o do ArkOS de produção).
-- Adaptador USB-serial opcional para console de debug (`ttyS1`, 1500000 8N1 típico
-  no RK3326) — muito útil quando a tela ainda não funciona.
+- Adaptador USB-serial opcional para console de debug. O ArkOS usa
+  `console=/dev/ttyFIQ0` (FIQ debugger do RK3326, 1500000 8N1 típico) — muito útil
+  quando a tela ainda não funciona. Para o CyberDeck, manter o mesmo console.
 - Imagem gerada (Buildroot) ou layout manual (`scripts/create-sd-layout.sh`).
 
 ## Checklist por fase

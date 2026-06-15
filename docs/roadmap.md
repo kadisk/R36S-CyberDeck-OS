@@ -2,13 +2,16 @@
 
 Abordagem em fases. Cada fase tem um critério de "feito" verificável.
 
-## Fase 1 — Inventário ArkOS / hardware  ◄ **EM ANDAMENTO**
+## Fase 1 — Inventário ArkOS / hardware  ◄ **CONCLUÍDA**
 - [x] Localizar imagem ArkOS de referência (`Backups/ArkOS/...img`).
 - [x] Layout de partições (p1 FAT BOOT / p2 ext4 rootfs / p3 exFAT roms).
 - [x] Inventário de hardware consolidado (`docs/hardware/`).
-- [ ] Extrair kernel/DTB/boot configs para `artifacts/` (precisa sudo).
-- [ ] Decodificar DTB ativo e confirmar `model`/`compatible`.
-- **Feito quando:** docs/hardware/* completos e DTB confirmado.
+- [x] Extrair kernel/DTB/boot configs para `artifacts/` (via mtools, sem sudo).
+- [x] Decodificar DTB ativo e confirmar `model`/`compatible`
+      (`rockchip,rk3326-odroidgo3-linux`), `boot.ini`, kernel 4.4.189,
+      mapa real do joypad `odroidgo3-joypad` (17 botões).
+- **Feito:** docs/hardware/* completos e confirmados pelo DTB/boot.ini reais.
+- Pendente menor (não bloqueia Fase 2): offset/origem do U-Boot antes da p1.
 
 ## Fase 2 — Boot mínimo
 - [ ] Reproduzir esquema de partição (p1 BOOT / p2 rootfs).

@@ -1,4 +1,4 @@
-# Layout de partições — gerado em 2026-06-14T21:40:56-03:00
+# Layout de partições — gerado em 2026-06-14T21:44:27-03:00
 # Fonte: /home/kadisk/Workspaces/Workspace_RS36S/Backups/ArkOS/ArkOS_2.0_08232024_AeUX_backup_2026-06-03.img  (somente leitura)
 
 Disco /home/kadisk/Workspaces/Workspace_RS36S/Backups/ArkOS/ArkOS_2.0_08232024_AeUX_backup_2026-06-03.img: 48,83 GiB, 52428800000 bytes, 102400000 setores

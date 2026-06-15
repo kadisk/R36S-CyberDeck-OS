@@ -1,0 +1,8 @@
+# Artefatos de boot extraídos — 2026-06-14T21:48:14-03:00
+
+/home/kadisk/Workspaces/Workspace_RS36S/R36S-CyberDeck-OS/artifacts/arkos-reference/boot/boot.ini	953 bytes
+/home/kadisk/Workspaces/Workspace_RS36S/R36S-CyberDeck-OS/artifacts/arkos-reference/dtb/rg351mp-kernel.dtb	61363 bytes
+/home/kadisk/Workspaces/Workspace_RS36S/R36S-CyberDeck-OS/artifacts/arkos-reference/dtb/rg351p-kernel.dtb	61363 bytes
+/home/kadisk/Workspaces/Workspace_RS36S/R36S-CyberDeck-OS/artifacts/arkos-reference/dtb/rk3326-r35s-linux.dtb	89630 bytes
+/home/kadisk/Workspaces/Workspace_RS36S/R36S-CyberDeck-OS/artifacts/arkos-reference/kernel/Image	10895368 bytes
+/home/kadisk/Workspaces/Workspace_RS36S/R36S-CyberDeck-OS/artifacts/arkos-reference/kernel/uInitrd	13194771 bytes

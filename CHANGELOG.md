@@ -4,6 +4,23 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Changed — 2026-06-14 — Fase 1 concluída: extração e confirmação real
+- `mtools` instalado → leitura da p1 FAT **sem sudo e sem montar**.
+- `extract-arkos-boot-artifacts.sh` reescrito: suporta dois modos (mount RO **ou**
+  mtools/mcopy direto na FAT). Extraídos `boot.ini`, `Image`, `uInitrd` e os 3 DTBs.
+- `identify-r36s-dtb.sh` executado: gerou `docs/hardware/device-tree-analysis.md`
+  com dados reais e salvou o `.dts` decodificado em
+  `artifacts/arkos-reference/reports/rk3326-r35s-linux.dts`.
+- **Confirmações/correções** nos docs de hardware:
+  - Kernel **Linux 4.4.189** (`#192`, 2025-07-09); `uInitrd` = uImage RAMDisk gzip.
+  - `boot.ini` real: `root=UUID=e139ce78…`, console **`/dev/ttyFIQ0`** (não ttyS1),
+    `fbcon=rotate:0`, carrega de `mmc 1:1`, `booti`.
+  - Joypad real = **`odroidgo3-joypad`** ("GO-Super Gamepad"), **17 botões GPIO** +
+    2 analógicos — mapa `linux,code` completo em `docs/hardware/input-buttons.md`.
+  - Painel `elida,kd35t133` 4 lanes DSI; VOP/DSI `px30-vop-big`/`px30-mipi-dsi`.
+- `.gitignore` ajustado: versiona `boot.ini`/`.dts`/relatórios (texto); ignora os
+  binários grandes (`Image`, `uInitrd`, `*.dtb`).
+
 ### Added — 2026-06-14 — Bootstrap do projeto (Fase 1)
 - Repositório `R36S-CyberDeck-OS` criado com estrutura inicial.
 - **Scripts de inspeção** (read-only da imagem ArkOS):

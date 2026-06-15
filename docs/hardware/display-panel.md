@@ -6,11 +6,15 @@
 |------|-------|
 | Resolução | **640 × 480** |
 | Interface | MIPI-DSI |
-| Painel | `elida,kd35t133` |
-| Controller | Rockchip VOP `ff460000.vop` |
-| DSI host | `ff450000.dsi` |
-| Backlight | PWM 3.3 V (`vcc_backlight`) |
+| Painel | `elida,kd35t133` + `simple-panel-dsi`, **4 lanes DSI** |
+| Controller | Rockchip VOP `ff460000.vop` (`rockchip,px30-vop-big`) |
+| DSI host | `ff450000.dsi` (`rockchip,px30-mipi-dsi`) |
+| Backlight | `pwm-backlight` (PWM 3.3 V, `vcc_backlight`) |
 | GPU | ARM Mali-G31 (Bifrost) `ff400000.gpu` |
+
+> Confirmado no DTB ativo: `dsi,lanes = <4>`, sequências de init/exit do painel
+> presentes; `fbcon=rotate:0` no `boot.ini` (console de fb sem rotação). Detalhes:
+> `artifacts/arkos-reference/reports/rk3326-r35s-linux.dts`.
 
 ## Implicações para a UI
 
