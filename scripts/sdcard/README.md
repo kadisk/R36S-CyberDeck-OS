@@ -73,3 +73,18 @@ sudo scripts/sdcard/sd-edit-extlinux.sh cartao-teste-r36s && echo "ok, pode boot
 
 Arquivos locais (gitignored): `authorized-cards.tsv` (cartões), `images.tsv`
 (apelidos de imagem), `bindings.tsv` (cartão→imagem).
+
+## Catálogo de distros R36S (testar uma a uma)
+
+`r36s-catalog.tsv` (versionado) lista distros candidatas com status
+(`TODO/FUNCIONA/FALHA/PARCIAL`). Fluxo:
+```bash
+scripts/sdcard/sd-catalog.sh list            # tabela com status
+scripts/sdcard/sd-catalog.sh next            # próxima TODO
+scripts/sdcard/sd-catalog.sh fetch <nome>    # baixa+descomprime+registra (.gz/.xz)
+sudo scripts/sdcard/sd-update.sh <cartao> <nome>   # grava
+# ... boota no R36S, observa ...
+scripts/sdcard/sd-catalog.sh result <nome> FUNCIONA "tela+input ok"
+```
+Para URLs que não são link direto (.img), baixe manual e use
+`scripts/sdcard/sd-image.sh add <nome> <arquivo.img>`.
