@@ -34,8 +34,8 @@ MIRROR=http://deb.debian.org/debian
 WEB_ROOTFS="$BUILD_DIR/web-rootfs"
 QEMU="$(command -v qemu-aarch64-static)"
 MALI_SRC="$REPO_DIR/artifacts/arkos-reference/mali"
-PKGS="cog libwpewebkit-1.0-3 libwpebackend-fdo-1.0-1 libegl1 libgles2 libgbm1 \
-      fonts-dejavu-core ca-certificates"
+# 'cog' já puxa wpewebkit + WPEBackend-fdo como dependências; não fixamos sonames.
+PKGS="cog libegl1 libgles2 libgbm1 fonts-dejavu-core ca-certificates"
 
 # debootstrap: usa o do sistema ou o extraído em /tmp/dbs/out
 DEBOOTSTRAP="$(command -v debootstrap || true)"
