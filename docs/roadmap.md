@@ -25,11 +25,15 @@ Abordagem em fases. Cada fase tem um critério de "feito" verificável.
 - **Aprendizado-chave:** NÃO recriar o MBR (sfdisk não bootou — tela apagada);
   **clonar o MBR+bootloader+FAT do ArkOS** e trocar só `boot.ini`+rootfs.
 
-## Fase 3 — Tela e input
-- [ ] Painel MIPI-DSI `kd35t133` ativo (640×480) via DRM/KMS.
-- [ ] Backlight controlável.
-- [ ] Gamepad `odroidgo2-joypad` mapeado (16 botões + 2 analógicos).
-- **Feito quando:** framebuffer/KMS visível e input lido.
+## Fase 3 — Tela e input  ◄ **NÚCLEO FUNCIONANDO no R36S ✅**
+- [x] Painel ativo 640×480 (fbcon/`/dev/fb0`, **32bpp**); `/dev/dri/card0` presente.
+- [x] **Renderizador 2D próprio** (`cyberdeck-fb`) desenhando UI no framebuffer.
+- [x] Gamepad `odroidgo3-joypad` (`/dev/input/event1`) **mapeado e navegando** a UI.
+- [x] **Backlight controlável** (L2/R2 → `/sys/class/backlight/backlight/brightness`).
+- [x] Bateria (RK817) lida no STATUS (`/sys/class/power_supply`).
+- [ ] Ações A/B (abrir seção / voltar) e mais seções (rede, logs, ferramentas).
+- [ ] (futuro) double-buffering via KMS (`/dev/dri/card0`) p/ evitar flicker.
+- **Confirmado:** UI na tela navegável pelos botões do R36S (2026-06-15).
 
 ## Fase 4 — Runtime web
 - [ ] Escolher runtime (WPE WebKit preferido — ver `docs/web-ui/runtime-options.md`).

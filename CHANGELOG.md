@@ -4,6 +4,13 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added — 2026-06-15 — Fase 3: UI navegável confirmada + brilho/bateria
+- **Confirmado no R36S:** a UI nativa aparece na tela e **navega pelos botões**
+  (`docs/testing/results/phase3-2026-06-15.md`). Núcleo da Fase 3 (tela+input) ok.
+- `cyberdeck-fb`: adicionado **controle de brilho** (L2/R2 →
+  `/sys/class/backlight/backlight/brightness`) e **leitura de bateria** (RK817 via
+  `/sys/class/power_supply/{battery,ac,usb}`) no STATUS e na barra de título.
+
 ### Added — 2026-06-15 — Fase 3: renderizador 2D no framebuffer + dados do aparelho
 - **Probe rodado no R36S** → dados reais (em `docs/hardware/device-captures/`):
   tela **640×480 32bpp** (stride 2560), `/dev/dri/card0` presente, backlight

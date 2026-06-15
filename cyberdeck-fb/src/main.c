@@ -98,6 +98,22 @@ static int cpu_count(void) {
     while (fgets(line, sizeof line, f)) if (!strncmp(line, "processor", 9)) n++;
     fclose(f); return n;
 }
+static long read_long_file(const char *path) {
+    char b[64]; read_first_line(path, b, sizeof b); return b[0] ? atol(b) : -1;
+}
+static void write_long_file(const char *path, long v) {
+    int fd = open(path, O_WRONLY); if (fd < 0) return;
+    char b[24]; int n = snprintf(b, sizeof b, "%ld\n", v);
+    if (write(fd, b, n) < 0) {} close(fd);
+}
+/* bateria (RK817) via /sys/class/power_supply */
+static void battery_str(char *out, int n) {
+    long cap = read_long_file("/sys/class/power_supply/battery/capacity");
+    char st[32]; read_first_line("/sys/class/power_supply/battery/status", st, sizeof st);
+    long on = read_long_file("/sys/class/power_supply/usb/online");
+    if (on < 0) on = read_long_file("/sys/class/power_supply/ac/online");
+    snprintf(out, n, "%ld%% %s%s", cap < 0 ? 0 : cap, st[0] ? st : "?", on > 0 ? " +CARGA" : "");
+}
 
 /* ----- input ----- */
 #define MAX_EV 16
@@ -151,6 +167,14 @@ int main(void) {
     if (!model[0]) strcpy(model, "Rockchip RK3326");
     int ncpu = cpu_count();
 
+    /* backlight (RK817 PWM) — L2/R2 ajustam */
+    const char *BLDIR = "/sys/class/backlight/backlight";
+    char bl_path[200]; snprintf(bl_path, sizeof bl_path, "%s/brightness", BLDIR);
+    char blm_path[200]; snprintf(blm_path, sizeof blm_path, "%s/max_brightness", BLDIR);
+    long bl_max = read_long_file(blm_path); if (bl_max <= 0) bl_max = 160;
+    long bl_cur = read_long_file(bl_path);  if (bl_cur < 0)  bl_cur = bl_max;
+    long bl_step = bl_max / 10; if (bl_step < 1) bl_step = 1;
+
     int sel = 0;
     char last_codes[8][48]; int lc = 0;
     memset(last_codes, 0, sizeof last_codes);
@@ -164,6 +188,10 @@ int main(void) {
         time_t t = time(NULL); struct tm *tm = localtime(&t);
         char clk[16]; strftime(clk, sizeof clk, "%H:%M:%S", tm);
         draw_text(vi.xres - 8 - 8 * (int)strlen(clk), 3, clk, DIM, BG, 0);
+        /* bateria + brilho no canto sup. dir. (à esquerda do relógio) */
+        char bat[40]; battery_str(bat, sizeof bat);
+        char top[64]; snprintf(top, sizeof top, "BAT %s  BRI %ld", bat, bl_cur);
+        draw_text(vi.xres - 8 - 8 * (int)strlen(clk) - 8 * ((int)strlen(top) + 1), 3, top, DIM, BG, 0);
 
         /* menu lateral */
         int my = 34;
@@ -184,7 +212,9 @@ int main(void) {
             snprintf(buf, sizeof buf, "CPU : %d nucleos (Cortex-A35)", ncpu); draw_text(px, line, buf, FG, BG, 0); line += 18;
             if (mt > 0) { snprintf(buf, sizeof buf, "RAM : %ld/%ld MB livres", ma/1024, mt/1024); draw_text(px, line, buf, FG, BG, 0); line += 18; }
             snprintf(buf, sizeof buf, "UP  : %d s", (int)upt); draw_text(px, line, buf, FG, BG, 0); line += 18;
-            snprintf(buf, sizeof buf, "HORA: %s", clk); draw_text(px, line, buf, FG, BG, 0); line += 18;
+            char bs[40]; battery_str(bs, sizeof bs);
+            snprintf(buf, sizeof buf, "BAT : %s", bs); draw_text(px, line, buf, FG, BG, 0); line += 18;
+            snprintf(buf, sizeof buf, "BRI : %ld/%ld  (L2/R2)", bl_cur, bl_max); draw_text(px, line, buf, FG, BG, 0); line += 18;
         } else if (sel == NITEMS - 1) { /* DEVICE */
             snprintf(buf, sizeof buf, "MODELO: %.20s", model); draw_text(px, line, buf, FG, BG, 0); line += 18;
             snprintf(buf, sizeof buf, "TELA  : %ux%u %ubpp", vi.xres, vi.yres, vi.bits_per_pixel); draw_text(px, line, buf, FG, BG, 0); line += 18;
@@ -201,7 +231,7 @@ int main(void) {
 
         /* rodapé */
         fill(0, vi.yres - 20, vi.xres, 20, pack(12, 26, 18));
-        draw_text(8, vi.yres - 17, "D-PAD: mover  A: ok  B: voltar  F6: sair", DIM, BG, 0);
+        draw_text(8, vi.yres - 17, "D-PAD: mover  L2/R2: brilho  F5: sair", DIM, BG, 0);
 
         /* --- input (espera ate 500ms p/ atualizar o relogio) --- */
         struct pollfd pfd[MAX_EV];
@@ -222,6 +252,10 @@ int main(void) {
                         case JOY_DOWN: sel = (sel + 1) % NITEMS; break;
                         case JOY_L1:   sel = (sel - 1 + NITEMS) % NITEMS; break;
                         case JOY_R1:   sel = (sel + 1) % NITEMS; break;
+                        case JOY_L2:   bl_cur -= bl_step; if (bl_cur < 1) bl_cur = 1;
+                                       write_long_file(bl_path, bl_cur); break;
+                        case JOY_R2:   bl_cur += bl_step; if (bl_cur > bl_max) bl_cur = bl_max;
+                                       write_long_file(bl_path, bl_cur); break;
                         case JOY_F5:   running = 0; break;
                         default: break;
                     }
