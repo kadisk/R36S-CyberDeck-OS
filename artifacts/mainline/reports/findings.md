@@ -44,3 +44,41 @@ Dois caminhos melhores (ver phase5 plan, seção revisada):
 
 Nosso painel (confirmado na Fase 1): **`elida,kd35t133`** — precisamos do overlay/
 DT correspondente (no Arch-R, um dos `R36S-V*_Panel_*`/`mipi-panel.dtbo`).
+
+## Extração COMPLETA (✅)
+
+- **Image** 6.12.79 → `artifacts/mainline/boot/Image`.
+- **309 módulos** (53 MB) → `artifacts/mainline/modules/6.12.79`, **incl.
+  `panfrost.ko`** (drivers/gpu/drm/panfrost). `rockchip-drm`/`dw-mipi-dsi`/painel
+  **não** são módulos → **embutidos no kernel** (a tela sobe sozinha); Panfrost é
+  módulo (aceleração GPU).
+- DTBs + overlays de painel extraídos.
+
+## Como o Arch-R trata o PAINEL (decisivo p/ a estratégia)
+
+- Base `rk3326-gameconsole-r36s.dtb`: painel placeholder `gameconsole,r36s-panel`.
+- Overlays usam driver **`archr,generic-dsi`** com `panel_description` (timings +
+  sequências de init DSI) **por revisão de placa/painel** (`Panel_0/Panel_4/2550`,
+  `HL-R36H-V20/V21`, `R35S-V11`; sufixos `_JPk36/_JPmm` = joypad, `_SRs` = sticks).
+- O **U-Boot do Arch-R auto-detecta** placa+painel via `hwid_adc` e aplica o overlay
+  certo. **Não há mapeamento simples "kd35t133 → overlay X"**; escolher na mão é
+  arriscado (painel errado = tela preta).
+
+## Estratégia REFINADA (recomendada): reusar o BOOT inteiro do Arch-R, trocar só o rootfs
+
+Como painel/kernel/módulos/U-Boot do Arch-R **já funcionam no R36S** (com
+auto-detecção), o caminho de menor risco é:
+
+1. **Manter** o U-Boot (setor 64) + a partição BOOT do Arch-R (KERNEL + dtbs +
+   overlays + boot.scr + extlinux) **intactos**.
+2. **Substituir só a p2** (ARCHR_ROOT) pelo **nosso rootfs Debian** com:
+   - os módulos 6.12.79 em `/usr/lib/modules/6.12.79` (+ `depmod`),
+   - **Mesa Panfrost** (libgbm/libEGL/GLES modernos — sem blob Mali),
+   - `cage` + `cog` + `cyberdeck-ui` + serviço de autostart,
+   - rótulo/UUID que o `root=${partition_root}` do Arch-R espere (checar boot.scr).
+3. Resultado: kernel+painel+Panfrost do Arch-R (provados) + nossa UI web. GBM do
+   Mesa resolve o `gbm_bo_get_offset` → `cog`/`cage` renderiza.
+
+> Alternativa (C2, mais posse, mais risco): compilar nosso kernel mainline + montar
+> o DT do nosso painel kd35t133 + U-Boot — adia o resultado e reintroduz o risco de
+> painel que o Arch-R já resolveu.
