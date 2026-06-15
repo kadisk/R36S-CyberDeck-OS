@@ -1,25 +1,31 @@
 # Layout do cartão de teste + gravação e rollback — Fase 2
 
-## Layout da imagem `r36s-cyberdeck-minimal.img`
+## Estratégia: clonar o boot do ArkOS (modo padrão `--clone`)
 
-Espelha o esquema validado do ArkOS (para o U-Boot encontrar tudo onde espera):
+Descobrimos no teste físico que um **MBR feito do zero** (sfdisk) **impede o boot**
+(tela apagada), mesmo com o bootloader idêntico — o U-Boot não acha a partição BOOT.
+Por isso a imagem **clona a região de boot do ArkOS** (que já funciona) e troca só o
+que é nosso.
 
-| Região / Part | Início (setor) | Tamanho | Tipo | Conteúdo |
-|---------------|----------------|---------|------|----------|
-| MBR | 0 | 1 setor | — | tabela de partições (nossa, via sfdisk) |
-| **bootloader** | 64 | até 32767 | raw | **idbloader + U-Boot copiados do ArkOS** |
-| **p1 BOOT** | 32768 | 128 MiB | FAT32 (LBA, `c`), bootable | `Image`, `uInitrd`, `rk3326-r35s-linux.dtb`, `boot.ini` |
-| **p2 ROOTFS** | 294912 | 256 MiB | ext4 (`83`) | rootfs mínimo (BusyBox), UUID `c1be7dec-…-7e5b00c0de36` |
-| p3 DATA (opc.) | após p2 | 256 MiB | FAT32 | vazia (só com `--with-data`) |
+| Região / Part | Início (setor) | Origem | Conteúdo |
+|---------------|----------------|--------|----------|
+| **MBR** | 0 | **clonado do ArkOS** (byte-a-byte) | tabela de partições do ArkOS |
+| **bootloader** | 64..32767 | **clonado do ArkOS** | idbloader + U-Boot + trust |
+| **p1 BOOT** | 32768 | **clonado do ArkOS**, com `boot.ini` trocado | `Image`, `uInitrd`, `rk3326-r35s-linux.dtb` (do ArkOS) + **nosso `boot.ini`** |
+| **p2 ROOTFS** | 262144 | **nossa** | rootfs mínimo (BusyBox) ext4, UUID `c1be7dec-…-7e5b00c0de36`, montada por `root=UUID` |
 
-- Setor = 512 B. Offsets/sizes em `scripts/phase2-config.sh`.
-- Imagem total ≈ **401 MiB** (pequena de propósito; cabe em qualquer microSD).
+- O MBR clonado declara p2/p3 com os tamanhos do ArkOS (grandes). Nossa rootfs ext4
+  (256 MiB) fica no **início da p2** e é montada **por UUID** — o tamanho declarado
+  no MBR não importa. No microSD de 64 GB tudo cabe.
+- A imagem `.img` é pequena (~256 MiB de rootfs + 128 MiB de boot); o resto do cartão
+  fica como estava.
+- Setor = 512 B. Constantes em `scripts/phase2-config.sh`.
 
 ## Gerar a imagem
 
 ```bash
-scripts/create-test-sd-image.sh              # gera a .img (sem p3)
-scripts/create-test-sd-image.sh --with-data  # inclui p3 DATA
+scripts/create-test-sd-image.sh           # modo --clone (padrão, recomendado)
+scripts/create-test-sd-image.sh --fresh   # MBR/FAT do zero (referência; NÃO bootou)
 ```
 
 Saída: `artifacts/test-images/r36s-cyberdeck-minimal.img`

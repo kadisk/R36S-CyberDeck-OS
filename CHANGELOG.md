@@ -4,6 +4,20 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Fixed — 2026-06-15 — Fase 2: MBR clonado do ArkOS (2º teste: tela apagada)
+- 2º flash (já com console=tty1) → **tela totalmente apagada**; ArkOS original
+  **boota normal no mesmo slot** (aparelho/slot OK). Comparação setor a setor: no
+  bloco de boot (0..32767) **só o setor 0 (MBR) diferia** — o MBR feito por `sfdisk`
+  (p1 tipo `c`, geometria própria) impedia o U-Boot de achar a BOOT → nada acendia.
+- **Correção (modo `--clone`, agora padrão em `create-test-sd-image.sh`):** em vez de
+  montar MBR/FAT do zero, **clona a região de boot do ArkOS** (MBR + bootloader +
+  a própria FAT BOOT, byte-a-byte) e troca SÓ: o `boot.ini` (nosso, root=UUID +
+  console=tty1) e a **rootfs ext4** (gravada no setor da p2 do ArkOS, 262144;
+  montada por UUID). MBR e U-Boot passam a ser exatamente os que bootam o ArkOS.
+- Modo `--fresh` (MBR/FAT do zero) mantido só como referência (não bootou).
+- Verificado: MBR e bootloader da imagem nova == ArkOS (sha256); FAT com nosso
+  boot.ini + Image/uInitrd/dtb; ext4 com UUID `c1be7dec-…` no setor 262144.
+
 ### Fixed — 2026-06-15 — Fase 2: visibilidade de boot na tela (1º teste físico)
 - 1º flash no R36S não exibiu boot. Diagnóstico estático: U-Boot/kernel são
   **byte a byte iguais ao ArkOS** (bootloader copiado confere sha256; `LOADER`@16384,
