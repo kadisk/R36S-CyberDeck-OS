@@ -18,4 +18,5 @@ done
 sync
 
 # Xorg em fbdev no /dev/fb0 (sem GL); cliente = cyberdeck-kiosk.sh
-exec xinit /usr/local/bin/cyberdeck-kiosk.sh -- /usr/bin/X :0 vt1 -nolisten tcp -keeptty >> "$LOG" 2>&1
+# -nocursor: o X não desenha o ponteiro de hardware (a UI usa um cursor virtual próprio)
+exec xinit /usr/local/bin/cyberdeck-kiosk.sh -- /usr/bin/X :0 vt1 -nolisten tcp -keeptty -nocursor >> "$LOG" 2>&1

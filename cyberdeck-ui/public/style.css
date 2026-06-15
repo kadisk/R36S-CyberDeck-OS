@@ -20,7 +20,9 @@ html, body {
   font-family: var(--font);
   font-size: 14px;
   line-height: 1.4;
+  cursor: none;            /* esconde o ponteiro real do X — só o cursor virtual aparece */
 }
+* { cursor: none; }
 
 #topbar {
   display: flex; align-items: center; gap: 8px;
@@ -75,14 +77,17 @@ pre { background: #04150b; border: 1px solid var(--line); padding: 8px; overflow
 .termfull { height: 330px; max-height: 330px; }
 .logfull  { height: 350px; max-height: 350px; }
 
-/* cursor virtual (analógico esquerdo) */
+/* cursor virtual (analógico esquerdo) — É o único ponteiro (o do X fica escondido) */
 #vcursor {
   position: fixed; top: 0; left: 0; width: 16px; height: 16px; margin: -8px 0 0 -8px;
   border: 2px solid var(--accent); border-radius: 50%; background: rgba(0,224,255,.12);
-  box-shadow: 0 0 6px var(--accent); pointer-events: none; z-index: 9999; display: none;
+  box-shadow: 0 0 8px var(--accent); pointer-events: none; z-index: 9999; display: block;
 }
-#vcursor.on { display: block; }
-#vcursor.click { background: var(--accent); transform-origin: center; }
+#vcursor::after { /* ponto central p/ precisão */
+  content: ""; position: absolute; left: 6px; top: 6px; width: 4px; height: 4px;
+  background: var(--accent); border-radius: 50%;
+}
+#vcursor.click { background: var(--accent); }
 
 #hints {
   display: flex; gap: 12px; align-items: center;
