@@ -4,6 +4,18 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added — 2026-06-15 — Fase 5 VENCIDA: UI web na tela do R36S (BSP + X11 + Chromium) 🎉
+- **A CyberDeck UI (HTML/JS) renderiza no R36S físico!** Objetivo web original
+  alcançado. Caminho: kernel BSP 4.4 (painel acende, via clone do boot ArkOS) +
+  rootfs Debian + Xorg (fbdev /dev/fb0) + Chromium kiosk com a cyberdeck-ui.
+  `scripts/build-x11-rootfs.sh` (imagem `x11`); runtime start-cyberdeck-x.sh +
+  cyberdeck-kiosk.sh + cyberdeck-x.service + xorg fbdev.
+- Evita os 2 muros: Wayland/GBM do blob Mali (Fase 4) e painel do mainline (Fase 5a).
+- Builds acelerados: eatmydata (pula fsync), MAKEFLAGS=-j(nproc), apt paralelo, xz -T0.
+- Kit SD: catalogo de distros (sd-catalog), sd-update por nome, allowlist de cartoes,
+  sd-fix-panel-dtb (forca DTB do painel). Resultado em docs/testing/results/phase5-x11-2026-06-15.md.
+
+
 ### Added — 2026-06-15 — Fase 5 planejada: mainline + Panfrost (decisão)
 - Fase 4 (WPE com blob Mali) **bloqueada**: validado até a `index.html` CARREGAR no
   cog DRM, mas segfault no swap de buffer; `cage`/wlroots nem carrega

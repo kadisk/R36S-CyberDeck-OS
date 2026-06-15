@@ -46,7 +46,18 @@ Plano: `docs/web-ui/phase4-wpe-plan.md`. Resultado em
 - **Conclusão:** web acelerada neste hardware exige driver Mali **aberto e moderno**
   → ver Fase 5. (O renderizador nativo `cyberdeck-fb` segue como UI funcional.)
 
-## Fase 5 — Kernel mainline + Panfrost + Mesa  ◄ **PLANEJADA (caminho escolhido)**
+## Fase 5 — Runtime web NA TELA  ◄ **✅ VENCIDA (via BSP + X11 + Chromium)**
+A UI HTML/JS renderiza no R36S! Caminho vencedor: **kernel BSP** (painel acende) +
+**Xorg fbdev** + **Chromium kiosk** com a `cyberdeck-ui` (`scripts/build-x11-rootfs.sh`,
+imagem `x11`). Detalhes/lições: `docs/testing/results/phase5-x11-2026-06-15.md`.
+- [x] UI web exibindo no aparelho físico.
+- [ ] Ponte de input joypad→teclas (navegar pelos botões).
+- [ ] Dados ao vivo + brilho na UI.
+Becos sem saída documentados (não apagar — são conhecimento): web por Wayland/cog
+travou no GBM do blob Mali (Fase 4); mainline+Panfrost não dirige o painel deste
+lote (`docs/testing/results/phase4-2026-06-15.md`, `phase5-mainline-panfrost-plan.md`).
+
+## Fase 5b — (arquivada) Kernel mainline + Panfrost + Mesa
 Plano: `docs/mainline/phase5-mainline-panfrost-plan.md`. Troca o BSP 4.4 + blob Mali
 por **mainline 6.x + Panfrost + Mesa** (GBM/EGL/GLES modernos) — aí o `cog`/`cage`
 renderiza a UI. Estratégia: **reusar kernel+DTB de distro R36S mainline** (Arch-R/
