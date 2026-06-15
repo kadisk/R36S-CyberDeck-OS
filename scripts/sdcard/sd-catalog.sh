@@ -110,14 +110,14 @@ case "$cmd" in
     ;;
   fetch)
     [ -n "${2:-}" ] || die "uso: $0 fetch <nome>"
-    do_fetch "$2"; rc=$?
+    rc=0; do_fetch "$2" || rc=$?
     [ $rc -eq 2 ] && say "  (use download manual + scripts/sdcard/sd-image.sh add $2 <arquivo.img>)"
     ;;
   fetch-all)
     say "=== fetch-all: tentando baixar todas as candidatas (exceto SKIP) ==="
     okl=""; manl=""; errl=""
     for n in $(grep -vE '^#' "$CAT" | awk -F'\t' '$2!="SKIP"{print $1}'); do
-        do_fetch "$n"; rc=$?
+        rc=0; do_fetch "$n" || rc=$?
         case $rc in 0) okl="$okl $n";; 2) manl="$manl $n";; *) errl="$errl $n";; esac
     done
     echo; say "================= RESUMO DO FETCH-ALL ================="
