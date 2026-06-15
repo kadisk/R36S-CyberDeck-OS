@@ -16,6 +16,7 @@ CARD="${1:-}"; OV="${2:-}"
 sd_resolve_device "$CARD" || exit 1
 DEV="$SD_DEV"; P1="${DEV}1"
 [ -b "$P1" ] || die "partição BOOT $P1 não existe"
+sd_require_writable "$DEV"   # checa autorização/segurança e define SD_NAME
 
 MNT="$(mktemp -d)"; trap 'mountpoint -q "$MNT" && umount "$MNT"; rmdir "$MNT" 2>/dev/null||true' EXIT
 mount "$P1" "$MNT" || die "falha ao montar $P1"
