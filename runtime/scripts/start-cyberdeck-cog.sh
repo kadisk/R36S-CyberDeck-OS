@@ -32,8 +32,10 @@ done
 sync
 
 # Tenta DRM; ativa logs de debug do WPE/cog p/ enxergar a falha de EGL se houver.
+# cog 0.16 não aceita --width/--height: a geometria vem do modo nativo do DRM
+# (o painel já é 640x480). Plataforma via --platform=drm.
 export WPE_DEBUG=1 G_MESSAGES_DEBUG=all
-cog --platform=drm --width=640 --height=480 "$UI" >> "$LOG" 2>&1
+cog --platform=drm "$UI" >> "$LOG" 2>&1
 rc=$?
 echo "===== cog saiu (cod $rc) $(date) =====" >> "$LOG"
 sync
