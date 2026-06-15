@@ -7,7 +7,8 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <!-- Layout 640x480, navegável por gamepad. Dados via cyberdeck-agent (Node). -->
+  <!-- 640x480, kiosk. Navegação: D-pad (abas/foco) + analógico esq = cursor,
+       analógico dir = scroll. Dados via cyberdeck-agent (Node). -->
   <header id="topbar">
     <span class="brand">R36S // CYBERDECK</span>
     <span class="spacer"></span>
@@ -24,6 +25,7 @@
     <button class="tab" data-section="logs">LOGS</button>
     <button class="tab" data-section="terminal">TERMINAL</button>
     <button class="tab" data-section="tools">FERRAMENTAS</button>
+    <button class="tab" data-section="systemd">SERVIÇOS</button>
     <button class="tab" data-section="keys">TECLAS</button>
   </nav>
 
@@ -38,6 +40,7 @@
       <div class="kv"><span>UPTIME</span><b id="uptime-val">--</b></div>
       <div class="kv"><span>TEMP</span><b id="temp-val">--</b></div>
       <div class="kv"><span>BATERIA</span><b id="bat-val">--</b></div>
+      <div class="kv"><span>BAT (tensão)</span><b id="bat-volt">--</b></div>
     </section>
 
     <section id="device" class="panel" hidden>
@@ -69,25 +72,30 @@
     </section>
 
     <section id="logs" class="panel" hidden>
-      <h2>LOGS (dmesg)</h2>
-      <p class="hint">R1 reabre a aba p/ atualizar.</p>
-      <pre id="logs-output" class="box">(carregando…)</pre>
+      <h2>LOGS — últimos eventos (atualiza sozinho)</h2>
+      <pre id="logs-output" class="box logfull">(carregando…)</pre>
     </section>
 
     <section id="terminal" class="panel" hidden>
       <h2>TERMINAL</h2>
-      <p class="hint">Sem teclado: escolha um comando (↑↓) e A executa. Teclado USB digita livre.</p>
-      <ul id="term-list" class="menu">
-        <li tabindex="0" data-cmd="uname -a">uname -a</li>
-        <li tabindex="0" data-cmd="uptime">uptime</li>
-        <li tabindex="0" data-cmd="free -h">free -h</li>
-        <li tabindex="0" data-cmd="df -h /">df -h /</li>
-        <li tabindex="0" data-cmd="lsblk">lsblk</li>
-        <li tabindex="0" data-cmd="ip -br addr">ip -br addr</li>
-        <li tabindex="0" data-cmd="ps aux --sort=-%cpu | head -n 8">top processos (CPU)</li>
-        <li tabindex="0" data-cmd="lsusb">lsusb</li>
-      </ul>
-      <pre id="term-output" class="box">cyberdeck@r36s:~$ _</pre>
+      <div id="term-list-wrap">
+        <p class="hint">Selecione (↑↓) e A executa. A saída abre em tela cheia; B volta aqui.</p>
+        <ul id="term-list" class="menu">
+          <li tabindex="0" data-cmd="uname -a">uname -a</li>
+          <li tabindex="0" data-cmd="uptime">uptime</li>
+          <li tabindex="0" data-cmd="free -h">free -h</li>
+          <li tabindex="0" data-cmd="df -h">df -h</li>
+          <li tabindex="0" data-cmd="lsblk">lsblk</li>
+          <li tabindex="0" data-cmd="ip -br addr">ip -br addr</li>
+          <li tabindex="0" data-cmd="ps aux --sort=-%cpu | head -n 12">processos (top CPU)</li>
+          <li tabindex="0" data-cmd="lsusb">lsusb</li>
+          <li tabindex="0" data-cmd="dmesg | tail -n 40">dmesg (tail)</li>
+        </ul>
+      </div>
+      <div id="term-out-wrap" hidden>
+        <div class="term-head"><b id="term-cmd">$</b><span class="hint">B = voltar aos comandos</span></div>
+        <pre id="term-output" class="box termfull">…</pre>
+      </div>
     </section>
 
     <section id="tools" class="panel" hidden>
@@ -102,9 +110,20 @@
       <div class="kv"><span>RESULTADO</span><b id="tools-msg">--</b></div>
     </section>
 
+    <section id="systemd" class="panel" hidden>
+      <h2>SERVIÇOS (systemd)</h2>
+      <div class="kv"><span>ESTADO</span><b id="sd-state">--</b></div>
+      <div class="kv"><span>SERVIÇOS</span><b id="sd-count">--</b></div>
+      <div class="kv"><span>BOOT</span><b id="sd-boot">--</b></div>
+      <h3 class="sub">FALHOS</h3>
+      <pre id="sd-failed" class="box">--</pre>
+      <h3 class="sub">RODANDO</h3>
+      <pre id="sd-running" class="box">--</pre>
+    </section>
+
     <section id="keys" class="panel" hidden>
       <h2>TESTE DE TECLAS / JOYPAD</h2>
-      <p class="hint">Aperte os botões do R36S. Se acender = chega no Chromium.</p>
+      <p class="hint">Aperte botões e mexa nos analógicos (veja os eixos abaixo).</p>
       <div class="kt-last">ÚLTIMA TECLA: <b id="kt-key">—</b>
         <span id="kt-detail" class="hint">code=— keyCode=—</span></div>
       <div id="kt-grid" class="kt-grid">
@@ -114,10 +133,6 @@
         <span data-k="ArrowRight">→</span>
         <span data-k="Enter">A·Enter</span>
         <span data-k="Escape">B·Esc</span>
-        <span data-k="Tab">X·Tab</span>
-        <span data-k="Backspace">Y·Bksp</span>
-        <span data-k="PageUp">L1·PgUp</span>
-        <span data-k="PageDown">R1·PgDn</span>
       </div>
       <div class="kv"><span>GAMEPAD API</span><b id="kt-gp">não detectado</b></div>
       <div id="kt-buttons" class="kt-btns"></div>
@@ -127,12 +142,14 @@
   </main>
 
   <footer id="hints">
-    <span>L1/R1 ←→: abas</span><span>↑↓: foco</span><span>A: ok</span><span>B: voltar</span>
+    <span>D-pad ←→: abas</span><span>↑↓: foco</span><span>A: ok/clique</span><span>B: voltar</span>
+    <span>analóg. esq: cursor · dir: scroll</span>
     <span class="spacer"></span>
     <span id="agent-state" class="metric">agente: …</span>
     <span id="lastkey" class="metric">tecla: —</span>
   </footer>
 
+  <div id="vcursor" aria-hidden="true"></div>
   <script src="app.js"></script>
 </body>
 </html>

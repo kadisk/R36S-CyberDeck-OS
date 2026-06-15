@@ -4,6 +4,20 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added — 2026-06-15 — Cursor analógico, scroll, terminal fullscreen, aba SERVIÇOS, bateria real
+- **Analógico esquerdo = cursor virtual** (desenhado pela UI; JS não move o ponteiro
+  do SO, mas a UI é o kiosk inteiro). **A clica** onde o cursor aponta (este joypad
+  não tem clique de analógico). **Analógico direito = scroll** (vertical ↑↓ e horizontal ←→).
+- **L1/R1 não navegam abas** — só D-pad ←→ (a pedido).
+- **TERMINAL**: saída em **tela cheia**; **B** volta aos comandos.
+- **LOGS**: mostra os ÚLTIMOS eventos (rola p/ o fim) e **atualiza sozinho**; agente
+  passa a expor `dmesg` + `journalctl`.
+- **Nova aba SERVIÇOS** (`/api/systemd`): estado do sistema, tempo de boot
+  (`systemd-analyze`), serviços rodando e falhos.
+- **Bateria corrigida/diagnosticada**: o `capacity` do rk817 fica travado (ex.: 100%)
+  por falta de calibração; o agente passa a expor **tensão, corrente, capacity_level**
+  e uma **estimativa por tensão** (1S LiPo) que de fato varia. UI mostra V + estimativa.
+
 ### Added — 2026-06-15 — Todas as abas funcionando + backend Node.js (cyberdeck-agent)
 - **Agente reescrito em Node.js** (`cyberdeck-agent/agent.js`, sem dependências) —
   substitui a versão em C (movida p/ `experiments/cyberdeck-agent-c/`). Endpoints:

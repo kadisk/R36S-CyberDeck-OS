@@ -94,12 +94,17 @@ do sistema, e nunca toca no cartão do ArkOS.
 
 ## Controles (navegação pelo gamepad)
 
-| Botão | Ação |
+| Controle | Ação |
 |---|---|
-| **L1 / R1** e **D-pad ← →** | trocar de aba |
+| **D-pad ← →** | trocar de aba |
 | **D-pad ↑ ↓** | mover foco no menu |
-| **A** / **Start** | confirmar |
-| **B** / **Select** | voltar pro STATUS |
+| **A** / **Start** | confirmar (ou **clicar** onde o cursor aponta) |
+| **B** / **Select** | voltar (na aba TERMINAL, volta da saída p/ os comandos) |
+| **Analógico esq.** | move o **cursor virtual** |
+| **Analógico dir.** | **scroll** (↑↓ vertical · ←→ horizontal) |
+
+> L1/R1 não trocam de aba. O clique do analógico não existe neste joypad, então
+> **A clica** enquanto você está movendo o cursor.
 
 A aba **TECLAS** mostra um dump ao vivo de botões/eixos (diagnóstico de input).
 
@@ -110,9 +115,10 @@ A aba **TECLAS** mostra um dump ao vivo de botões/eixos (diagnóstico de input)
 | **STATUS** | CPU, RAM, brilho, load, uptime, temperatura, bateria — ao vivo (2 s) |
 | **DEVICE** | hardware + SO: modelo, SoC, CPU/clock, GPU, RAM, tela, PMIC, armazenamento, kernel, distro |
 | **REDE** | interface, IP, MAC, gateway, SSID, DNS, tabela de rotas |
-| **LOGS** | `dmesg` (tail) |
-| **TERMINAL** | comandos prontos selecionáveis (sem teclado) — `uname`, `free`, `df`, `lsblk`, `lsusb`… |
+| **LOGS** | últimos eventos (`dmesg`/journal), rola p/ o fim e atualiza sozinho |
+| **TERMINAL** | comandos prontos (sem teclado); saída em **tela cheia**, B volta aos comandos |
 | **FERRAMENTAS** | ações: brilho ±, recarregar UI, reiniciar, desligar |
+| **SERVIÇOS** | systemd: estado, tempo de boot, serviços rodando e falhos |
 | **TECLAS** | diagnóstico de input (teclas/botões/eixos ao vivo) |
 
 ---
