@@ -74,8 +74,8 @@ do_fetch(){ # $1 = nome
     else echo "  = $n: já baixado ($file)"; fi
     local img="$f"
     case "$f" in
-      *.gz)  img="${f%.gz}"; [ -f "$img" ] || gunzip -kc "$f" > "$img";;
-      *.xz)  img="${f%.xz}"; [ -f "$img" ] || { command -v unxz >/dev/null && unxz -kc "$f" > "$img" || { echo "  ✗ $n: sem unxz"; return 1; }; };;
+      *.gz)  img="${f%.gz}"; [ -f "$img" ] || { command -v pigz >/dev/null && pigz -dc "$f" > "$img" || gunzip -kc "$f" > "$img"; };;
+      *.xz)  img="${f%.xz}"; [ -f "$img" ] || { xz -T0 -dc "$f" > "$img" 2>/dev/null || unxz -kc "$f" > "$img" || { echo "  ✗ $n: sem xz"; return 1; }; };;
       *.zip) img="$(python3 -c "import zipfile;z=zipfile.ZipFile('$f');m=[i for i in z.infolist() if i.filename.lower().endswith('.img')];print(sorted(m,key=lambda x:-x.file_size)[0].filename if m else '')")"
              [ -n "$img" ] && { python3 -c "import zipfile;zipfile.ZipFile('$f').extract('$img','$DL')"; img="$DL/$img"; } || { echo "  ✗ $n: zip sem .img"; return 1; };;
     esac

@@ -118,10 +118,13 @@ cat > "$WEB_ROOTFS/root/setup-cog.sh" <<EOF
 #!/bin/sh
 set -e
 export DEBIAN_FRONTEND=noninteractive
+export MAKEFLAGS="-j\$(nproc)" DEB_BUILD_OPTIONS="parallel=\$(nproc)"
 echo "deb $MIRROR $SUITE main" > /etc/apt/sources.list
 echo "deb $MIRROR ${SUITE}-updates main" >> /etc/apt/sources.list
+echo 'Acquire::Queue-Host::Pipeline-Depth "10"; Acquire::Languages "none";' > /etc/apt/apt.conf.d/99fast
 apt-get update
-apt-get install -y --no-install-recommends $PKGS
+apt-get install -y --no-install-recommends eatmydata
+eatmydata apt-get install -y --no-install-recommends $PKGS
 ldconfig
 # autologin no tty1 (p/ ver o boot; o serviço cog assume a tela)
 mkdir -p /etc/systemd/system/getty@tty1.service.d

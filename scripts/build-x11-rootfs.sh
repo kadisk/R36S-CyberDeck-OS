@@ -82,10 +82,15 @@ cat > "$RF/root/setup-x11.sh" <<EOF
 #!/bin/sh
 set -e
 export DEBIAN_FRONTEND=noninteractive
+export MAKEFLAGS="-j\$(nproc)" DEB_BUILD_OPTIONS="parallel=\$(nproc)"
 echo "deb $MIRROR $SUITE main contrib non-free non-free-firmware" > /etc/apt/sources.list
 echo "deb $MIRROR ${SUITE}-updates main contrib non-free non-free-firmware" >> /etc/apt/sources.list
+# downloads paralelos
+echo 'Acquire::Queue-Host::Pipeline-Depth "10"; Acquire::Languages "none";' > /etc/apt/apt.conf.d/99fast
 apt-get update
-apt-get install -y --no-install-recommends $PKGS
+# eatmydata: pula fsync do dpkg -> acelera MUITO sob qemu
+apt-get install -y --no-install-recommends eatmydata
+eatmydata apt-get install -y --no-install-recommends $PKGS
 # autologin no console serial BSP (ttyFIQ0) p/ debug; X assume o tty1
 mkdir -p /etc/systemd/system/serial-getty@ttyFIQ0.service.d
 printf '[Service]\nExecStart=\nExecStart=-/sbin/agetty --autologin root --noclear %%I 115200 \$TERM\n' \
