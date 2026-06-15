@@ -1,0 +1,33 @@
+#!/bin/sh
+# rcS — R36S CyberDeck OS minimal rootfs (Fase 2)
+# Monta os pseudo-FS e imprime um banner claro. Mantém-se mínimo de propósito.
+
+PATH=/bin:/sbin:/usr/bin:/usr/sbin
+export PATH
+
+# Pseudo-filesystems (idempotente; ignora se o kernel já montou algum).
+/bin/busybox mount -t proc     proc     /proc    2>/dev/null
+/bin/busybox mount -t sysfs    sysfs    /sys     2>/dev/null
+/bin/busybox mount -t devtmpfs devtmpfs /dev     2>/dev/null
+/bin/busybox mkdir -p /dev/pts /run
+/bin/busybox mount -t devpts   devpts   /dev/pts 2>/dev/null
+/bin/busybox mount -t tmpfs    tmpfs    /run     2>/dev/null
+
+# Garante que todos os applets do busybox existam como symlinks (idempotente).
+/bin/busybox --install -s 2>/dev/null
+
+# Banner / status — é o sinal visual de que o NOSSO rootfs subiu.
+[ -f /etc/issue ] && cat /etc/issue
+echo
+echo "================================================================"
+echo "  R36S CyberDeck OS — minimal rootfs (Fase 2)  ROOTFS OK"
+echo "================================================================"
+echo "  kernel : $(uname -r)  ($(uname -m))"
+echo "  raiz   : $(grep ' / ' /proc/mounts 2>/dev/null | head -1)"
+echo "  data   : $(date 2>/dev/null)"
+echo "  console: ttyFIQ0 (serial) e tty1 (tela)"
+echo "----------------------------------------------------------------"
+echo "  Shell de debug a seguir. Teste: ls / ; cat /proc/cpuinfo ;"
+echo "  cat /proc/device-tree/model ; dmesg | tail"
+echo "================================================================"
+echo

@@ -1,0 +1,6 @@
+NAME="R36S CyberDeck OS"
+ID=r36s-cyberdeck-os
+VERSION="0.0-phase2-minimal"
+VERSION_ID=0.0
+PRETTY_NAME="R36S CyberDeck OS (minimal rootfs, Fase 2)"
+HOME_URL=""

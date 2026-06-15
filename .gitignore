@@ -18,6 +18,11 @@ zImage
 uInitrd
 initrd.img*
 
+# Imagens de teste (Fase 2): build/ e .img são regeráveis; reports/ é versionado
+/artifacts/test-images/build/
+/artifacts/test-images/*.img
+!/artifacts/test-images/reports/
+
 # Buildroot output
 /buildroot/output/
 /buildroot/dl/

@@ -4,6 +4,30 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added — 2026-06-14 — Fase 2: boot mínimo experimental (imagem de teste)
+- **Imagem de SD de teste gerável por script**, sem root e sem gravar em `/dev/sdX`:
+  `scripts/create-test-sd-image.sh` → `artifacts/test-images/r36s-cyberdeck-minimal.img`
+  (≈401 MiB). Reutiliza kernel/uInitrd/DTB do ArkOS + **copia a região de
+  bootloader RK3326** (idbloader+U-Boot, setores 64..32767) da imagem ArkOS
+  (somente leitura).
+- **Rootfs mínimo próprio** (`board/r36s/rootfs-overlay/` + BusyBox aarch64 1.36.1):
+  `/sbin/init`→busybox, `/etc/inittab` (shells em `ttyFIQ0` e `tty1`), `rcS`
+  (monta proc/sys/devtmpfs, banner "R36S CyberDeck OS minimal rootfs"), `fstab`,
+  `issue`, `os-release`, nós de `/dev` e ownership `root:root` via **fakeroot**
+  (sem sudo). Construído com `mke2fs -d` (ext4 populada sem montar).
+- **`boot.ini` de teste** (`board/r36s/boot/boot.ini`): baseado no ArkOS, sem
+  `quiet`/`splash`, mantém `console=/dev/ttyFIQ0`/`fbcon=rotate:0`/`consoleblank=0`,
+  `root=UUID=c1be7dec-…` (nossa p2), `init=/sbin/init`, `rootfstype=ext4`, `loglevel=7`.
+- Scripts novos: `create-minimal-rootfs.sh`, `prepare-boot-partition.sh`,
+  `prepare-rootfs-partition.sh`, `create-test-sd-image.sh`, `print-flash-command.sh`
+  + `phase2-config.sh` (constantes/UUID/geometria compartilhadas).
+- Docs: `docs/boot/minimal-rootfs-boot-plan.md` (estratégia + análise do uInitrd
+  LZ4 + planos B), `docs/boot/sd-card-test-layout.md` (layout, gravação,
+  **rollback**), `docs/testing/phase2-boot-checklist.md`.
+- `.gitignore`: ignora `artifacts/test-images/build/` e `*.img`; versiona reports.
+- **Não** usa WPE/Cage/Weston/Node/EmulationStation/RetroArch/GUI ainda.
+- Pendente: gravar em microSD e bootar no R36S físico (teste do usuário).
+
 ### Changed — 2026-06-14 — Fase 1 concluída: extração e confirmação real
 - `mtools` instalado → leitura da p1 FAT **sem sudo e sem montar**.
 - `extract-arkos-boot-artifacts.sh` reescrito: suporta dois modos (mount RO **ou**

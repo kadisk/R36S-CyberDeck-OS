@@ -1,0 +1,17 @@
+# /etc/inittab — R36S CyberDeck OS minimal rootfs (Fase 2)
+# BusyBox init. Objetivo: provar boot do nosso rootfs e abrir shell de debug.
+
+# Montagens iniciais (proc/sys/dev/...) e banner:
+::sysinit:/etc/init.d/rcS
+
+# Shell no console serial de debug (ttyFIQ0) e na tela (tty1 = framebuffer).
+ttyFIQ0::respawn:-/bin/sh
+tty1::respawn:-/bin/sh
+
+# Rede de segurança: shell no console que o kernel entregou (seja qual for).
+::respawn:-/bin/sh
+
+# Encerramento limpo:
+::ctrlaltdel:/sbin/reboot
+::shutdown:/bin/umount -a -r
+::restart:/sbin/init

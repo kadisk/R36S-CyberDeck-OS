@@ -102,6 +102,31 @@ sudo scripts/extract-arkos-boot-artifacts.sh
 scripts/identify-r36s-dtb.sh
 ```
 
+## Fase 2 — boot mínimo experimental (gerar cartão de teste)
+
+Prova de que um **rootfs nosso** boota no R36S, reutilizando o boot do ArkOS
+(kernel/uInitrd/DTB/U-Boot) mas com `root=` apontando para uma p2 ext4 própria
+(BusyBox + shell). Sem UI/WPE/Cage ainda.
+
+```bash
+# Gera artifacts/test-images/r36s-cyberdeck-minimal.img (não grava em cartão)
+scripts/create-test-sd-image.sh
+
+# Mostra lsblk + o comando dd recomendado (também não grava)
+scripts/print-flash-command.sh
+```
+
+Depois, **você** grava em um microSD **de teste** (nunca o ArkOS):
+
+```bash
+sudo dd if=artifacts/test-images/r36s-cyberdeck-minimal.img of=/dev/sdX bs=4M status=progress conv=fsync
+```
+
+Detalhes: `docs/boot/minimal-rootfs-boot-plan.md`,
+`docs/boot/sd-card-test-layout.md`, `docs/testing/phase2-boot-checklist.md`.
+A imagem ArkOS permanece **somente leitura** (dela só copiamos a região de
+bootloader RK3326).
+
 ## Estrutura do repositório
 
 ```
