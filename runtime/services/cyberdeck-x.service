@@ -1,0 +1,22 @@
+# systemd unit — CyberDeck UI via Xorg + Chromium kiosk no painel BSP. Fase 5 (X11).
+# Instalar em /etc/systemd/system/ no rootfs Debian (build-x11-rootfs.sh faz isso).
+
+[Unit]
+Description=R36S CyberDeck UI (Xorg + Chromium kiosk)
+After=systemd-user-sessions.service
+Conflicts=getty@tty1.service
+After=getty@tty1.service
+
+[Service]
+Type=simple
+ExecStartPre=/bin/sh -c 'for i in $(seq 1 20); do [ -e /dev/fb0 ] && exit 0; sleep 1; done; exit 0'
+ExecStart=/usr/local/bin/start-cyberdeck-x.sh
+Restart=on-failure
+RestartSec=3
+TTYPath=/dev/tty1
+StandardInput=tty
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

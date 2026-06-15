@@ -1,0 +1,131 @@
+#!/usr/bin/env bash
+#
+# build-x11-rootfs.sh — Fase 5 (X11). Imagem final: BOOT do ArkOS (kernel BSP 4.4 +
+# DTB que ACENDE o painel) + rootfs Debian arm64 com Xorg (fbdev no /dev/fb0) +
+# Chromium kiosk exibindo a cyberdeck-ui. Sem Wayland/GBM (que travaram antes),
+# sem mainline (que não dirige o painel).
+#
+# ⚠️ PRECISA DE ROOT. PESADO (qemu): instala Xorg+Chromium (~30-60 min).
+#
+# Uso:  sudo scripts/build-x11-rootfs.sh
+#
+set -eu
+SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+. "$SELF_DIR/phase2-config.sh"
+
+log(){ echo "[x11] $*"; }
+die(){ echo "[x11][ERRO] $*" >&2; exit 1; }
+has(){ command -v "$1" >/dev/null 2>&1; }
+
+[ "$(id -u)" -eq 0 ] || die "Precisa de root. Use: sudo $0"
+has qemu-aarch64-static || die "qemu-aarch64-static ausente"
+QEMU="$(command -v qemu-aarch64-static)"
+
+SUITE=bookworm
+MIRROR=http://deb.debian.org/debian
+RF="$BUILD_DIR/x11-rootfs"
+P2_MIB="${P2_MIB:-4096}"
+OUT="$OUT_DIR/r36s-cyberdeck-x11.img"
+PKGS="xserver-xorg-core xserver-xorg-video-fbdev xserver-xorg-input-evdev \
+      xinit x11-xserver-utils chromium fonts-dejavu-core ca-certificates zram-tools"
+
+DEBOOTSTRAP="$(command -v debootstrap || true)"
+[ -z "$DEBOOTSTRAP" ] && [ -x /tmp/dbs/out/usr/sbin/debootstrap ] && \
+    DEBOOTSTRAP=/tmp/dbs/out/usr/sbin/debootstrap && export DEBOOTSTRAP_DIR=/tmp/dbs/out/usr/share/debootstrap
+[ -n "$DEBOOTSTRAP" ] || die "debootstrap ausente"
+
+mkdir -p "$BUILD_DIR" "$OUT_DIR" "$PART_DIR"
+cleanup(){ for m in proc sys dev/pts dev; do mountpoint -q "$RF/$m" 2>/dev/null && umount "$RF/$m" 2>/dev/null||true; done; }
+trap cleanup EXIT; cleanup
+
+# 1. Base Debian arm64
+if [ ! -f "$RF/.x11-base-ok" ]; then
+    log "debootstrap Debian $SUITE arm64 (base)"; rm -rf "$RF"
+    "$DEBOOTSTRAP" --arch=arm64 --foreign --variant=minbase \
+        --include=dbus,systemd-sysv,udev "$SUITE" "$RF" "$MIRROR"
+    cp "$QEMU" "$RF/usr/bin/"
+    env -u DEBOOTSTRAP_DIR chroot "$RF" /debootstrap/debootstrap --second-stage
+    touch "$RF/.x11-base-ok"
+else log "base já existe — pulando debootstrap"; fi
+cp "$QEMU" "$RF/usr/bin/" 2>/dev/null || true
+
+# 2. UI + launchers + serviço + Xorg fbdev + fstab
+install -d "$RF/usr/share/cyberdeck-ui"
+cp -a "$REPO_DIR/cyberdeck-ui/public" "$RF/usr/share/cyberdeck-ui/"
+install -D -m0755 "$REPO_DIR/runtime/scripts/start-cyberdeck-x.sh" "$RF/usr/local/bin/start-cyberdeck-x.sh"
+install -D -m0755 "$REPO_DIR/runtime/scripts/cyberdeck-kiosk.sh"   "$RF/usr/local/bin/cyberdeck-kiosk.sh"
+install -D -m0644 "$REPO_DIR/runtime/services/cyberdeck-x.service" "$RF/etc/systemd/system/cyberdeck-x.service"
+mkdir -p "$RF/etc/X11/xorg.conf.d"
+cat > "$RF/etc/X11/xorg.conf.d/99-fbdev.conf" <<'EOF'
+Section "Device"
+    Identifier "FBDEV"
+    Driver     "fbdev"
+    Option     "fbdev" "/dev/fb0"
+EndSection
+Section "Screen"
+    Identifier "Screen0"
+    Device     "FBDEV"
+EndSection
+EOF
+printf 'LABEL=ARCHR_ROOT  /  ext4  defaults,noatime  0 1\n' > "$RF/etc/fstab"
+cat > "$RF/etc/os-release" <<EOF
+NAME="R36S CyberDeck OS"
+ID=r36s-cyberdeck-os
+VERSION="0.6-bsp-x11"
+PRETTY_NAME="R36S CyberDeck OS (BSP + Xorg + Chromium)"
+EOF
+echo r36s-cyberdeck > "$RF/etc/hostname"
+
+# 3. Pacotes + autologin serial (ttyFIQ0) + serviço + zram
+cp -f /etc/resolv.conf "$RF/etc/resolv.conf" 2>/dev/null || true
+cat > "$RF/root/setup-x11.sh" <<EOF
+#!/bin/sh
+set -e
+export DEBIAN_FRONTEND=noninteractive
+echo "deb $MIRROR $SUITE main contrib non-free non-free-firmware" > /etc/apt/sources.list
+echo "deb $MIRROR ${SUITE}-updates main contrib non-free non-free-firmware" >> /etc/apt/sources.list
+apt-get update
+apt-get install -y --no-install-recommends $PKGS
+# autologin no console serial BSP (ttyFIQ0) p/ debug; X assume o tty1
+mkdir -p /etc/systemd/system/serial-getty@ttyFIQ0.service.d
+printf '[Service]\nExecStart=\nExecStart=-/sbin/agetty --autologin root --noclear %%I 115200 \$TERM\n' \
+    > /etc/systemd/system/serial-getty@ttyFIQ0.service.d/autologin.conf
+systemctl enable cyberdeck-x.service
+echo "root:cyberdeck" | chpasswd
+# zram swap (alivia 1GB RAM p/ o Chromium)
+echo 'ALGO=zstd\nPERCENT=60' > /etc/default/zramswap || true
+apt-get clean
+EOF
+chmod +x "$RF/root/setup-x11.sh"
+mount -t proc none "$RF/proc"; mount -t sysfs none "$RF/sys"
+mount --bind /dev "$RF/dev"; mount --bind /dev/pts "$RF/dev/pts"
+log "instalando Xorg + Chromium (chroot/qemu — LENTO)"
+chroot "$RF" /root/setup-x11.sh || { cleanup; die "setup-x11 falhou"; }
+cleanup; rm -f "$RF/root/setup-x11.sh"
+log "rootfs X11 pronto: $(du -sh "$RF"|cut -f1)"
+
+# 4. ext4 (label ARCHR_ROOT) + montar imagem (clone do boot ArkOS, kernel BSP)
+P2="$PART_DIR/x11-p2.ext4"
+log "mke2fs ext4 ${P2_MIB}MiB (UUID=$R36S_ROOTFS_UUID)"
+rm -f "$P2"; truncate -s "${P2_MIB}M" "$P2"
+mke2fs -F -q -t ext4 -L ARCHR_ROOT -U "$R36S_ROOTFS_UUID" -d "$RF" "$P2"
+
+ARKOS="$(find_arkos_img)" || die "imagem ArkOS não encontrada (Backups/ArkOS)"
+p2s="$(fdisk -l "$ARKOS" 2>/dev/null | awk -v i="${ARKOS}2" '$1==i{for(c=2;c<=NF;c++) if($c~/^[0-9]+$/){print $c;exit}}')"
+arkos_p1="$(fdisk -l "$ARKOS" 2>/dev/null | awk -v i="${ARKOS}1" '$1==i{for(c=2;c<=NF;c++) if($c~/^[0-9]+$/){print $c;exit}}')"
+[ -n "$p2s" ] || die "p2 do ArkOS não detectada"
+log "clonando boot do ArkOS (kernel BSP + DTB do painel): setores 0..$((p2s-1))"
+tot=$(( p2s + P2_MIB*2048 + IMG_SLACK_SECTOR ))
+rm -f "$OUT"; truncate -s $(( tot*512 )) "$OUT"
+dd if="$ARKOS" of="$OUT" bs=512 count="$p2s" conv=notrunc status=none
+# nosso boot.ini (root=UUID, console ttyFIQ0+tty1) na BOOT FAT do clone
+MTOOLS_SKIP_CHECK=1 mdel  -i "$OUT@@$((arkos_p1*512))" ::/boot.ini 2>/dev/null || true
+MTOOLS_SKIP_CHECK=1 mcopy -i "$OUT@@$((arkos_p1*512))" "$TEST_BOOT_INI" ::/boot.ini
+dd if="$P2" of="$OUT" bs=512 seek="$p2s" conv=notrunc status=none
+chown "$(stat -c '%U:%G' "$REPO_DIR")" "$OUT" 2>/dev/null || true
+
+SHA="$(sha256sum "$OUT" | awk '{print $1}')"
+"$SELF_DIR/sdcard/sd-image.sh" add x11 "$OUT" >/dev/null 2>&1 || true
+log "IMAGEM PRONTA: $OUT  (sha256 $SHA)"
+log "registrada como 'x11' — grave: sudo scripts/sdcard/sd-update.sh <cartao> x11"
+log "No boot: Xorg+Chromium devem exibir a UI. Log em BOOT:/cyberdeck-x.log"
