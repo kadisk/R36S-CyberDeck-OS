@@ -51,8 +51,12 @@ A UI HTML/JS renderiza no R36S! Caminho vencedor: **kernel BSP** (painel acende)
 **Xorg fbdev** + **Chromium kiosk** com a `cyberdeck-ui` (`scripts/build-x11-rootfs.sh`,
 imagem `x11`). Detalhes/lições: `docs/testing/results/phase5-x11-2026-06-15.md`.
 - [x] UI web exibindo no aparelho físico.
-- [x] Ponte de input joypad→teclas (`cyberdeck-input`, uinput) — D-pad=setas,
-      A=Enter, B=Esc, L1/R1=PageUp/Down. `sd-install-input.sh` aplica sem rebuild.
+- [x] **Navegável pelo gamepad** — o Chromium expõe o joypad pela **Gamepad API**;
+      `app.js` faz a navegação direta (L1/R1+D-pad ←→ = abas, ↑↓ = foco, A/Start =
+      ok, B/Select = voltar). Mapa real confirmado: A=1,X=2,Y=3,L1=4,R1=5,R2=6,
+      ↑=8,↓=9,←=10,→=11,Select=12,Start=13,Fn=16. **Não precisou de uinput.**
+      Diagnóstico: aba **TECLAS** (dump ao vivo de botões/eixos). Push sem rebuild:
+      `sd-update-ui.sh`. (A ponte `cyberdeck-input`/uinput ficou dispensável.)
 - [ ] Dados ao vivo + brilho na UI.
 Becos sem saída documentados (não apagar — são conhecimento): web por Wayland/cog
 travou no GBM do blob Mali (Fase 4); mainline+Panfrost não dirige o painel deste

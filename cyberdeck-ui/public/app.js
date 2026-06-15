@@ -71,9 +71,8 @@
   // ---- Gamepad API: NAVEGAÇÃO PRINCIPAL (Chromium expõe o joypad direto) ----
   // Mapeamento non-standard deste joypad = índices na ordem crescente do código
   // evdev (Fase 3). Confirmado: L1=4, R1=5. Verifique os índices na aba TECLAS.
-  // Índices confirmados no aparelho (aba TECLAS): A=1,X=2,Y=3,L1=4,R1=5,R2=6,
-  // ↓=9,←=10,→=11,Select=12,Start=13,Fn=16. B=0 e ↑=8 inferidos (ordem evdev;
-  // ↓←→ consecutivos 9/10/11 -> ↑=8). Ajuste aqui se a aba TECLAS divergir.
+  // Índices CONFIRMADOS no aparelho (aba TECLAS): A=1,X=2,Y=3,L1=4,R1=5,R2=6,
+  // ↑=8,↓=9,←=10,→=11,Select=12,Start=13,Fn=16. (B=0 inferido da ordem evdev.)
   var GP_RAW = { B:0, A:1, X:2, Y:3, L1:4, R1:5, R2:6, L2:7,
                  UP:8, DOWN:9, LEFT:10, RIGHT:11, SELECT:12, START:13, FN:16 };
   // Se o Chromium reportar mapping="standard", os índices mudam:
