@@ -1,4 +1,4 @@
-# Rootfs mínimo (Fase 2) — 2026-06-15T01:33:06-03:00
+# Rootfs mínimo (Fase 2) — 2026-06-15T01:49:44-03:00
 # BusyBox: ELF 64-bit LSB executable, ARM aarch64, version 1 (GNU/Linux), statically linked, BuildID[sha1]=9a56c1160885424581261f8e1ef773bef3605199, for GNU/Linux 3.7.0, stripped
 # fakeroot: 1
 # Árvore: /home/kadisk/Workspaces/Workspace_RS36S/R36S-CyberDeck-OS/artifacts/test-images/build/rootfs
@@ -36,11 +36,11 @@
 
 ## Nós de /dev
 total 0
-crw------- 1 root root 5, 1 jun 15 01:33 console
-crw-rw-rw- 1 root root 1, 3 jun 15 01:33 null
-drwxrwxr-x 1 root root    0 jun 15 01:33 pts
-crw-rw-rw- 1 root root 5, 0 jun 15 01:33 tty
-crw--w--w- 1 root root 4, 1 jun 15 01:33 tty1
+crw------- 1 root root 5, 1 jun 15 01:49 console
+crw-rw-rw- 1 root root 1, 3 jun 15 01:49 null
+drwxrwxr-x 1 root root    0 jun 15 01:49 pts
+crw-rw-rw- 1 root root 5, 0 jun 15 01:49 tty
+crw--w--w- 1 root root 4, 1 jun 15 01:49 tty1
 
 ## Tamanho
-3,7M	/home/kadisk/Workspaces/Workspace_RS36S/R36S-CyberDeck-OS/artifacts/test-images/build/rootfs
+3,8M	/home/kadisk/Workspaces/Workspace_RS36S/R36S-CyberDeck-OS/artifacts/test-images/build/rootfs

@@ -4,6 +4,20 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added — 2026-06-15 — Fase 3: ações A/B (MENU ↔ DETALHE) + seções
+- `cyberdeck-fb`: navegação em **dois níveis** — **A** abre a seção (tela cheia de
+  detalhe), **B** volta ao menu. Seções preenchidas:
+  - STATUS: CPU/load, RAM usada/total, uptime, **temperatura** (`thermal_zone0`),
+    bateria, brilho.
+  - DEVICE: modelo, SoC, GPU, tela, PMIC, joypad.
+  - REDE: interfaces de `/sys/class/net` + estado (loopback se sem dongle).
+  - LOGS: `dmesg | tail` (carregado ao abrir).
+  - FERRAMENTAS: submenu navegável (Brilho ±, Recarregar UI, **Reiniciar**,
+    **Desligar**) — A executa.
+  - TERMINAL: placeholder (shell no serial por enquanto).
+- L2/R2 (brilho) e F5 (sair) seguem globais. Removido o painel de debug de input
+  (joypad já confirmado).
+
 ### Added — 2026-06-15 — Fase 3: UI navegável confirmada + brilho/bateria
 - **Confirmado no R36S:** a UI nativa aparece na tela e **navega pelos botões**
   (`docs/testing/results/phase3-2026-06-15.md`). Núcleo da Fase 3 (tela+input) ok.

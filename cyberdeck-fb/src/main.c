@@ -114,6 +114,37 @@ static void battery_str(char *out, int n) {
     if (on < 0) on = read_long_file("/sys/class/power_supply/ac/online");
     snprintf(out, n, "%ld%% %s%s", cap < 0 ? 0 : cap, st[0] ? st : "?", on > 0 ? " +CARGA" : "");
 }
+static void loadavg_str(char *o, int n) {
+    char b[96]; read_first_line("/proc/loadavg", b, sizeof b);
+    int sp = 0; for (char *q = b; *q; q++) if (*q == ' ' && ++sp == 3) { *q = 0; break; }
+    snprintf(o, n, "%s", b);
+}
+static long temp_c(void) {
+    long m = read_long_file("/sys/class/thermal/thermal_zone0/temp");
+    if (m < 0) return -1;
+    return m > 1000 ? m / 1000 : m;
+}
+static int net_list(char out[][48], int maxl) {
+    DIR *d = opendir("/sys/class/net"); if (!d) return 0;
+    struct dirent *e; int n = 0;
+    while ((e = readdir(d)) && n < maxl) {
+        if (e->d_name[0] == '.') continue;
+        char p[160], st[32] = "?";
+        snprintf(p, sizeof p, "/sys/class/net/%s/operstate", e->d_name);
+        read_first_line(p, st, sizeof st);
+        snprintf(out[n], 48, "%-10.10s %s", e->d_name, st); n++;
+    }
+    closedir(d); return n;
+}
+static int load_dmesg(char out[][80], int maxl) {
+    FILE *f = popen("dmesg 2>/dev/null | tail -n 16", "r"); if (!f) return 0;
+    int n = 0; char line[300];
+    while (n < maxl && fgets(line, sizeof line, f)) {
+        char *nl = strchr(line, '\n'); if (nl) *nl = 0;
+        line[78] = 0; snprintf(out[n], 80, "%s", line); n++;
+    }
+    pclose(f); return n;
+}
 
 /* ----- input ----- */
 #define MAX_EV 16
@@ -135,6 +166,10 @@ static const char *ITEMS[] = {
     "STATUS", "REDE", "TERMINAL", "LOGS", "FERRAMENTAS", "DEVICE"
 };
 #define NITEMS (int)(sizeof(ITEMS)/sizeof(ITEMS[0]))
+enum { I_STATUS, I_REDE, I_TERM, I_LOGS, I_TOOLS, I_DEVICE };
+
+static const char *TOOLS[] = { "Brilho -", "Brilho +", "Recarregar UI", "Reiniciar", "Desligar" };
+#define NTOOLS (int)(sizeof(TOOLS)/sizeof(TOOLS[0]))
 
 static volatile int running = 1;
 static void on_sig(int s) { (void)s; running = 0; }
@@ -175,89 +210,128 @@ int main(void) {
     long bl_cur = read_long_file(bl_path);  if (bl_cur < 0)  bl_cur = bl_max;
     long bl_step = bl_max / 10; if (bl_step < 1) bl_step = 1;
 
-    int sel = 0;
-    char last_codes[8][48]; int lc = 0;
-    memset(last_codes, 0, sizeof last_codes);
+    int sel = 0, mode = 0, subsel = 0;   /* mode: 0=MENU, 1=DETALHE */
+    char dlog[16][80]; int dlog_n = 0;   /* cache de dmesg p/ a seção LOGS */
 
     while (running) {
-        /* --- render --- */
+        char buf[200];
+        /* ---- barra de título (comum) ---- */
         fill(0, 0, vi.xres, vi.yres, BG);
         fill(0, 0, vi.xres, 22, pack(12, 26, 18));
         draw_text(8, 3, "R36S // CYBERDECK", ACC, BG, 0);
-        /* relógio */
         time_t t = time(NULL); struct tm *tm = localtime(&t);
         char clk[16]; strftime(clk, sizeof clk, "%H:%M:%S", tm);
         draw_text(vi.xres - 8 - 8 * (int)strlen(clk), 3, clk, DIM, BG, 0);
-        /* bateria + brilho no canto sup. dir. (à esquerda do relógio) */
         char bat[40]; battery_str(bat, sizeof bat);
-        char top[64]; snprintf(top, sizeof top, "BAT %s  BRI %ld", bat, bl_cur);
+        char top[72]; snprintf(top, sizeof top, "BAT %s  BRI %ld", bat, bl_cur);
         draw_text(vi.xres - 8 - 8 * (int)strlen(clk) - 8 * ((int)strlen(top) + 1), 3, top, DIM, BG, 0);
 
-        /* menu lateral */
-        int my = 34;
-        for (int i = 0; i < NITEMS; i++) {
-            int y = my + i * 20;
-            if (i == sel) { fill(6, y - 2, 150, 19, SELBG); draw_text(12, y, ITEMS[i], SELFG, SELBG, 0); }
-            else          draw_text(12, y, ITEMS[i], FG, BG, 0);
-        }
-
-        /* painel de conteúdo */
-        int px = 170, py = 34, line = py;
-        char buf[160];
-        draw_text(px, line, ITEMS[sel], ACC, BG, 0); line += 24;
-        if (sel == 0) { /* STATUS */
-            long mt = meminfo_kb("MemTotal:"), ma = meminfo_kb("MemAvailable:");
-            char up[64]; read_first_line("/proc/uptime", up, sizeof up);
-            double upt = atof(up);
-            snprintf(buf, sizeof buf, "CPU : %d nucleos (Cortex-A35)", ncpu); draw_text(px, line, buf, FG, BG, 0); line += 18;
-            if (mt > 0) { snprintf(buf, sizeof buf, "RAM : %ld/%ld MB livres", ma/1024, mt/1024); draw_text(px, line, buf, FG, BG, 0); line += 18; }
-            snprintf(buf, sizeof buf, "UP  : %d s", (int)upt); draw_text(px, line, buf, FG, BG, 0); line += 18;
-            char bs[40]; battery_str(bs, sizeof bs);
-            snprintf(buf, sizeof buf, "BAT : %s", bs); draw_text(px, line, buf, FG, BG, 0); line += 18;
-            snprintf(buf, sizeof buf, "BRI : %ld/%ld  (L2/R2)", bl_cur, bl_max); draw_text(px, line, buf, FG, BG, 0); line += 18;
-        } else if (sel == NITEMS - 1) { /* DEVICE */
-            snprintf(buf, sizeof buf, "MODELO: %.20s", model); draw_text(px, line, buf, FG, BG, 0); line += 18;
-            snprintf(buf, sizeof buf, "TELA  : %ux%u %ubpp", vi.xres, vi.yres, vi.bits_per_pixel); draw_text(px, line, buf, FG, BG, 0); line += 18;
-            draw_text(px, line, "SoC   : Rockchip RK3326", FG, BG, 0); line += 18;
-            draw_text(px, line, "GPU   : Mali-G31", FG, BG, 0); line += 18;
+        if (mode == 0) {
+            /* ====== MENU ====== */
+            int my = 40;
+            for (int i = 0; i < NITEMS; i++) {
+                int y = my + i * 22;
+                if (i == sel) { fill(6, y - 2, 150, 20, SELBG); draw_text(12, y, ITEMS[i], SELFG, SELBG, 0); }
+                else          draw_text(12, y, ITEMS[i], FG, BG, 0);
+            }
+            int px = 170, line = 40;
+            draw_text(px, line, ITEMS[sel], ACC, BG, 0); line += 24;
+            draw_text(px, line, "A: abrir   B: voltar", DIM, BG, 0); line += 26;
+            if (sel == I_STATUS) {
+                long mt = meminfo_kb("MemTotal:"), ma = meminfo_kb("MemAvailable:");
+                if (mt > 0) { snprintf(buf, sizeof buf, "RAM : %ld/%ld MB", (mt-ma)/1024, mt/1024); draw_text(px, line, buf, FG, BG, 0); line += 18; }
+                snprintf(buf, sizeof buf, "BAT : %s", bat); draw_text(px, line, buf, FG, BG, 0); line += 18;
+                snprintf(buf, sizeof buf, "BRI : %ld/%ld", bl_cur, bl_max); draw_text(px, line, buf, FG, BG, 0);
+            } else if (sel == I_DEVICE) {
+                snprintf(buf, sizeof buf, "%.24s", model); draw_text(px, line, buf, FG, BG, 0); line += 18;
+                snprintf(buf, sizeof buf, "%ux%u %ubpp", vi.xres, vi.yres, vi.bits_per_pixel); draw_text(px, line, buf, FG, BG, 0);
+            } else {
+                draw_text(px, line, "Aperte A para abrir.", DIM, BG, 0);
+            }
+            fill(0, vi.yres - 20, vi.xres, 20, pack(12, 26, 18));
+            draw_text(8, vi.yres - 17, "D-PAD: mover  A: abrir  L2/R2: brilho  F5: sair", DIM, BG, 0);
         } else {
-            draw_text(px, line, "(em construcao - Fase 3)", DIM, BG, 0); line += 18;
+            /* ====== DETALHE ====== */
+            int px = 12, line = 40;
+            snprintf(buf, sizeof buf, ">> %s", ITEMS[sel]); draw_text(px, line, buf, ACC, BG, 0); line += 28;
+            if (sel == I_STATUS) {
+                long mt = meminfo_kb("MemTotal:"), ma = meminfo_kb("MemAvailable:");
+                char up[64]; read_first_line("/proc/uptime", up, sizeof up);
+                char la[48]; loadavg_str(la, sizeof la); long tc = temp_c();
+                snprintf(buf, sizeof buf, "CPU  : %d nucleos Cortex-A35   LOAD %s", ncpu, la); draw_text(px, line, buf, FG, BG, 0); line += 20;
+                if (mt > 0) { snprintf(buf, sizeof buf, "RAM  : %ld MB usados / %ld MB total", (mt-ma)/1024, mt/1024); draw_text(px, line, buf, FG, BG, 0); line += 20; }
+                snprintf(buf, sizeof buf, "UPTIME: %d s", (int)atof(up)); draw_text(px, line, buf, FG, BG, 0); line += 20;
+                if (tc > 0) { snprintf(buf, sizeof buf, "TEMP : %ld C", tc); draw_text(px, line, buf, FG, BG, 0); line += 20; }
+                snprintf(buf, sizeof buf, "BAT  : %s", bat); draw_text(px, line, buf, FG, BG, 0); line += 20;
+                snprintf(buf, sizeof buf, "BRI  : %ld/%ld  (L2/R2 ajusta)", bl_cur, bl_max); draw_text(px, line, buf, FG, BG, 0); line += 20;
+            } else if (sel == I_DEVICE) {
+                snprintf(buf, sizeof buf, "MODELO : %.40s", model); draw_text(px, line, buf, FG, BG, 0); line += 20;
+                draw_text(px, line, "SoC    : Rockchip RK3326 (4x Cortex-A35)", FG, BG, 0); line += 20;
+                draw_text(px, line, "GPU    : ARM Mali-G31", FG, BG, 0); line += 20;
+                snprintf(buf, sizeof buf, "TELA   : %ux%u %ubpp (MIPI-DSI kd35t133)", vi.xres, vi.yres, vi.bits_per_pixel); draw_text(px, line, buf, FG, BG, 0); line += 20;
+                draw_text(px, line, "PMIC   : RK817 (bateria/audio/power)", FG, BG, 0); line += 20;
+                draw_text(px, line, "JOYPAD : odroidgo3 (event1)", FG, BG, 0); line += 20;
+            } else if (sel == I_REDE) {
+                char nets[8][48]; int nn = net_list(nets, 8);
+                draw_text(px, line, "Interfaces (dongle USB p/ Wi-Fi/eth):", DIM, BG, 0); line += 22;
+                for (int i = 0; i < nn; i++) { draw_text(px, line, nets[i], FG, BG, 0); line += 18; }
+                if (nn <= 1) { draw_text(px, line, "(so loopback - sem dongle de rede)", DIM, BG, 0); }
+            } else if (sel == I_LOGS) {
+                for (int i = 0; i < dlog_n; i++) { draw_text(px, line, dlog[i], FG, BG, 0); line += 16; }
+                if (!dlog_n) draw_text(px, line, "(sem dmesg)", DIM, BG, 0);
+            } else if (sel == I_TOOLS) {
+                for (int i = 0; i < NTOOLS; i++) {
+                    int y = line + i * 24;
+                    if (i == subsel) { fill(8, y - 2, 200, 20, SELBG); draw_text(px, y, TOOLS[i], SELFG, SELBG, 0); }
+                    else             draw_text(px, y, TOOLS[i], FG, BG, 0);
+                }
+            } else { /* TERMINAL */
+                draw_text(px, line, "Terminal: use o shell no serial (ttyFIQ0)", FG, BG, 0); line += 20;
+                draw_text(px, line, "ou plugue teclado USB. (ponte pty na UI: a fazer)", DIM, BG, 0);
+            }
+            fill(0, vi.yres - 20, vi.xres, 20, pack(12, 26, 18));
+            if (sel == I_TOOLS) draw_text(8, vi.yres - 17, "D-PAD: escolher  A: executar  B: voltar", DIM, BG, 0);
+            else                draw_text(8, vi.yres - 17, "B: voltar   L2/R2: brilho   F5: sair", DIM, BG, 0);
         }
 
-        /* área de debug: últimos códigos de botão lidos (confirma o mapa do joypad) */
-        int dy = vi.yres - 22 - 8 * 12;
-        draw_text(px, dy, "INPUT (codigos):", DIM, BG, 0); dy += 16;
-        for (int i = 0; i < lc; i++) { draw_text(px, dy, last_codes[i], FG, BG, 0); dy += 14; }
-
-        /* rodapé */
-        fill(0, vi.yres - 20, vi.xres, 20, pack(12, 26, 18));
-        draw_text(8, vi.yres - 17, "D-PAD: mover  L2/R2: brilho  F5: sair", DIM, BG, 0);
-
-        /* --- input (espera ate 500ms p/ atualizar o relogio) --- */
+        /* ---- input (timeout 500ms p/ atualizar o relogio) ---- */
         struct pollfd pfd[MAX_EV];
         for (int i = 0; i < ev_n; i++) { pfd[i].fd = ev_fds[i]; pfd[i].events = POLLIN; }
-        int pr = poll(pfd, ev_n, 500);
-        if (pr > 0) {
+        if (poll(pfd, ev_n, 500) > 0) {
             for (int i = 0; i < ev_n; i++) {
                 if (!(pfd[i].revents & POLLIN)) continue;
-                struct input_event ev; ssize_t r;
-                while ((r = read(ev_fds[i], &ev, sizeof ev)) == sizeof ev) {
+                struct input_event ev;
+                while (read(ev_fds[i], &ev, sizeof ev) == sizeof ev) {
                     if (ev.type != EV_KEY || ev.value != 1) continue;
-                    /* registra código p/ depuração do mapa */
-                    char line2[48]; snprintf(line2, sizeof line2, "type=%u code=0x%x", ev.type, ev.code);
-                    for (int k = 7; k > 0; k--) strcpy(last_codes[k], last_codes[k-1]);
-                    strcpy(last_codes[0], line2); if (lc < 8) lc++;
-                    switch (ev.code) {
-                        case JOY_UP:   sel = (sel - 1 + NITEMS) % NITEMS; break;
-                        case JOY_DOWN: sel = (sel + 1) % NITEMS; break;
-                        case JOY_L1:   sel = (sel - 1 + NITEMS) % NITEMS; break;
-                        case JOY_R1:   sel = (sel + 1) % NITEMS; break;
-                        case JOY_L2:   bl_cur -= bl_step; if (bl_cur < 1) bl_cur = 1;
-                                       write_long_file(bl_path, bl_cur); break;
-                        case JOY_R2:   bl_cur += bl_step; if (bl_cur > bl_max) bl_cur = bl_max;
-                                       write_long_file(bl_path, bl_cur); break;
-                        case JOY_F5:   running = 0; break;
-                        default: break;
+                    /* globais */
+                    if (ev.code == JOY_L2) { bl_cur -= bl_step; if (bl_cur < 1) bl_cur = 1; write_long_file(bl_path, bl_cur); continue; }
+                    if (ev.code == JOY_R2) { bl_cur += bl_step; if (bl_cur > bl_max) bl_cur = bl_max; write_long_file(bl_path, bl_cur); continue; }
+                    if (ev.code == JOY_F5) { running = 0; continue; }
+                    if (mode == 0) { /* MENU */
+                        switch (ev.code) {
+                            case JOY_UP: case JOY_L1:   sel = (sel - 1 + NITEMS) % NITEMS; break;
+                            case JOY_DOWN: case JOY_R1: sel = (sel + 1) % NITEMS; break;
+                            case JOY_A:  mode = 1; subsel = 0;
+                                         if (sel == I_LOGS) dlog_n = load_dmesg(dlog, 16);
+                                         break;
+                            default: break;
+                        }
+                    } else { /* DETALHE */
+                        if (ev.code == JOY_B) { mode = 0; continue; }
+                        if (sel == I_TOOLS) {
+                            switch (ev.code) {
+                                case JOY_UP:   subsel = (subsel - 1 + NTOOLS) % NTOOLS; break;
+                                case JOY_DOWN: subsel = (subsel + 1) % NTOOLS; break;
+                                case JOY_A:
+                                    if (subsel == 0) { bl_cur -= bl_step; if (bl_cur < 1) bl_cur = 1; write_long_file(bl_path, bl_cur); }
+                                    else if (subsel == 1) { bl_cur += bl_step; if (bl_cur > bl_max) bl_cur = bl_max; write_long_file(bl_path, bl_cur); }
+                                    else if (subsel == 2) { running = 0; }                 /* recarrega a UI (launcher) */
+                                    else if (subsel == 3) { if (system("sync; reboot")  ) {} }
+                                    else if (subsel == 4) { if (system("sync; poweroff")) {} }
+                                    break;
+                                default: break;
+                            }
+                        }
                     }
                 }
             }
