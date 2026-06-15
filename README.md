@@ -31,7 +31,7 @@ A versão que funciona combina **três decisões** descobertas na prática (ver
 | **Tela** | **Xorg** com driver **fbdev** em `/dev/fb0` (render por software) | evita Wayland/GBM do blob Mali (antigo demais) |
 | **UI** | **Chromium `--kiosk`** abrindo `file://…/cyberdeck-ui` | navegador padrão, software rendering basta p/ UI leve |
 | **Input** | **Gamepad API** do Chromium (joypad direto) | dispensa uinput/teclado virtual |
-| **Dados** | **`cyberdeck-agent`** (servidor HTTP em C, JSON de `/proc`+`/sys`) | UI viva via `fetch`, sem deps pesadas |
+| **Dados** | **`cyberdeck-agent`** (backend **Node.js**, sem deps) servindo JSON de `/proc`+`/sys`+comandos | alimenta TODAS as abas (hardware, SO, rede, logs, terminal, ações) |
 
 Pipeline de construção ([`scripts/build-x11-rootfs.sh`](scripts/build-x11-rootfs.sh)):
 
@@ -103,13 +103,25 @@ do sistema, e nunca toca no cartão do ArkOS.
 
 A aba **TECLAS** mostra um dump ao vivo de botões/eixos (diagnóstico de input).
 
+## Abas da UI (alimentadas pelo `cyberdeck-agent`)
+
+| Aba | Mostra |
+|---|---|
+| **STATUS** | CPU, RAM, brilho, load, uptime, temperatura, bateria — ao vivo (2 s) |
+| **DEVICE** | hardware + SO: modelo, SoC, CPU/clock, GPU, RAM, tela, PMIC, armazenamento, kernel, distro |
+| **REDE** | interface, IP, MAC, gateway, SSID, DNS, tabela de rotas |
+| **LOGS** | `dmesg` (tail) |
+| **TERMINAL** | comandos prontos selecionáveis (sem teclado) — `uname`, `free`, `df`, `lsblk`, `lsusb`… |
+| **FERRAMENTAS** | ações: brilho ±, recarregar UI, reiniciar, desligar |
+| **TECLAS** | diagnóstico de input (teclas/botões/eixos ao vivo) |
+
 ---
 
 ## Estrutura do repositório
 
 ```
-cyberdeck-ui/    UI web (HTML/CSS/JS) — a cara do CyberDeck
-cyberdeck-agent/ agente de dados do sistema (servidor HTTP em C → JSON)
+cyberdeck-ui/    UI web (HTML/CSS/JS) — a cara do CyberDeck (abas STATUS/DEVICE/REDE/…)
+cyberdeck-agent/ backend Node.js (agent.js) — JSON de hardware/SO/rede/logs/terminal/ações
 cyberdeck-fb/    UI nativa alternativa (renderizador 2D em C no framebuffer)
 scripts/         build-x11-rootfs.sh + inspeção do ArkOS + kit de SD (sdcard/)
 runtime/         serviços systemd + scripts de inicialização (Xorg/kiosk/agent)

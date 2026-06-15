@@ -7,21 +7,23 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <!-- Layout 640x480, navegável por botões. v1 estática, sem dependências. -->
+  <!-- Layout 640x480, navegável por gamepad. Dados via cyberdeck-agent (Node). -->
   <header id="topbar">
     <span class="brand">R36S // CYBERDECK</span>
     <span class="spacer"></span>
     <span id="clock" class="metric">--:--:--</span>
+    <span id="cpu-top" class="metric">CPU --%</span>
+    <span id="temp-top" class="metric">-- °C</span>
     <span id="battery" class="metric">BAT --%</span>
   </header>
 
   <nav id="tabs" aria-label="Seções">
     <button class="tab" data-section="status">STATUS</button>
-    <button class="tab" data-section="network">REDE</button>
-    <button class="tab" data-section="terminal">TERMINAL</button>
-    <button class="tab" data-section="logs">LOGS</button>
-    <button class="tab" data-section="tools">FERRAMENTAS</button>
     <button class="tab" data-section="device">DEVICE</button>
+    <button class="tab" data-section="network">REDE</button>
+    <button class="tab" data-section="logs">LOGS</button>
+    <button class="tab" data-section="terminal">TERMINAL</button>
+    <button class="tab" data-section="tools">FERRAMENTAS</button>
     <button class="tab" data-section="keys">TECLAS</button>
   </nav>
 
@@ -30,9 +32,28 @@
       <h2>STATUS DO SISTEMA</h2>
       <div class="gauge"><label>CPU</label><div class="bar"><i id="cpu-bar"></i></div><span id="cpu-val">--%</span></div>
       <div class="gauge"><label>RAM</label><div class="bar"><i id="ram-bar"></i></div><span id="ram-val">--%</span></div>
+      <div class="gauge"><label>LUZ</label><div class="bar"><i id="bright-bar"></i></div><span id="bright-val">--%</span></div>
+      <div class="kv"><span>MEM</span><b id="mem-val">--</b></div>
       <div class="kv"><span>LOAD</span><b id="load-val">--</b></div>
       <div class="kv"><span>UPTIME</span><b id="uptime-val">--</b></div>
       <div class="kv"><span>TEMP</span><b id="temp-val">--</b></div>
+      <div class="kv"><span>BATERIA</span><b id="bat-val">--</b></div>
+    </section>
+
+    <section id="device" class="panel" hidden>
+      <h2>DISPOSITIVO &amp; SISTEMA</h2>
+      <div class="kv"><span>MODELO</span><b id="d-model">--</b></div>
+      <div class="kv"><span>SoC</span><b id="d-soc">--</b></div>
+      <div class="kv"><span>CPU</span><b id="d-cpu">--</b></div>
+      <div class="kv"><span>CLOCK</span><b id="d-clock">--</b></div>
+      <div class="kv"><span>GPU</span><b id="d-gpu">--</b></div>
+      <div class="kv"><span>RAM</span><b id="d-ram">--</b></div>
+      <div class="kv"><span>TELA</span><b id="d-panel">--</b></div>
+      <div class="kv"><span>PMIC</span><b id="d-pmic">--</b></div>
+      <div class="kv"><span>ARMAZ.</span><b id="d-storage">--</b></div>
+      <div class="kv"><span>KERNEL</span><b id="d-kernel">--</b></div>
+      <div class="kv"><span>SO</span><b id="d-os">--</b></div>
+      <div class="kv"><span>HOST</span><b id="d-host">--</b></div>
     </section>
 
     <section id="network" class="panel" hidden>
@@ -40,38 +61,45 @@
       <p class="hint">Sem rede interna — use dongle Wi-Fi/Ethernet USB.</p>
       <div class="kv"><span>IFACE</span><b id="net-iface">--</b></div>
       <div class="kv"><span>IP</span><b id="net-ip">--</b></div>
+      <div class="kv"><span>MAC</span><b id="net-mac">--</b></div>
+      <div class="kv"><span>GATEWAY</span><b id="net-gw">--</b></div>
       <div class="kv"><span>SSID</span><b id="net-ssid">--</b></div>
+      <div class="kv"><span>DNS</span><b id="net-dns">--</b></div>
+      <pre id="net-routes" class="box">(rotas…)</pre>
+    </section>
+
+    <section id="logs" class="panel" hidden>
+      <h2>LOGS (dmesg)</h2>
+      <p class="hint">R1 reabre a aba p/ atualizar.</p>
+      <pre id="logs-output" class="box">(carregando…)</pre>
     </section>
 
     <section id="terminal" class="panel" hidden>
       <h2>TERMINAL</h2>
-      <p class="hint">Ponte pty/WebSocket será conectada na Fase 5.</p>
-      <pre id="term-output">cyberdeck@r36s:~$ _</pre>
-    </section>
-
-    <section id="logs" class="panel" hidden>
-      <h2>LOGS</h2>
-      <pre id="logs-output">(sem dados — agente de logs pendente)</pre>
+      <p class="hint">Sem teclado: escolha um comando (↑↓) e A executa. Teclado USB digita livre.</p>
+      <ul id="term-list" class="menu">
+        <li tabindex="0" data-cmd="uname -a">uname -a</li>
+        <li tabindex="0" data-cmd="uptime">uptime</li>
+        <li tabindex="0" data-cmd="free -h">free -h</li>
+        <li tabindex="0" data-cmd="df -h /">df -h /</li>
+        <li tabindex="0" data-cmd="lsblk">lsblk</li>
+        <li tabindex="0" data-cmd="ip -br addr">ip -br addr</li>
+        <li tabindex="0" data-cmd="ps aux --sort=-%cpu | head -n 8">top processos (CPU)</li>
+        <li tabindex="0" data-cmd="lsusb">lsusb</li>
+      </ul>
+      <pre id="term-output" class="box">cyberdeck@r36s:~$ _</pre>
     </section>
 
     <section id="tools" class="panel" hidden>
-      <h2>FERRAMENTAS / COMANDOS RÁPIDOS</h2>
+      <h2>FERRAMENTAS</h2>
       <ul id="tools-list" class="menu">
-        <li tabindex="0">Brilho da tela</li>
-        <li tabindex="0">Wi-Fi (dongle USB)</li>
-        <li tabindex="0">Reiniciar UI</li>
-        <li tabindex="0">Desligar</li>
+        <li tabindex="0" data-action="bright-up">Brilho +</li>
+        <li tabindex="0" data-action="bright-down">Brilho −</li>
+        <li tabindex="0" data-action="reload-ui">Recarregar UI</li>
+        <li tabindex="0" data-action="reboot">Reiniciar</li>
+        <li tabindex="0" data-action="poweroff">Desligar</li>
       </ul>
-    </section>
-
-    <section id="device" class="panel" hidden>
-      <h2>DISPOSITIVO</h2>
-      <div class="kv"><span>MODELO</span><b>R36S (RK3326)</b></div>
-      <div class="kv"><span>SoC</span><b>Rockchip RK3326 · 4× Cortex-A35</b></div>
-      <div class="kv"><span>GPU</span><b>Mali-G31</b></div>
-      <div class="kv"><span>TELA</span><b>640×480 MIPI-DSI</b></div>
-      <div class="kv"><span>DISTRO</span><b id="distro-ver">CyberDeck OS (dev)</b></div>
-      <div class="kv"><span>SERIAL</span><b id="serial-val">--</b></div>
+      <div class="kv"><span>RESULTADO</span><b id="tools-msg">--</b></div>
     </section>
 
     <section id="keys" class="panel" hidden>
@@ -99,9 +127,9 @@
   </main>
 
   <footer id="hints">
-    <span>D-PAD: mover</span><span>A: ok</span><span>B: voltar</span>
-    <span>L1/R1: abas</span>
+    <span>L1/R1 ←→: abas</span><span>↑↓: foco</span><span>A: ok</span><span>B: voltar</span>
     <span class="spacer"></span>
+    <span id="agent-state" class="metric">agente: …</span>
     <span id="lastkey" class="metric">tecla: —</span>
   </footer>
 

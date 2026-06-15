@@ -27,7 +27,8 @@ RF="$BUILD_DIR/x11-rootfs"
 P2_MIB="${P2_MIB:-4096}"
 OUT="$OUT_DIR/r36s-cyberdeck-x11.img"
 PKGS="xserver-xorg-core xserver-xorg-video-fbdev xserver-xorg-input-evdev \
-      xinit x11-xserver-utils chromium fonts-dejavu-core ca-certificates zram-tools"
+      xinit x11-xserver-utils chromium fonts-dejavu-core ca-certificates zram-tools \
+      nodejs iproute2 wireless-tools"
 
 DEBOOTSTRAP="$(command -v debootstrap || true)"
 [ -z "$DEBOOTSTRAP" ] && [ -x /tmp/dbs/out/usr/sbin/debootstrap ] && \
@@ -55,9 +56,8 @@ cp -a "$REPO_DIR/cyberdeck-ui/public" "$RF/usr/share/cyberdeck-ui/"
 install -D -m0755 "$REPO_DIR/runtime/scripts/start-cyberdeck-x.sh" "$RF/usr/local/bin/start-cyberdeck-x.sh"
 install -D -m0755 "$REPO_DIR/runtime/scripts/cyberdeck-kiosk.sh"   "$RF/usr/local/bin/cyberdeck-kiosk.sh"
 install -D -m0644 "$REPO_DIR/runtime/services/cyberdeck-x.service" "$RF/etc/systemd/system/cyberdeck-x.service"
-# agente de dados do sistema (JSON em 127.0.0.1:8080): compila e instala
-( cd "$REPO_DIR/cyberdeck-agent" && ./build.sh )
-install -D -m0755 "$REPO_DIR/cyberdeck-agent/cyberdeck-agent" "$RF/usr/local/bin/cyberdeck-agent"
+# agente de dados (Node.js) — alimenta a UI com hardware/SO/rede/logs/terminal/ações
+install -D -m0644 "$REPO_DIR/cyberdeck-agent/agent.js" "$RF/usr/local/lib/cyberdeck-agent/agent.js"
 install -D -m0644 "$REPO_DIR/runtime/services/cyberdeck-agent.service" "$RF/etc/systemd/system/cyberdeck-agent.service"
 mkdir -p "$RF/etc/X11/xorg.conf.d"
 cat > "$RF/etc/X11/xorg.conf.d/99-fbdev.conf" <<'EOF'

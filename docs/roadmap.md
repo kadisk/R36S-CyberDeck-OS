@@ -58,9 +58,10 @@ imagem `x11`). Detalhes/lições: `docs/testing/results/phase5-x11-2026-06-15.md
       Diagnóstico: aba **TECLAS** (dump ao vivo de botões/eixos). Push sem rebuild:
       `sd-update-ui.sh`. (A ponte `cyberdeck-input`/uinput ficou dispensável.)
 - [x] **Navegável pelo gamepad** (Gamepad API; mapa confirmado no aparelho).
-- [x] **Dados ao vivo na UI** (`cyberdeck-agent`: CPU/RAM/load/uptime/temp/bateria/
-      brilho/rede via JSON; `app.js` faz `fetch` a cada 2 s).
-- **Feito quando:** ✅ UI web na tela, navegável pelos botões, com dados ao vivo.
+- [x] **Dados ao vivo na UI** + **todas as abas funcionando**, alimentadas pelo
+      backend **Node.js** (`cyberdeck-agent/agent.js`): STATUS, DEVICE (hardware+SO),
+      REDE, LOGS (dmesg), TERMINAL (comandos prontos), FERRAMENTAS (ações), TECLAS.
+- **Feito quando:** ✅ UI web na tela, navegável pelos botões, todas as abas com dados.
 
 > A narrativa completa (todas as tentativas e becos sem saída) está em
 > [`JORNADA.md`](JORNADA.md). Os caminhos descartados (Wayland/Mali, mainline/Panfrost,

@@ -64,7 +64,10 @@ html, body {
 .menu li { padding: 6px 8px; border: 1px solid var(--line); margin-bottom: 4px; }
 .menu li:focus { outline: none; background: var(--fg); color: var(--bg); }
 
-pre { background: #04150b; border: 1px solid var(--line); padding: 8px; height: 100%; overflow: auto; white-space: pre-wrap; }
+pre { background: #04150b; border: 1px solid var(--line); padding: 8px; overflow: auto; white-space: pre-wrap; }
+.box { max-height: 150px; overflow: auto; font-size: 11px; margin-top: 6px; }
+#term-output.box, #logs-output.box { max-height: 220px; }
+.kv b { max-width: 70%; text-align: right; overflow: hidden; text-overflow: ellipsis; }
 
 #hints {
   display: flex; gap: 12px; align-items: center;

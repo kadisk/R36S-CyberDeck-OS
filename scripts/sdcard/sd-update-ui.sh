@@ -31,7 +31,14 @@ DST="$MNT/usr/share/cyberdeck-ui"
 rm -rf "$DST/public.bak" 2>/dev/null || true
 [ -d "$DST/public" ] && mv "$DST/public" "$DST/public.bak"
 cp -a "$SRC" "$DST/public"
+
+# também sincroniza o agente Node (se já existir no cartão — não instala nodejs)
+AGENT_SRC="$REPO/cyberdeck-agent/agent.js"
+AGENT_DST="$MNT/usr/local/lib/cyberdeck-agent/agent.js"
+if [ -f "$AGENT_SRC" ] && [ -d "$MNT/usr/local/lib/cyberdeck-agent" ]; then
+    cp -a "$AGENT_SRC" "$AGENT_DST"; say "agente Node sincronizado (agent.js)."
+fi
 sync
 ok "UI atualizada em '$SD_NAME' ($P2): $(find "$SRC" -type f | wc -l) arquivos."
 say "Backup da anterior em $DST/public.bak (dentro do cartão)."
-say "RESULTADO: reinsira no R36S e ligue. Vá à aba TECLAS e aperte os botões."
+say "RESULTADO: reinsira no R36S e ligue. Navegue as abas pelo gamepad."

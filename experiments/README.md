@@ -27,6 +27,13 @@ do ArkOS dirige o painel `elida,kd35t133`. Forçar só o DTB em outras imagens n
 sd-fix-panel-dtb) — ver o README de lá.
 → Detalhe: `../docs/mainline/phase5-mainline-panfrost-plan.md`.
 
+## Agente de dados em C (`cyberdeck-agent-c/`) — substituído por Node
+Primeira versão do agente de dados: servidor HTTP minúsculo em **C** (aarch64
+estático) servindo JSON de `/proc`+`/sys`. Funcionava, mas foi **substituído por um
+backend Node.js** (`../cyberdeck-agent/`) para alimentar **todas as abas** com mais
+informação (hardware, SO, rede, logs, terminal, ações) e ser mais fácil de estender.
+Mantido aqui como referência da abordagem enxuta.
+
 ## Ponte de input via uinput (dispensável)
 - `cyberdeck-input/` — daemon C que lia o joypad e criava teclado virtual (uinput).
 - `cyberdeck-input.service`.

@@ -4,6 +4,20 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added — 2026-06-15 — Todas as abas funcionando + backend Node.js (cyberdeck-agent)
+- **Agente reescrito em Node.js** (`cyberdeck-agent/agent.js`, sem dependências) —
+  substitui a versão em C (movida p/ `experiments/cyberdeck-agent-c/`). Endpoints:
+  `/api/status` (CPU/RAM/load/uptime/temp/bateria/brilho/rede, polling 2 s),
+  `/api/device` (hardware+SO completo), `/api/network` (interfaces/rotas/gateway/SSID/DNS),
+  `/api/logs` (dmesg), `POST /api/exec` (terminal), `POST /api/action` (brilho±/reload/
+  reboot/poweroff). Roda como root → lê tudo e executa ações. Bind só em 127.0.0.1.
+- **UI: todas as 7 abas funcionais** (STATUS, DEVICE, REDE, LOGS, TERMINAL, FERRAMENTAS,
+  TECLAS). DEVICE mostra todo o hardware/SO; REDE detalhada; LOGS via dmesg; TERMINAL
+  com comandos prontos selecionáveis pelo gamepad (sem teclado); FERRAMENTAS executa
+  ações no agente. Indicador "agente: ON/OFF" no rodapé.
+- build-x11: instala `nodejs iproute2 wireless-tools` + `agent.js` em
+  `/usr/local/lib/cyberdeck-agent/`. `sd-update-ui.sh` agora sincroniza UI **e** o agent.js.
+
 ### Changed — 2026-06-15 — Consolidação: foco na versão que funciona + jornada documentada
 - **README.md (raiz) reescrito** focado na distro funcional: o que é, **base**
   (Debian bookworm + boot BSP clonado do ArkOS + Xorg fbdev + Chromium + Gamepad API
