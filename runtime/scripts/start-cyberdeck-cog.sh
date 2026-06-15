@@ -31,11 +31,13 @@ done
 } > "$LOG" 2>&1
 sync
 
-# Tenta DRM; ativa logs de debug do WPE/cog p/ enxergar a falha de EGL se houver.
-# cog 0.16 não aceita --width/--height: a geometria vem do modo nativo do DRM
-# (o painel já é 640x480). Plataforma via --platform=drm.
+# DRM em modo NÃO-atomic: o modo atomic causou segfault no swap de buffer
+# (e o aviso "does not support rotation 0" vem do plane atomic). O caminho legado
+# (drmModeSetCrtc/SetPlane) é mais simples e estável com o blob Mali.
 export WPE_DEBUG=1 G_MESSAGES_DEBUG=all
-cog --platform=drm "$UI" >> "$LOG" 2>&1
+COG_PARAMS="${COG_PARAMS:-disable-atomic-modesetting=true}"
+echo "## cog --platform=drm --platform-params=$COG_PARAMS" >> "$LOG"
+cog --platform=drm --platform-params="$COG_PARAMS" "$UI" >> "$LOG" 2>&1
 rc=$?
 echo "===== cog saiu (cod $rc) $(date) =====" >> "$LOG"
 sync
