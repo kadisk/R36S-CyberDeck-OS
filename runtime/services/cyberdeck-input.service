@@ -1,0 +1,17 @@
+[Unit]
+Description=CyberDeck input bridge (joypad -> teclado virtual via uinput)
+# Sobe junto com a UI; nao depende do X (cria teclado virtual que o X le sozinho).
+DefaultDependencies=no
+After=systemd-udevd.service
+Before=cyberdeck-x.service
+Wants=cyberdeck-x.service
+
+[Service]
+Type=simple
+ExecStartPre=/sbin/modprobe uinput
+ExecStart=/usr/local/bin/cyberdeck-input
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
