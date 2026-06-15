@@ -4,8 +4,9 @@ archr-original	FALHA	https://github.com/archr-linux/Arch-R/releases	[link OK 1.6
 r36s-armbian	TODO	https://github.com/R36S-Stuff/R36S-Armbian/releases/latest	[LINK OK 1.1GB: armbian-r36s-plucky-xfce.img.xz] *** ALVO: Debian/Ubuntu real + XFCE -> navegador p/ web UI. Validar tela no nosso painel.
 knulli	TODO	https://github.com/knulli-cfw/knulli-linux/releases/download/20260511/knulli-rk3326-r36s-scarab-20260510.img.gz	[LINK OK 1.9GB direto] Batocera-like moderno, asset R36S. Testar se a tela sobe (pode ter risco de painel como mainline).
 arkos-r3xs	TODO	https://www.mediafire.com/file/i672xysm7j62kde/ArkOS_R35S-R36S_v2.0_05312025_MultiPanel.img.xz	[MEDIAFIRE - baixar no navegador] ArkOS MULTIPANEL (seletor de painel no boot) -> identifica nosso painel. Base do nosso backup (BSP, funciona).
-darkosre-r36	TODO	https://github.com/southoz/dArkOSRE-R36/releases/latest	[GH sem asset - imagem em link externo na descricao] BSP/dArkOS forte p/ R36S + gestao de DTB. Achar link real.
-rocknix	TODO	https://rocknix.org/devices/unbranded/game-console-r35s-r36s/	[PAGINA - baixar manual] mainline imutavel; risco de painel como Arch-R.
+darkosre-r36	TODO	https://github.com/southoz/dArkOSRE-R36/releases/latest	[MANUAL: espelhos Mega/GoogleDrive/OneDrive na descricao do release] BSP/dArkOS forte p/ R36S + gestao de DTB.
+rocknix	TODO	https://github.com/ROCKNIX/distribution/releases/download/20260601/ROCKNIX-RK3326.aarch64-20260601-a.img.gz	[LINK DIRETO 1.5GB variante A] mainline imutavel; risco de painel. -a/-b sao revisoes de placa/painel.
+rocknix-b	TODO	https://github.com/ROCKNIX/distribution/releases/download/20260601/ROCKNIX-RK3326.aarch64-20260601-b.img.gz	[LINK DIRETO 1.5GB variante B] testar se a -a nao exibir (painel diferente).
 r36s-multiboot	TODO	https://github.com/R36S-Stuff/R36S-Multiboot	[PAGINA/repo - baixar manual] multiboot com SELETOR de painel -> identifica nosso painel.
 amberelec	SKIP	https://amberelec.org/download.html	[PAGINA - RG351, nao R36S direto] baixa, requer adaptacao/DTB. Baixa prioridade.
 andr36oid	TODO	https://github.com/andr36oid/releases/releases	[GH sem asset - link externo] Android/LineageOS; R36S original (clones nao). GUI Android.

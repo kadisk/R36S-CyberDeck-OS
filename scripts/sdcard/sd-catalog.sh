@@ -21,7 +21,7 @@ cat_set(){ local tmp; tmp="$(mktemp)"; awk -F'\t' -v n="$1" 'NR==1 || $1!=n' "$C
            printf '%s\t%s\t%s\t%s\t%s\n' "$1" "$2" "$3" "$4" "$5" >> "$tmp"; mv "$tmp" "$CAT"; }
 icon(){ case "$1" in FUNCIONA) echo "✅";; FALHA) echo "❌";; PARCIAL) echo "🟡";; TESTANDO) echo "🔄";; SKIP) echo "⛔";; *) echo "⬜";; esac; }
 # baixado? imprime caminho se a imagem está registrada e o arquivo existe
-dlpath(){ local p; p="$("$SELF/sd-image.sh" list 2>/dev/null | awk -v n="$1" '$1==n{print $3}')"; [ -n "$p" ] && [ -f "$p" ] && echo "$p"; }
+dlpath(){ local p; p="$("$SELF/sd-image.sh" list 2>/dev/null | awk -v n="$1" '$1==n{print $NF}')"; [ -n "$p" ] && [ -f "$p" ] && echo "$p"; }
 
 # resolve a URL do catálogo -> "DIRECT<TAB>url<TAB>arquivo" ou "MANUAL<TAB>motivo"
 resolve(){ # $1 = url
@@ -32,6 +32,11 @@ def U(u,m='GET'): return urllib.request.urlopen(urllib.request.Request(u,method=
 EXT=('.img','.img.gz','.img.xz','.7z','.zip')
 def out(k,a,b=''): print(f"{k}\t{a}\t{b}"); sys.exit(0)
 try:
+    if 'mediafire.com/file/' in url:
+        h=U(url).read().decode('utf-8','ignore')
+        m=re.findall(r'href="(https://download[^"]+\.mediafire\.com/[^"]+)"',h)
+        if m: out('DIRECT',m[0],m[0].split('/')[-1].split('?')[0])
+        out('MANUAL','MediaFire: link direto não encontrado (baixar no navegador)')
     if 'mediafire.com' in url: out('MANUAL','MediaFire (baixar no navegador)')
     m=re.match(r'https://github.com/([^/]+)/([^/]+)/releases(?:/latest)?/?$',url)
     if m:
