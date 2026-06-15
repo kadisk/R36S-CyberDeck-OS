@@ -51,3 +51,5 @@ dist/
 
 # Allowlist de cartões SD (identidade de hardware local)
 /scripts/sdcard/authorized-cards.tsv
+/scripts/sdcard/images.tsv
+/scripts/sdcard/bindings.tsv

@@ -25,7 +25,15 @@ scripts/sdcard/sd-cards.sh
 # 2) autorizar um cartão de teste — passo humano, aponta o device físico (sem sudo)
 scripts/sdcard/sd-allow.sh /dev/sdX "cartao-teste-r36s"
 
-# 3) gravar uma imagem PELO NOME (sudo; só em cartão autorizado)
+# 2b) registrar a imagem por APELIDO (uma vez; sem sudo)
+scripts/sdcard/sd-image.sh add mainline artifacts/test-images/r36s-cyberdeck-mainline.img
+scripts/sdcard/sd-image.sh list
+
+# 3) ATUALIZAR o cartão pela dupla de NOMES — sem dd, sem caminhos (sudo)
+sudo scripts/sdcard/sd-update.sh cartao-teste-r36s mainline   # grava e memoriza o vínculo
+sudo scripts/sdcard/sd-update.sh cartao-teste-r36s            # da 2a vez, usa a imagem vinculada
+
+# (alternativa de baixo nível: gravar passando o caminho do .img)
 sudo scripts/sdcard/sd-flash.sh cartao-teste-r36s artifacts/test-images/r36s-cyberdeck-mainline.img
 
 # 3b) OU só editar o boot (rw + verboso) sem regravar a imagem (sudo)
@@ -57,6 +65,11 @@ sudo scripts/sdcard/sd-edit-extlinux.sh cartao-teste-r36s && echo "ok, pode boot
 | `sd-cards.sh` | não | lista autorizados + conectados |
 | `sd-allow.sh /dev/sdX "nome"` | não | autoriza um cartão |
 | `sd-revoke.sh <fp\|nome>` | não | remove da lista |
-| `sd-flash.sh /dev/sdX img` | **sim** | grava imagem (dd) — só autorizado |
-| `sd-edit-extlinux.sh /dev/sdX` | **sim** | aplica extlinux (rw+verboso) na BOOT |
+| `sd-image.sh add/list/rm` | não | registra imagens por apelido |
+| `sd-update.sh <cartao> [imagem]` | **sim** | grava imagem (apelido) no cartão (nome); memoriza o vínculo |
+| `sd-flash.sh <cartao\|/dev/sdX> img` | **sim** | grava imagem por caminho (baixo nível) |
+| `sd-edit-extlinux.sh <cartao\|/dev/sdX>` | **sim** | aplica extlinux (rw+verboso) na BOOT |
 | `sdcard-lib.sh` | — | biblioteca (sourced) |
+
+Arquivos locais (gitignored): `authorized-cards.tsv` (cartões), `images.tsv`
+(apelidos de imagem), `bindings.tsv` (cartão→imagem).

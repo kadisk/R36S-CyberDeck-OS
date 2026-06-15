@@ -9,6 +9,8 @@
 
 SDLIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ALLOWLIST="${SDCARD_ALLOWLIST:-$SDLIB_DIR/authorized-cards.tsv}"
+IMAGES="${SDCARD_IMAGES:-$SDLIB_DIR/images.tsv}"        # apelido -> caminho .img
+BINDINGS="${SDCARD_BINDINGS:-$SDLIB_DIR/bindings.tsv}"  # cartão -> apelido de imagem
 
 # ---- saída ----
 hr(){ printf '%s\n' "------------------------------------------------------------"; }
@@ -54,6 +56,39 @@ sd_is_authorized(){ # $1 = fingerprint
     grep -qE "^$1[[:space:]]" "$ALLOWLIST"
 }
 sd_authorized_name(){ grep -E "^$1[[:space:]]" "$ALLOWLIST" 2>/dev/null | head -1 | cut -f2; }
+
+# ---- registro de imagens (apelido -> caminho) ----
+sd_images_init(){ [ -f "$IMAGES" ] || printf '# apelido\tcaminho\tadicionado\n' > "$IMAGES"; }
+sd_image_path(){ # $1 = apelido -> imprime caminho (vazio se não achar)
+    [ -f "$IMAGES" ] || return 1
+    grep -vE '^#' "$IMAGES" | awk -F'\t' -v n="$1" '$1==n{print $2; exit}'
+}
+sd_image_add(){ # $1=apelido $2=caminho
+    sd_images_init
+    local abs; abs="$(readlink -f "$2" 2>/dev/null || echo "$2")"
+    [ -f "$abs" ] || { err "imagem não encontrada: $2"; return 1; }
+    local tmp; tmp="$(mktemp)"
+    awk -F'\t' -v n="$1" 'NR==1 || $1!=n' "$IMAGES" > "$tmp" && mv "$tmp" "$IMAGES"
+    printf '%s\t%s\t%s\n' "$1" "$abs" "$(date -Iseconds)" >> "$IMAGES"
+}
+
+# ---- vínculos (cartão -> apelido de imagem) ----
+sd_bindings_init(){ [ -f "$BINDINGS" ] || printf '# cartao\tapelido_imagem\n' > "$BINDINGS"; }
+sd_bind_get(){ [ -f "$BINDINGS" ] && grep -vE '^#' "$BINDINGS" | awk -F'\t' -v c="$1" '$1==c{print $2; exit}'; }
+sd_bind_set(){ # $1=cartao $2=apelido
+    sd_bindings_init
+    local tmp; tmp="$(mktemp)"
+    awk -F'\t' -v c="$1" 'NR==1 || $1!=c' "$BINDINGS" > "$tmp" && mv "$tmp" "$BINDINGS"
+    printf '%s\t%s\n' "$1" "$2" >> "$BINDINGS"
+}
+
+# ---- gravar imagem no device (desmonta antes) ----
+sd_flash_image(){ # $1=dev $2=img
+    local dev="$1" img="$2" p
+    for p in $(lsblk -nro NAME "$dev" 2>/dev/null | tail -n +2); do umount "/dev/$p" 2>/dev/null || true; done
+    dd if="$img" of="$dev" bs=4M conv=fsync status=progress
+    sync
+}
 
 # ---- resolver cartão por NOME (ou fingerprint, ou /dev/sdX) -> SD_DEV ----
 # Permite usar o nome registrado; descobre o /dev/sdX atual pela fingerprint
