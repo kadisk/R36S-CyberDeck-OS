@@ -1,9 +1,6 @@
 # nome	status	url	notas	testado_em
 arkos	FUNCIONA	(backup local Backups/ArkOS)	BSP 4.4 + blob Mali; tela+joypad+brilho+bateria OK (Fases 2-3). Painel=elida,kd35t133 (~Panel0/original).	2026-06-15
 archr-original	FALHA	https://github.com/archr-linux/Arch-R/releases	[link OK 1.6GB] mainline 6.12+Panfrost; backlight acende, tela PRETA; wizard nao detectou painel.	2026-06-15
-r36s-armbian	TODO	https://github.com/R36S-Stuff/R36S-Armbian/releases/latest	[LINK OK 1.1GB: armbian-r36s-plucky-xfce.img.xz] *** ALVO: Debian/Ubuntu real + XFCE -> navegador p/ web UI. Validar tela no nosso painel.
-knulli	TODO	https://github.com/knulli-cfw/knulli-linux/releases/download/20260511/knulli-rk3326-r36s-scarab-20260510.img.gz	[LINK OK 1.9GB direto] Batocera-like moderno, asset R36S. Testar se a tela sobe (pode ter risco de painel como mainline).
-arkos-r3xs	TODO	https://www.mediafire.com/file/i672xysm7j62kde/ArkOS_R35S-R36S_v2.0_05312025_MultiPanel.img.xz	[MEDIAFIRE - baixar no navegador] ArkOS MULTIPANEL (seletor de painel no boot) -> identifica nosso painel. Base do nosso backup (BSP, funciona).
 darkosre-r36	TODO	https://github.com/southoz/dArkOSRE-R36/releases/latest	[MANUAL: espelhos Mega/GoogleDrive/OneDrive na descricao do release] BSP/dArkOS forte p/ R36S + gestao de DTB.
 rocknix	TODO	https://github.com/ROCKNIX/distribution/releases/download/20260601/ROCKNIX-RK3326.aarch64-20260601-a.img.gz	[LINK DIRETO 1.5GB variante A] mainline imutavel; risco de painel. -a/-b sao revisoes de placa/painel.
 rocknix-b	TODO	https://github.com/ROCKNIX/distribution/releases/download/20260601/ROCKNIX-RK3326.aarch64-20260601-b.img.gz	[LINK DIRETO 1.5GB variante B] testar se a -a nao exibir (painel diferente).
@@ -15,3 +12,6 @@ pan4elec	SKIP	https://github.com/Kegg1701/P4ELEC/releases	[LINK e RG351MP + Pane
 unofficialos	SKIP	https://github.com/RetroGFX/UnofficialOS/releases	[LINK latest = build x86_64! errado] precisa do asset aarch64/RK handheld, nao o desktop. Pular ate achar o release certo.
 myminui	SKIP	https://github.com/Turro75/MyMinUI/releases	[88MB = launcher/app, nao distro bootavel] nao serve de base.
 arkos4clone	TODO	https://github.com/lcdyk0517/arkos4clone	[ferramenta, nao imagem] adapta ArkOS/dArkOS a clones; selecao de DTB. Usar se for clone.
+arkos-r3xs	FALHA	https://www.mediafire.com/file/i672xysm7j62kde/ArkOS_R35S-R36S_v2.0_05312025_MultiPanel.img.xz	Nem acende a tela	2026-06-15T15:16:32-03:00
+r36s-armbian	FALHA	https://github.com/R36S-Stuff/R36S-Armbian/releases/latest	Nem acende a tela	2026-06-15T15:22:13-03:00
+knulli	FALHA	https://github.com/knulli-cfw/knulli-linux/releases/download/20260511/knulli-rk3326-r36s-scarab-20260510.img.gz	Nem acende a tela	2026-06-15T15:26:20-03:00
