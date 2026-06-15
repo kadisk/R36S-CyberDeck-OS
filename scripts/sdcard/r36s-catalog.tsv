@@ -1,16 +1,16 @@
 # nome	status	url	notas	testado_em
-arkos	FUNCIONA	(backup local Backups/ArkOS)	BSP 4.4 + blob Mali; tela+joypad+brilho+bateria OK (Fases 2-3). Painel funciona.	2026-06-15
-archr-original	FALHA	https://github.com/archr-linux/Arch-R/releases	mainline 6.12+Panfrost; backlight acende, tela PRETA; wizard nao auto-detectou painel; overlays/elida tambem pretos	2026-06-15
-darkosre-r36	TODO	https://github.com/southoz/dArkOSRE-R36/releases/latest	BSP/dArkOS; ES + R36 Control Centre + selecao/gestao de DTB; "mais forte p/ R36S/clones". Painel deve funcionar (BSP).
-arkos-r3xs	TODO	https://github.com/AeolusUX/ArkOS-R3XS/releases	BSP/ArkOS comunitario; MULTIPANEL + selecao de painel no boot -> util p/ IDENTIFICAR nosso painel. Base do nosso backup.
-knulli	TODO	https://github.com/knulli-cfw/knulli-linux/releases/download/20260511/knulli-rk3326-r36s-scarab-20260510.img.gz	Batocera-like moderno; asset estavel R36S. Verificar se painel precisa de passos extras.
-rocknix	TODO	https://rocknix.org/devices/unbranded/game-console-r35s-r36s/	mainline imutavel; R36S recentes podem precisar do mipi-panel.dtbo correto (mesmo risco do Arch-R).
-r36s-multiboot	TODO	https://github.com/R36S-Stuff/R36S-Multiboot	multiboot com SELETOR de painel (original + 4 novos) -> EXCELENTE p/ identificar nosso painel.
-amberelec	TODO	https://amberelec.org/download.html	RG351-focado, R36S por adaptacao; pode exigir DTB. Nao prioridade.
-pan4elec	TODO	https://github.com/Kegg1701/P4ELEC/releases	AmberELEC mod p/ R36S "Panel 4 v5". Cuidado: DTB errado = tela branca/ghosting/aquecimento.
-unofficialos	TODO	https://github.com/RetroGFX/UnofficialOS/releases	JELOS-derived; comparacao. Nao prioridade.
-andr36oid	TODO	https://github.com/andr36oid/releases/releases	Android/LineageOS 18.1; R36S original (clones nao suportados). GUI Android.
-r36s-xorg	TODO	https://archive.org/details/ark-os-r-35-s-r-36-s-v-2.0-05242024-p-4-xorg	*** ALVO CYBERDECK: Xorg (XFCE/LXDE/LXQt) sobre ArkOS BSP -> painel FUNCIONA + ambiente grafico p/ rodar NAVEGADOR (web UI) sem depender de mainline.
-r36s-armbian	TODO	https://github.com/R36S-Stuff/R36S-Armbian/releases/latest	*** Linux "normal" (Debian/Ubuntu-like) p/ CyberDeck/terminal/rede/pacotes. RC/experimental; validar tela+input+GL.
-myminui	TODO	https://github.com/Turro75/MyMinUI/releases	MinUI fork minimalista; so jogos. Nao serve de base cyberdeck.
-arkos4clone	TODO	https://github.com/lcdyk0517/arkos4clone	Ferramenta (nao imagem) p/ adaptar ArkOS/dArkOS a clones; selecao de DTB/kernel. Util se for clone.
+arkos	FUNCIONA	(backup local Backups/ArkOS)	BSP 4.4 + blob Mali; tela+joypad+brilho+bateria OK (Fases 2-3). Painel=elida,kd35t133 (~Panel0/original).	2026-06-15
+archr-original	FALHA	https://github.com/archr-linux/Arch-R/releases	[link OK 1.6GB] mainline 6.12+Panfrost; backlight acende, tela PRETA; wizard nao detectou painel.	2026-06-15
+r36s-armbian	TODO	https://github.com/R36S-Stuff/R36S-Armbian/releases/latest	[LINK OK 1.1GB: armbian-r36s-plucky-xfce.img.xz] *** ALVO: Debian/Ubuntu real + XFCE -> navegador p/ web UI. Validar tela no nosso painel.
+knulli	TODO	https://github.com/knulli-cfw/knulli-linux/releases/download/20260511/knulli-rk3326-r36s-scarab-20260510.img.gz	[LINK OK 1.9GB direto] Batocera-like moderno, asset R36S. Testar se a tela sobe (pode ter risco de painel como mainline).
+arkos-r3xs	TODO	https://www.mediafire.com/file/i672xysm7j62kde/ArkOS_R35S-R36S_v2.0_05312025_MultiPanel.img.xz	[MEDIAFIRE - baixar no navegador] ArkOS MULTIPANEL (seletor de painel no boot) -> identifica nosso painel. Base do nosso backup (BSP, funciona).
+darkosre-r36	TODO	https://github.com/southoz/dArkOSRE-R36/releases/latest	[GH sem asset - imagem em link externo na descricao] BSP/dArkOS forte p/ R36S + gestao de DTB. Achar link real.
+rocknix	TODO	https://rocknix.org/devices/unbranded/game-console-r35s-r36s/	[PAGINA - baixar manual] mainline imutavel; risco de painel como Arch-R.
+r36s-multiboot	TODO	https://github.com/R36S-Stuff/R36S-Multiboot	[PAGINA/repo - baixar manual] multiboot com SELETOR de painel -> identifica nosso painel.
+amberelec	SKIP	https://amberelec.org/download.html	[PAGINA - RG351, nao R36S direto] baixa, requer adaptacao/DTB. Baixa prioridade.
+andr36oid	TODO	https://github.com/andr36oid/releases/releases	[GH sem asset - link externo] Android/LineageOS; R36S original (clones nao). GUI Android.
+r36s-xorg	SKIP	https://archive.org/details/ark-os-r-35-s-r-36-s-v-2.0-05242024-p-4-xorg	[archive.org so P4 4GB] *** so tem build Panel 4; nosso painel ~Panel0 -> provavelmente NAO exibe. Alternativa: aplicar scripts R36S-Xorg sobre ArkOS que funciona.
+pan4elec	SKIP	https://github.com/Kegg1701/P4ELEC/releases	[LINK e RG351MP + Panel4] nem R36S nem nosso painel. Pular.
+unofficialos	SKIP	https://github.com/RetroGFX/UnofficialOS/releases	[LINK latest = build x86_64! errado] precisa do asset aarch64/RK handheld, nao o desktop. Pular ate achar o release certo.
+myminui	SKIP	https://github.com/Turro75/MyMinUI/releases	[88MB = launcher/app, nao distro bootavel] nao serve de base.
+arkos4clone	TODO	https://github.com/lcdyk0517/arkos4clone	[ferramenta, nao imagem] adapta ArkOS/dArkOS a clones; selecao de DTB. Usar se for clone.
