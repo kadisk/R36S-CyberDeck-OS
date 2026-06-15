@@ -1,18 +1,22 @@
 # systemd unit — lança a CyberDeck UI (HTML/JS) via cog (WPE) no boot. Fase 4.
 # Instalar em /etc/systemd/system/ no rootfs Debian (build-web-rootfs.sh faz isso).
+#
+# NÃO usar Wants/After=dev-dri-card0.device: o ".device" do DRM muitas vezes não
+# vira "active" no systemd e o boot trava em "Job dev-dri-card0.device/start
+# running" até timeout. Em vez disso, o launcher espera /dev/dri/card0 existir.
 
 [Unit]
 Description=R36S CyberDeck UI (cog / WPE WebKit, kiosk)
-After=systemd-user-sessions.service dev-dri-card0.device
-Wants=dev-dri-card0.device
+After=systemd-user-sessions.service
 Conflicts=getty@tty1.service
 After=getty@tty1.service
 
 [Service]
 Type=simple
+ExecStartPre=/bin/sh -c 'for i in $(seq 1 30); do [ -e /dev/dri/card0 ] && exit 0; sleep 1; done; exit 0'
 ExecStart=/usr/local/bin/start-cyberdeck-cog.sh
-Restart=always
-RestartSec=2
+Restart=on-failure
+RestartSec=3
 TTYPath=/dev/tty1
 StandardInput=tty
 StandardOutput=journal
