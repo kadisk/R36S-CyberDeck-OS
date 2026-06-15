@@ -1,0 +1,8 @@
+# Conteúdo da partição BOOT (p1, FAT) — gerado em 2026-06-14T21:40:56-03:00
+# offset: 16777216
+
+mtools (mdir/mcopy) não instalado — não foi possível ler a FAT sem montar.
+Opções:
+  - Instale mtools:  sudo apt-get install mtools
+  - OU monte read-only:  sudo scripts/mount-arkos-readonly.sh
+    e liste mnt/arkos/boot/

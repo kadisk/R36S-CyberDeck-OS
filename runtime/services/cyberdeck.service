@@ -1,0 +1,23 @@
+# systemd unit — inicia a CyberDeck UI em kiosk no boot do R36S.
+# Instalar em /etc/systemd/system/ no rootfs final (via rootfs-overlay).
+# Substitui o papel do emulationstation.service do ArkOS — NÃO depende dele.
+
+[Unit]
+Description=R36S CyberDeck UI (kiosk)
+After=systemd-user-sessions.service
+Conflicts=getty@tty1.service
+After=getty@tty1.service
+
+[Service]
+Type=simple
+# Roda na tty1; ajustar usuário conforme o rootfs (root na v1 de dev).
+TTYPath=/dev/tty1
+StandardInput=tty
+StandardOutput=journal
+StandardError=journal
+ExecStart=/usr/local/bin/start-cyberdeck-ui.sh
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

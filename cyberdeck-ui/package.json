@@ -1,0 +1,15 @@
+{
+  "name": "cyberdeck-ui",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Interface HTML/JS do R36S CyberDeck OS (640x480, kiosk, navegação por botões)",
+  "scripts": {
+    "dev": "python3 -m http.server 8080 --directory public",
+    "serve": "python3 -m http.server 8080 --directory public"
+  },
+  "browserslist": [
+    "last 2 versions"
+  ],
+  "license": "MIT",
+  "comment": "v1 sem dependências/build. 'npm run dev' serve public/ p/ desenvolver no navegador do PC. Runtime no aparelho: WPE WebKit (ver docs/web-ui/runtime-options.md)."
+}

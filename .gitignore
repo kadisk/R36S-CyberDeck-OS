@@ -1,0 +1,34 @@
+# Montagens locais da imagem ArkOS (nunca versionar)
+/mnt/
+
+# Artefatos binários extraídos do ArkOS (grandes; regeráveis via scripts)
+/artifacts/arkos-reference/boot/*
+/artifacts/arkos-reference/dtb/*
+/artifacts/arkos-reference/kernel/*
+!/artifacts/arkos-reference/**/.gitkeep
+# Relatórios de texto SÃO versionados (úteis como referência):
+!/artifacts/arkos-reference/reports/
+
+# Imagens de SD / kernels / dtbs soltos
+*.img
+*.img.gz
+*.dtb
+Image
+zImage
+uInitrd
+initrd.img*
+
+# Buildroot output
+/buildroot/output/
+/buildroot/dl/
+
+# Node / UI
+node_modules/
+dist/
+
+# Loop device record
+.loopdev
+
+# Editores / SO
+*.swp
+.DS_Store

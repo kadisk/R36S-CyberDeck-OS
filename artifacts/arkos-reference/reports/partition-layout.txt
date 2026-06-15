@@ -1,0 +1,14 @@
+# Layout de partições — gerado em 2026-06-14T21:40:56-03:00
+# Fonte: /home/kadisk/Workspaces/Workspace_RS36S/Backups/ArkOS/ArkOS_2.0_08232024_AeUX_backup_2026-06-03.img  (somente leitura)
+
+Disco /home/kadisk/Workspaces/Workspace_RS36S/Backups/ArkOS/ArkOS_2.0_08232024_AeUX_backup_2026-06-03.img: 48,83 GiB, 52428800000 bytes, 102400000 setores
+Unidades: setor de 1 * 512 = 512 bytes
+Tamanho de setor (lógico/físico): 512 bytes / 512 bytes
+Tamanho E/S (mínimo/ótimo): 512 bytes / 512 bytes
+Tipo de rótulo do disco: dos
+Identificador do disco: 0xc9f931c9
+
+Dispositivo                                                                                          Inicializar   Início       Fim  Setores Tamanho Id Tipo
+/home/kadisk/Workspaces/Workspace_RS36S/Backups/ArkOS/ArkOS_2.0_08232024_AeUX_backup_2026-06-03.img1                32768    262143   229376    112M  b FAT32 W95
+/home/kadisk/Workspaces/Workspace_RS36S/Backups/ArkOS/ArkOS_2.0_08232024_AeUX_backup_2026-06-03.img2               262144  13983743 13721600    6,5G 83 Linux
+/home/kadisk/Workspaces/Workspace_RS36S/Backups/ArkOS/ArkOS_2.0_08232024_AeUX_backup_2026-06-03.img3             13983744 102399999 88416256   42,2G  7 HPFS/NTFS/exFAT
