@@ -4,6 +4,15 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added — 2026-06-15 — Logo de boot CyberDeck (welcome) no lugar do logo.bmp do ArkOS
+- **`welcome.png` vira o logo inicial de boot.** Convertido p/ o formato que o U-Boot
+  do R36S espera (BMP 640×480, 24-bit, sem compressão — idêntico ao `logo.bmp` original,
+  921654 B). Fonte e BMP versionados em `board/r36s/boot/` (`welcome.png`, `logo.bmp`),
+  regeráveis por `board/r36s/boot/make-logo.sh`.
+- build-x11 grava o welcome na BOOT (substitui `logo.bmp` **e** `logo_kernel.bmp`).
+- `scripts/sdcard/sd-set-logo.sh`: troca o logo num cartão já gravado, sem rebuild
+  (guarda backup `.arkos.bak` do original).
+
 ### Added — 2026-06-15 — Cursor analógico, scroll, terminal fullscreen, aba SERVIÇOS, bateria real
 - **Analógico esquerdo = cursor virtual** (desenhado pela UI; JS não move o ponteiro
   do SO, mas a UI é o kiosk inteiro). **A clica** onde o cursor aponta (este joypad

@@ -131,6 +131,15 @@ dd if="$ARKOS" of="$OUT" bs=512 count="$p2s" conv=notrunc status=none
 # nosso boot.ini (root=UUID, console ttyFIQ0+tty1) na BOOT FAT do clone
 MTOOLS_SKIP_CHECK=1 mdel  -i "$OUT@@$((arkos_p1*512))" ::/boot.ini 2>/dev/null || true
 MTOOLS_SKIP_CHECK=1 mcopy -i "$OUT@@$((arkos_p1*512))" "$TEST_BOOT_INI" ::/boot.ini
+# logo de boot CyberDeck (welcome) — substitui o logo do U-Boot e do kernel
+LOGO_BMP="$REPO_DIR/board/r36s/boot/logo.bmp"
+if [ -f "$LOGO_BMP" ]; then
+    for L in logo.bmp logo_kernel.bmp; do
+        MTOOLS_SKIP_CHECK=1 mdel  -i "$OUT@@$((arkos_p1*512))" "::/$L" 2>/dev/null || true
+        MTOOLS_SKIP_CHECK=1 mcopy -i "$OUT@@$((arkos_p1*512))" "$LOGO_BMP" "::/$L"
+    done
+    log "logo de boot substituído (welcome) em logo.bmp + logo_kernel.bmp"
+fi
 dd if="$P2" of="$OUT" bs=512 seek="$p2s" conv=notrunc status=none
 chown "$(stat -c '%U:%G' "$REPO_DIR")" "$OUT" 2>/dev/null || true
 
