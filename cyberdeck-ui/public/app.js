@@ -68,33 +68,67 @@
     t.addEventListener("click", function () { show(i); });
   });
 
-  // ---- Gamepad API (quando o runtime expõe o joypad) ----------------------
+  // ---- Gamepad API: NAVEGAÇÃO PRINCIPAL (Chromium expõe o joypad direto) ----
+  // Mapeamento non-standard deste joypad = índices na ordem crescente do código
+  // evdev (Fase 3). Confirmado: L1=4, R1=5. Verifique os índices na aba TECLAS.
+  var GP_RAW = { B:0, A:1, X:2, Y:3, L1:4, R1:5, L2:6, R2:7, UP:8, DOWN:9, LEFT:10, RIGHT:11 };
+  // Se o Chromium reportar mapping="standard", os índices mudam:
+  var GP_STD = { A:0, B:1, X:2, Y:3, L1:4, R1:5, L2:6, R2:7, UP:12, DOWN:13, LEFT:14, RIGHT:15 };
+  function mapFor(gp) { return gp.mapping === "standard" ? GP_STD : GP_RAW; }
+
   var prevButtons = [];
-  function pollGamepad() {
-    var pads = navigator.getGamepads ? navigator.getGamepads() : [];
-    var gp = pads && pads[0];
-    var gpEl = document.getElementById("kt-gp");
-    if (gp) {
-      // diagnóstico: mostra id + botões pressionados no painel TECLAS
-      if (gpEl) {
-        var pressed = [];
-        for (var b = 0; b < gp.buttons.length; b++)
-          if (gp.buttons[b] && gp.buttons[b].pressed) pressed.push(b);
-        gpEl.textContent = '"' + gp.id + '"  btn[' + pressed.join(",") + "]";
-      }
-      // Mapeamento provisório; ajustar com evtest no aparelho (Fase 3).
-      // Botões shoulder (4=L1, 5=R1) trocam de aba.
-      edge(gp, 5, function () { show(current + 1); });
-      edge(gp, 4, function () { show(current - 1); });
-    } else if (gpEl && gpEl.textContent === "não detectado") {
-      /* mantém */
-    }
-    requestAnimationFrame(pollGamepad);
-  }
   function edge(gp, idx, fn) {
+    if (idx == null) return;
     var pressed = gp.buttons[idx] && gp.buttons[idx].pressed;
     if (pressed && !prevButtons[idx]) fn();
     prevButtons[idx] = pressed;
+  }
+  function moveFocus(dir) {
+    var items = panels[SECTIONS[current]].querySelectorAll("[tabindex]");
+    if (!items.length) return;
+    var arr = Array.prototype.slice.call(items);
+    var i = arr.indexOf(document.activeElement);
+    i = (i < 0 ? 0 : i + dir + arr.length) % arr.length;
+    arr[i].focus();
+  }
+  function activate() {
+    var el = document.activeElement;
+    if (el && el.tagName === "LI") el.classList.toggle("selected");
+  }
+  // diagnóstico: dump de todos os botões/eixos na aba TECLAS
+  function dumpGamepad(gp) {
+    var gpEl = document.getElementById("kt-gp");
+    if (gpEl) gpEl.textContent = '"' + gp.id + '"  map=' + (gp.mapping || "raw");
+    var bc = document.getElementById("kt-buttons");
+    if (bc) {
+      var h = "";
+      for (var b = 0; b < gp.buttons.length; b++)
+        h += '<span class="' + (gp.buttons[b] && gp.buttons[b].pressed ? "hit" : "") + '">' + b + "</span>";
+      bc.innerHTML = h;
+    }
+    var ax = document.getElementById("kt-axes");
+    if (ax) {
+      var a = [];
+      for (var j = 0; j < gp.axes.length; j++) a.push(j + ":" + gp.axes[j].toFixed(2));
+      ax.textContent = "axes  " + a.join("  ");
+    }
+  }
+  function pollGamepad() {
+    var pads = navigator.getGamepads ? navigator.getGamepads() : [];
+    var gp = pads && pads[0];
+    if (gp) {
+      dumpGamepad(gp);
+      var M = mapFor(gp);
+      edge(gp, M.R1,    function () { show(current + 1); });   // R1 -> próxima aba
+      edge(gp, M.L1,    function () { show(current - 1); });   // L1 -> aba anterior
+      edge(gp, M.RIGHT, function () { show(current + 1); });   // D-pad ← → também trocam aba
+      edge(gp, M.LEFT,  function () { show(current - 1); });
+      edge(gp, M.DOWN,  function () { moveFocus(1); });        // D-pad ↑↓ move foco no menu
+      edge(gp, M.UP,    function () { moveFocus(-1); });
+      edge(gp, M.A,     activate);                             // A -> confirmar
+      edge(gp, M.B,     function () { show(0); });             // B -> volta p/ STATUS
+    }
+    requestAnimationFrame(pollGamepad);
   }
   if (navigator.getGamepads) requestAnimationFrame(pollGamepad);
 

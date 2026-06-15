@@ -84,4 +84,11 @@ pre { background: #04150b; border: 1px solid var(--line); padding: 8px; height: 
   background: #04150b; font-size: 12px; transition: all .1s;
 }
 .kt-grid span.hit, .kt-grid span:hover { color: var(--bg); background: var(--fg); font-weight: bold; border-color: var(--fg); }
-.kt-log { height: 130px; font-size: 11px; }
+.kt-btns { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0; }
+.kt-btns span {
+  min-width: 24px; text-align: center; padding: 4px;
+  border: 1px solid var(--line); color: var(--fg-dim);
+  background: #04150b; font-size: 11px;
+}
+.kt-btns span.hit { color: var(--bg); background: var(--accent); font-weight: bold; border-color: var(--accent); }
+.kt-log { height: 96px; font-size: 11px; }
