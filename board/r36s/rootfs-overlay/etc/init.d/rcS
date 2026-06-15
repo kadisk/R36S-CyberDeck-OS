@@ -35,3 +35,7 @@ echo "  Shell de debug a seguir. Teste: ls / ; cat /proc/cpuinfo ;"
 echo "  cat /proc/device-tree/model ; dmesg | tail"
 echo "================================================================"
 echo
+
+# Fase 3: probe de tela (framebuffer) + captura do joypad. Roda uma vez por
+# cartão (marcador na BOOT). Grava resultados na partição BOOT (lê-se no PC).
+[ -x /etc/init.d/phase3-probe.sh ] && /etc/init.d/phase3-probe.sh
