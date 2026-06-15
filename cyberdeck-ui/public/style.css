@@ -72,3 +72,16 @@ pre { background: #04150b; border: 1px solid var(--line); padding: 8px; height: 
   background: var(--panel); border-top: 1px solid var(--line);
   font-size: 11px; color: var(--fg-dim);
 }
+#lastkey.hit { color: var(--bg); background: var(--accent); font-weight: bold; padding: 0 4px; }
+
+/* ---- Teste de teclas ---- */
+.kt-last { margin: 6px 0; }
+.kt-last b { color: var(--accent); font-size: 16px; }
+.kt-grid { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+.kt-grid span {
+  min-width: 56px; text-align: center; padding: 8px 6px;
+  border: 1px solid var(--line); color: var(--fg-dim);
+  background: #04150b; font-size: 12px; transition: all .1s;
+}
+.kt-grid span.hit, .kt-grid span:hover { color: var(--bg); background: var(--fg); font-weight: bold; border-color: var(--fg); }
+.kt-log { height: 130px; font-size: 11px; }

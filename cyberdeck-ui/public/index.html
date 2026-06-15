@@ -22,6 +22,7 @@
     <button class="tab" data-section="logs">LOGS</button>
     <button class="tab" data-section="tools">FERRAMENTAS</button>
     <button class="tab" data-section="device">DEVICE</button>
+    <button class="tab" data-section="keys">TECLAS</button>
   </nav>
 
   <main id="content">
@@ -72,11 +73,34 @@
       <div class="kv"><span>DISTRO</span><b id="distro-ver">CyberDeck OS (dev)</b></div>
       <div class="kv"><span>SERIAL</span><b id="serial-val">--</b></div>
     </section>
+
+    <section id="keys" class="panel" hidden>
+      <h2>TESTE DE TECLAS / JOYPAD</h2>
+      <p class="hint">Aperte os botões do R36S. Se acender = chega no Chromium.</p>
+      <div class="kt-last">ÚLTIMA TECLA: <b id="kt-key">—</b>
+        <span id="kt-detail" class="hint">code=— keyCode=—</span></div>
+      <div id="kt-grid" class="kt-grid">
+        <span data-k="ArrowUp">↑</span>
+        <span data-k="ArrowDown">↓</span>
+        <span data-k="ArrowLeft">←</span>
+        <span data-k="ArrowRight">→</span>
+        <span data-k="Enter">A·Enter</span>
+        <span data-k="Escape">B·Esc</span>
+        <span data-k="Tab">X·Tab</span>
+        <span data-k="Backspace">Y·Bksp</span>
+        <span data-k="PageUp">L1·PgUp</span>
+        <span data-k="PageDown">R1·PgDn</span>
+      </div>
+      <div class="kv"><span>GAMEPAD API</span><b id="kt-gp">não detectado</b></div>
+      <pre id="kt-log" class="kt-log">(aguardando teclas…)</pre>
+    </section>
   </main>
 
   <footer id="hints">
     <span>D-PAD: mover</span><span>A: ok</span><span>B: voltar</span>
-    <span>L1/R1: abas</span><span>START: menu</span>
+    <span>L1/R1: abas</span>
+    <span class="spacer"></span>
+    <span id="lastkey" class="metric">tecla: —</span>
   </footer>
 
   <script src="app.js"></script>
