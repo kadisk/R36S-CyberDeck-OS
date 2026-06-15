@@ -12,6 +12,6 @@ pan4elec	SKIP	https://github.com/Kegg1701/P4ELEC/releases	[LINK e RG351MP + Pane
 unofficialos	SKIP	https://github.com/RetroGFX/UnofficialOS/releases	[LINK latest = build x86_64! errado] precisa do asset aarch64/RK handheld, nao o desktop. Pular ate achar o release certo.
 myminui	SKIP	https://github.com/Turro75/MyMinUI/releases	[88MB = launcher/app, nao distro bootavel] nao serve de base.
 arkos4clone	TODO	https://github.com/lcdyk0517/arkos4clone	[ferramenta, nao imagem] adapta ArkOS/dArkOS a clones; selecao de DTB. Usar se for clone.
-arkos-r3xs	FALHA	https://www.mediafire.com/file/i672xysm7j62kde/ArkOS_R35S-R36S_v2.0_05312025_MultiPanel.img.xz	Nem acende a tela	2026-06-15T15:16:32-03:00
 r36s-armbian	FALHA	https://github.com/R36S-Stuff/R36S-Armbian/releases/latest	Nem acende a tela	2026-06-15T15:22:13-03:00
 knulli	FALHA	https://github.com/knulli-cfw/knulli-linux/releases/download/20260511/knulli-rk3326-r36s-scarab-20260510.img.gz	Nem acende a tela	2026-06-15T15:26:20-03:00
+arkos-r3xs	FALHA	https://www.mediafire.com/file/i672xysm7j62kde/ArkOS_R35S-R36S_v2.0_05312025_MultiPanel.img.xz	nem com DTB forcado (893d6026) acende -> kernel da MultiPanel nao dirige nosso painel; so o kernel do backup 08/2024 funciona	2026-06-15T15:42:28-03:00
