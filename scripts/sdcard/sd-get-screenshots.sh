@@ -22,8 +22,12 @@ sd_resolve_device "$CARD" || exit 1
 DEV="$SD_DEV"; P2="${DEV}2"
 [ -b "$P2" ] || die "partição rootfs $P2 não existe"
 
+# sd_describe popula SD_NAME (e mostra o bloco do cartão); fallback p/ o arg passado
+sd_describe "$DEV"
+NAME="${SD_NAME:-$CARD}"
+
 # destino padrão: artifacts/screenshots/<nome-do-cartao>
-[ -n "$DEST" ] || DEST="$REPO/artifacts/screenshots/$SD_NAME"
+[ -n "$DEST" ] || DEST="$REPO/artifacts/screenshots/$NAME"
 
 say "================= RECUPERAR SCREENSHOTS (read-only) ================="
 say "Cartão '$CARD' -> $DEV  (rootfs $P2, montado RO)"
@@ -43,7 +47,7 @@ mkdir -p "$DEST"
 cp -a -n "$SRC"/*.png "$DEST"/ 2>/dev/null || cp -a "$SRC"/*.png "$DEST"/
 sync
 
-ok "$COUNT screenshot(s) copiados de '$SD_NAME' para: $DEST"
+ok "$COUNT screenshot(s) copiados de '$NAME' para: $DEST"
 say "Mais recentes:"
 ls -1t "$DEST"/*.png 2>/dev/null | head -n 5 | sed 's/^/   /'
 say "RESULTADO: sucesso (cartão não foi modificado — montado read-only)."

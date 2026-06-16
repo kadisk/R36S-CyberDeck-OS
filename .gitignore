@@ -23,6 +23,9 @@ initrd.img*
 /artifacts/test-images/*.img
 !/artifacts/test-images/reports/
 
+# Screenshots recuperados do cartão (sd-get-screenshots.sh) — capturas locais
+/artifacts/screenshots/
+
 # Renderizador de framebuffer: binário compilado (regerável via build.sh)
 /cyberdeck-fb/build/
 
