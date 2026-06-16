@@ -25,11 +25,12 @@ html, body {
   width: 640px; height: 480px; overflow: hidden;
   background: var(--bg); color: var(--fg);
   font-family: var(--font); font-size: 15px; line-height: 1.35;
-  /* ponteiro REAL do X visível, movido pelo analógico esquerdo (driver joystick) */
-  cursor: default;
 }
-/* modo D-pad: esconde o ponteiro (volta a aparecer quando o analógico é usado) */
-body.nocursor, body.nocursor * { cursor: none !important; }
+/* Ponteiro do X começa ESCONDIDO por padrão (não depende de repaint do Chromium).
+   Só aparece quando o analógico é movido — a UI adiciona .pointer-on ao <body>.
+   Ao usar o D-pad, a classe é removida e o ponteiro some de novo. */
+html, body, body * { cursor: none; }
+body.pointer-on, body.pointer-on * { cursor: default !important; }
 
 /* ---------- TOP BAR ---------- */
 #topbar {

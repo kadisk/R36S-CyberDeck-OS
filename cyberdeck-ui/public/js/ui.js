@@ -51,6 +51,23 @@
     }
   };
 
+  /* sparkline textual (sem libs): mapeia uma série p/ blocos ▁▂▃▄▅▆▇█. */
+  var SPARK = "▁▂▃▄▅▆▇█";
+  UI.sparkline = function (arr, opts) {
+    arr = arr || []; opts = opts || {};
+    if (!arr.length) return "—";
+    var data = arr.slice(-(opts.n || 40));
+    var min = opts.min != null ? opts.min : Math.min.apply(null, data);
+    var max = opts.max != null ? opts.max : Math.max.apply(null, data);
+    if (max <= min) max = min + 1;
+    var s = "";
+    for (var i = 0; i < data.length; i++) {
+      var t = (data[i] - min) / (max - min); if (t < 0) t = 0; if (t > 1) t = 1;
+      s += SPARK[Math.round(t * (SPARK.length - 1))];
+    }
+    return s;
+  };
+
   /* gauge com barra colorida por nível */
   UI.gauge = function (label, pct) {
     pct = Math.max(0, Math.min(100, pct || 0));

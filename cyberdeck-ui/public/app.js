@@ -87,9 +87,18 @@
       bat.className = "tb" + (b.ac !== 1 && pct >= 0 && pct < 10 ? " crit" : b.ac !== 1 && pct >= 0 && pct < 25 ? " warn" : "");
     }
   }
+  function feedHistory(d) {
+    if (!CD.history) return;
+    if (d.cpu >= 0) CD.history.push("cpu", d.cpu);
+    if (d.mem) CD.history.push("ram", d.mem.pct);
+    if (d.temp >= 0) CD.history.push("temp", d.temp);
+    if (d.load_arr) CD.history.push("load", d.load_arr[0]);
+    var b = d.battery || {};
+    if (b.est >= 0) CD.history.push("bat", b.est); else if (b.volt > 0) CD.history.push("bat", b.volt);
+  }
   function pollStatus() {
     CD.api.get("/api/status", { timeout: 4000 }).then(function (d) {
-      CD.lastStatus = d; updateTopbar(d);
+      CD.lastStatus = d; feedHistory(d); updateTopbar(d);
       var v = views[S.section]; if (v && v.onStatus) try { v.onStatus(d); } catch (e) {}
     }).catch(function () {});
   }

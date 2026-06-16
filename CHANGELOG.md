@@ -4,6 +4,20 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added — 2026-06-16 — Histórico/sparklines + correção do ponteiro no boot (relatório UX, fase 2)
+- **Ponteiro do X começa ESCONDIDO** e só aparece ao mover o analógico (antes aparecia no
+  boot). Agora é por CSS (`cursor:none` padrão; classe `.pointer-on` ao mover), sem depender
+  do repaint do Chromium; `mousemove` ignora o evento sintético do boot e micro-jitter.
+- **Tendência por sparklines** (`js/history.js`, ring buffer 60 amostras alimentado pelo
+  polling): STATUS ganhou seção TENDÊNCIA (CPU/RAM/TEMP/LOAD/BAT com `▁▂▃▄▅▆▇█`). Helper
+  `CD.ui.sparkline`. Sem libs/canvas.
+- Pequenos ajustes vindos dos prints reais: `LUZ`→`BRILHO`; SWAP/ZRAM mostra "inativo" em
+  vez de "-1 MB" quando o zram está desligado (zram-swap failed no aparelho).
+- Os helpers de formatação/severidade/componentes da fase 2 já viviam em `ui.js`
+  (`CD.ui.fmt`, `CD.ui.level`, `h/kv/gauge/badge`) — mantido sem fragmentar em mais arquivos.
+- Validado no host (node --check + render headless de STATUS com sparklines e do ponteiro
+  oculto no boot). Não testado no R36S físico.
+
 ### Added — 2026-06-16 — Saúde do sistema na HOME + header com severidade (relatório UX, fase 1/P0)
 - **`GET /api/health`** (`lib/health.js`): agrega status + resumo systemd (cacheado 10s) e
   devolve nível geral (ok/warn/crit) + alertas acionáveis `{level,label,target}` com régua

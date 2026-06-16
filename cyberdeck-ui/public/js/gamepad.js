@@ -114,11 +114,12 @@
   var px = window.innerWidth / 2, py = window.innerHeight / 2;
   var pointerVisible = false, hideTimer = null;
   var HIDE_MS = 2800;
-  document.body.classList.add("nocursor");   // começa em modo FOCO (ponteiro escondido)
+  var startT = Date.now(), lpx = NaN, lpy = NaN;   // p/ ignorar mousemove sintético do boot
+  // ponteiro começa ESCONDIDO (CSS default: cursor:none); só aparece com .pointer-on
   function setPointer(on) {
     if (pointerVisible === on) return;
     pointerVisible = on;
-    document.body.classList.toggle("nocursor", !on);
+    document.body.classList.toggle("pointer-on", on);
   }
   function showPointer() {
     setPointer(true);
@@ -132,9 +133,14 @@
     return null;
   }
   document.addEventListener("mousemove", function (e) {
-    px = e.clientX; py = e.clientY;
-    showPointer();                                  // analógico/mouse -> modo ponteiro
-    var f = focusableUnder(px, py);                 // hover-select: foca o que está sob o ponteiro
+    var nx = e.clientX, ny = e.clientY;
+    // 1º evento, ou nos primeiros ~1s (mousemove sintético do boot): só registra, não mostra
+    if (isNaN(lpx) || Date.now() - startT < 1000) { lpx = nx; lpy = ny; px = nx; py = ny; return; }
+    var moved = Math.abs(nx - lpx) + Math.abs(ny - lpy);
+    lpx = nx; lpy = ny; px = nx; py = ny;
+    if (moved < 2) return;                           // micro-jitter: ignora (não mostra o ponteiro)
+    showPointer();                                   // movimento REAL do analógico -> modo ponteiro
+    var f = focusableUnder(px, py);                  // hover-select: foca o que está sob o ponteiro
     if (f && f !== document.activeElement) { try { f.focus(); } catch (e2) {} }
   });
   function clickAtPointer() {

@@ -130,7 +130,7 @@
       var b = UI.clear(this.body);
       b.appendChild(UI.gauge("CPU", d.cpu >= 0 ? d.cpu : 0));
       if (d.mem) b.appendChild(UI.gauge("RAM", d.mem.pct));
-      if (d.brightness && d.brightness.pct >= 0) b.appendChild(UI.gauge("LUZ", d.brightness.pct));
+      if (d.brightness && d.brightness.pct >= 0) b.appendChild(UI.gauge("BRILHO", d.brightness.pct));
       b.appendChild(UI.kv("MEM", d.mem ? (d.mem.used + " / " + d.mem.total + " MB") : "—"));
       b.appendChild(UI.kv("LOAD", d.load));
       b.appendChild(UI.kv("UPTIME", UI.fmt.uptime(d.uptime)));
@@ -143,6 +143,15 @@
       b.appendChild(UI.kv("RAW (rk817)", (bt.pct >= 0 ? bt.pct + "% capacity" : "—") + (lowTrust ? " · instável" : "")));
       var n = (d.net && d.net[0]) || {};
       b.appendChild(UI.kv("REDE", n.iface ? (n.iface + " " + n.ip) : "(sem rede)"));
+      // tendência (histórico da sessão) via sparklines
+      if (CD.history && CD.history.get("cpu").length > 1) {
+        b.appendChild(h("div", { cls: "sub", text: "TENDÊNCIA (sessão)" }));
+        b.appendChild(UI.kv("CPU", UI.sparkline(CD.history.get("cpu"), { min: 0, max: 100 })));
+        b.appendChild(UI.kv("RAM", UI.sparkline(CD.history.get("ram"), { min: 0, max: 100 })));
+        b.appendChild(UI.kv("TEMP", UI.sparkline(CD.history.get("temp"))));
+        b.appendChild(UI.kv("LOAD", UI.sparkline(CD.history.get("load"))));
+        b.appendChild(UI.kv("BAT", UI.sparkline(CD.history.get("bat"))));
+      }
     },
     back: function () { return false; },
   });
@@ -164,7 +173,7 @@
         kvGroup(b, "HARDWARE", [["MODELO", hw.model], ["SoC", hw.soc], ["CPU", hw.cpu_model], ["CORES", hw.cores],
           ["GPU", hw.gpu], ["PMIC", hw.pmic],
           ["RAM", hw.mem ? (hw.mem.total_mb + " MB (livre " + hw.mem.available_mb + ")") : "—"],
-          ["SWAP/ZRAM", hw.mem && hw.mem.swap_total_mb > 0 ? hw.mem.swap_total_mb + " MB" : (hw.zram && hw.zram.length ? hw.zram[0].mb + " MB zram" : "—")]]);
+          ["SWAP/ZRAM", hw.mem && hw.mem.swap_total_mb > 0 ? hw.mem.swap_total_mb + " MB" : (hw.zram && hw.zram.length && hw.zram[0].mb > 0 ? hw.zram[0].mb + " MB zram" : "inativo")]]);
         (hw.freq || []).forEach(function (f) { b.appendChild(UI.kv("CPU" + f.cpu, (f.cur_mhz > 0 ? f.cur_mhz : "?") + " MHz (" + f.min_mhz + "–" + f.max_mhz + ") " + f.governor)); });
         (hw.thermals || []).forEach(function (t) { b.appendChild(UI.kv("TEMP " + t.type, t.temp_c >= 0 ? t.temp_c + " °C" : "—")); });
         kvGroup(b, "ARMAZENAMENTO", (hw.storage || []).map(function (s) { return [s.dev, s.gb + " GB" + (s.ro ? " (ro)" : "") + (s.model ? " · " + s.model : "")]; }));
