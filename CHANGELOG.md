@@ -4,6 +4,23 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Changed — 2026-06-16 — Mais espaço p/ listas, L1/R1 = página/origem, A no gamepad, POWER separado
+- **L1/R1 agora paginam/trocam origem** na seção ativa: PROCS/FS/SVC paginam (página no
+  título, sem barra ocupando espaço), LOGS troca a **origem** (dmesg/journal/agent/kiosk/ui
+  virou **abas**/subbar). Mecanismo genérico `view.lr(dir)`.
+- **PROCS**: resumo em 1 linha + 1 linha de filtros (sort vira chip que cicla) → mostra ~10
+  processos por página em vez de ~6.
+- **LOGS**: origem como subbar + severidade/pausa em 1 linha (antes 2 linhas de chips).
+- **SVC**: resumo compacto (estado + contagem em 1 linha), 11 por página.
+- **A no gamepad corrigido**: ao trocar de seção o ponteiro some (modo foco) e o **A clica
+  só em focável sob o ponteiro — senão ativa o item SELECIONADO**. Resolve "não rodava
+  comando pelo pad, só pelo ponteiro" e "clicava onde o mouse estava".
+- **↑ chega à barra de abas** (menu superior): no topo do conteúdo, ↑ foca a aba ativa;
+  ←→ troca de aba ali; ↓ volta ao conteúdo.
+- **TOOLS → AJUSTES** (só display/áudio/fonte) e nova aba **POWER** (recarregar/reiniciar/
+  desligar, com Danger Zone) — separa energia das ações do dia a dia.
+- Validado por render headless. **Não testado no R36S físico** (aparelho ainda na V3 parte 1).
+
 ### Fixed — 2026-06-16 — Screenshot move p/ L2+R2 (não conflita com subpáginas L1/R1)
 - Como **L1/R1** passaram a trocar subpágina, o combo de screenshot **L1+R1** trocava a
   subpágina ao tirar o print. Movido para **L2+R2** (combo). L1/R1 ficam só p/ subpáginas.

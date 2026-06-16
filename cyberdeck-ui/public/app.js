@@ -28,6 +28,7 @@
   /* ---- router ---- */
   CD.go = function (id) {
     if (!views[id]) return;
+    if (CD.hidePointer) CD.hidePointer();   // ao trocar de seção, esconde o ponteiro -> A ativa o FOCO
     S.section = id;
     META.forEach(function (m) {
       var v = views[m.id]; if (v && v.el) v.el.classList.toggle("active", m.id === id);
@@ -59,15 +60,18 @@
     var map = {
       fs: "A: abrir · B: voltar dir · ←→ abas · analóg: cursor/scroll",
       systemd: "A: detalhe/ação · B: voltar · ←→ abas",
-      procs: "A: detalhe · B: voltar · ↓ ordena/filtra",
-      cmd: "A: executar · B: voltar à lista",
-      tools: "A: executar (⚠ confirma) · L1/R1: página · B: voltar",
+      procs: "A: detalhe · B: voltar · L1/R1: página",
+      cmd: "A: executar · B: voltar",
+      tools: "A: executar · L1/R1: página · B: voltar",
       device: "L1/R1: página · ←→: abas · B: voltar",
+      logs: "A: detalhe · L1/R1: origem · B: voltar",
+      fs: "A: abrir · B: voltar dir · L1/R1: página",
+      systemd: "A: detalhe/ação · L1/R1: página · B: voltar",
     };
     h.textContent = map[id] || "A: ok · B: voltar · ←→: abas · ↑↓: foco";
-    // sufixo L1/R1 quando a view tiver subpáginas e o hint não mencionar
+    // sufixo L1/R1 quando a view tiver subpáginas/paginação e o hint não mencionar
     var v = views[id];
-    if (v && v.subs && v.subs.length && h.textContent.indexOf("L1/R1") < 0) h.textContent += " · L1/R1: página";
+    if (v && (v.lr || (v.subs && v.subs.length)) && h.textContent.indexOf("L1/R1") < 0) h.textContent += " · L1/R1: página";
   }
 
   /* ---- topbar + status polling ---- */

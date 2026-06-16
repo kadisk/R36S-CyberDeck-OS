@@ -20,7 +20,8 @@
     { id: "fs",      title: "FS",      icon: "/", desc: "Navegar o rootfs",         group: "SISTEMA",     tab: true },
     { id: "systemd", title: "SVC",     icon: "*", desc: "Serviços systemd",         group: "SISTEMA",     tab: true },
     { id: "cmd",     title: "CMD",     icon: ">", desc: "Comandos prontos",         group: "AÇÕES",       tab: true },
-    { id: "tools",   title: "TOOLS",   icon: "+", desc: "Ações e display",          group: "AÇÕES",       tab: true },
+    { id: "tools",   title: "AJUSTES", icon: "+", desc: "Display, áudio, fonte",     group: "AÇÕES",       tab: true },
+    { id: "power",   title: "POWER",   icon: "U", desc: "Reiniciar / desligar",      group: "AÇÕES",       tab: true },
     { id: "keys",    title: "KEYS",    icon: "@", desc: "Teste de gamepad",         group: "DIAGNÓSTICO", tab: false },
   ];
   CD.META = META;
@@ -42,10 +43,12 @@
     });
     return bar;
   }
-  // troca a subpágina da seção ativa (chamado por L1/R1). Retorna true se tratou.
+  // L1/R1 da seção ativa: a view pode definir lr(dir) (paginação/origem); senão cicla subs.
   CD.subCycle = function (dir) {
     var id = CD.state.section, v = V[id];
-    if (!v || !v.subs || !v.subs.length) return false;
+    if (!v) return false;
+    if (typeof v.lr === "function") { v.lr(dir); return true; }
+    if (!v.subs || !v.subs.length) return false;
     CD.state.sub[id] = subIndex(id) + dir;
     v.show(); CD.focusFirst(v.el);
     return true;
@@ -268,10 +271,11 @@
     id: "fs", live: false,
     build: function () { var el = h("div", { cls: "view", id: "view-fs" }); this.el = el; return el; },
     show: function () { this.render(); },
+    lr: function (dir) { if (S.fs.mode !== "list") return; S.fs.page += dir; this.render(); },
     render: function () {
       var self = this, el = UI.clear(this.el);
       if (S.fs.mode === "view") return this.renderFile();
-      el.appendChild(title("FS"));
+      this.titleEl = title("FS"); el.appendChild(this.titleEl);
       el.appendChild(h("div", { cls: "crumb", text: fsCrumb(S.fs.path) }));
       // atalhos
       var tb = h("div", { cls: "toolbar" });
@@ -283,10 +287,10 @@
       el.appendChild(tb);
       var listHost = h("div"); el.appendChild(listHost);
       asyncRender(listHost, function () { return api.get("/api/fs/list?path=" + encodeURIComponent(S.fs.path)); }, function (d) {
-        var entries = d.entries || [], SIZE = 9;
+        var entries = d.entries || [], SIZE = 10;
         var total = UI.pager.count(entries.length, SIZE);
         S.fs.page = UI.pager.clamp(S.fs.page, total);
-        if (total > 1) listHost.appendChild(pagerBar(S.fs.page, total, function (p) { S.fs.page = p; self.render(); }));
+        if (self.titleEl) self.titleEl.textContent = "FS" + (total > 1 ? "  ·  pág " + (S.fs.page + 1) + "/" + total + " (L1/R1)" : "");
         var list = h("div", { cls: "list" });
         if (d.parent != null) list.appendChild(row([{ t: "UP", cls: "fstype" }, { t: "..", grow: true }], function () { self.nav(d.parent); }, true));
         UI.pager.slice(entries, S.fs.page, SIZE).forEach(function (e) {
@@ -338,18 +342,19 @@
     build: function () { var el = h("div", { cls: "view", id: "view-systemd" }); this.el = el; return el; },
     show: function () { this.render(); },
     refresh: function () { if (S.systemd.mode === "list") this.render(); },
+    lr: function (dir) { if (S.systemd.mode !== "list") return; S.systemd.page += dir; this.render(); },
     render: function () {
       if (S.systemd.mode === "detail") return this.renderDetail();
       var self = this, el = UI.clear(this.el);
-      el.appendChild(title("SERVIÇOS (systemd)"));
+      this.titleEl = title("SERVIÇOS"); el.appendChild(this.titleEl);
+      // resumo COMPACTO: estado + contagem numa linha (libera espaço p/ a lista)
       var sumHost = h("div"); el.appendChild(sumHost);
       api.get("/api/systemd/summary").then(function (s) {
         UI.clear(sumHost);
         var badge = s.state === "running" ? "ok" : s.state === "degraded" ? "warn" : "off";
-        var k = UI.kv("ESTADO", ""); k.lastChild.appendChild(UI.badge(s.state, badge)); sumHost.appendChild(k);
-        sumHost.appendChild(UI.kv("UNITS", s.units_total + " · " + s.running + " run · " + s.failed + " falhos"));
-        sumHost.appendChild(UI.kv("TARGET", s.default_target));
-        sumHost.appendChild(UI.kv("BOOT", s.boot));
+        var k = UI.kv("ESTADO", ""); k.lastChild.appendChild(UI.badge(s.state, badge));
+        UI.append(k.lastChild, "  " + s.units_total + " units · " + s.running + " run · " + s.failed + " falhos");
+        sumHost.appendChild(k);
       }).catch(function () {});
       var tb = h("div", { cls: "toolbar" });
       SD_FILTERS.forEach(function (f) {
@@ -371,9 +376,9 @@
         // falhas SEMPRE no topo (depois rodando, depois o resto) — visibilidade do problema
         var rank = function (s) { return isFailed(s) ? 0 : s.sub === "running" ? 1 : 2; };
         items.sort(function (a, b) { var r = rank(a) - rank(b); return r !== 0 ? r : a.unit.localeCompare(b.unit); });
-        var SIZE = 8, total = UI.pager.count(items.length, SIZE);
+        var SIZE = 11, total = UI.pager.count(items.length, SIZE);
         S.systemd.page = UI.pager.clamp(S.systemd.page, total);
-        if (total > 1) listHost.appendChild(pagerBar(S.systemd.page, total, function (p) { S.systemd.page = p; self.render(); }));
+        if (self.titleEl) self.titleEl.textContent = "SERVIÇOS" + (total > 1 ? "  ·  pág " + (S.systemd.page + 1) + "/" + total + " (L1/R1)" : "");
         UI.pager.slice(items, S.systemd.page, SIZE).forEach(function (s) {
           var stcls = s.sub === "running" ? "st-run" : isFailed(s) ? "st-crit" : "st-dim";
           list.appendChild(row([
@@ -440,16 +445,16 @@
     show: function () { this.render(); },
     refresh: function () { if (S.procs.mode === "list") this.renderList(true); },
     render: function () { if (S.procs.mode === "detail") return this.renderDetail(); this.render0(); },
+    lr: function (dir) { if (S.procs.mode !== "list") return; S.procs.page += dir; this.renderList(); },
     render0: function () {
       var self = this, el = UI.clear(this.el);
-      el.appendChild(title("PROCESSOS"));
+      this.titleEl = title("PROCESSOS"); el.appendChild(this.titleEl);
       this.sumHost = h("div"); el.appendChild(this.sumHost);
+      // UMA linha de controles: sort (chip que cicla) + filtros — sobra espaço p/ a lista
       var tb = h("div", { cls: "toolbar" });
-      PROC_SORTS.forEach(function (s) { tb.appendChild(h("button", { cls: "chip" + (S.procs.sort === s ? " on" : ""), focus: true, text: "↓" + s, on: { click: function () { S.procs.sort = s; S.procs.page = 0; self.renderList(); } } })); });
+      tb.appendChild(h("button", { cls: "chip on", focus: true, text: "↓" + S.procs.sort, on: { click: function () { var i = PROC_SORTS.indexOf(S.procs.sort); S.procs.sort = PROC_SORTS[(i + 1) % PROC_SORTS.length]; S.procs.page = 0; self.renderList(); } } }));
+      PROC_FILTERS.forEach(function (f) { tb.appendChild(h("button", { cls: "chip" + (S.procs.filter === f ? " on" : ""), focus: true, text: f, on: { click: function () { S.procs.filter = f; S.procs.page = 0; self.renderList(); } } })); });
       el.appendChild(tb);
-      var tb2 = h("div", { cls: "toolbar" });
-      PROC_FILTERS.forEach(function (f) { tb2.appendChild(h("button", { cls: "chip" + (S.procs.filter === f ? " on" : ""), focus: true, text: f, on: { click: function () { S.procs.filter = f; S.procs.page = 0; self.renderList(); } } })); });
-      el.appendChild(tb2);
       this.listHost = h("div"); el.appendChild(this.listHost);
       this.renderList();
     },
@@ -458,13 +463,10 @@
       if (!self.listHost) return;
       if (!silent) { UI.clear(self.listHost); self.listHost.appendChild(UI.loading()); }
       api.get("/api/processes").then(function (d) {
-        // resumo
+        // resumo COMPACTO (1 linha) — sobra espaço p/ a lista
         var cores = (CD.lastStatus && CD.lastStatus.cores) || (d.summary && d.summary.cores) || 1;
         if (self.sumHost) { var s = d.summary || {}; UI.clear(self.sumHost);
-          self.sumHost.appendChild(UI.kv("TOTAL", s.total + " · run " + s.running + " · sleep " + s.sleeping + " · zumbi " + s.zombie));
-          self.sumHost.appendChild(UI.kv("CPU/MEM", "~" + (s.cpu_total || 0) + "% · " + (s.mem_total_pct || 0) + "%"));
-          if (s.top_cpu) self.sumHost.appendChild(UI.kv("TOP CPU", s.top_cpu.comm + " (" + s.top_cpu.cpu + "%)"));
-          self.sumHost.appendChild(h("div", { cls: "hint", text: "CPU% é por núcleo — o total pode passar de 100% (" + cores + " cores)" }));
+          self.sumHost.appendChild(UI.kv("PROC", s.total + " · run " + s.running + " · zumbi " + s.zombie + " · ~" + (s.cpu_total || 0) + "% cpu / " + cores + " cores"));
         }
         var f = S.procs.filter, rows = (d.processes || []).filter(function (p) {
           if (f === "ativos") return p.cpu > 0 || p.state === "R";
@@ -482,10 +484,10 @@
           if (so === "name") return a.comm.localeCompare(b.comm);
           return b.cpu - a.cpu;
         });
-        var SIZE = 7, total = UI.pager.count(rows.length, SIZE);
+        var SIZE = 10, total = UI.pager.count(rows.length, SIZE);
         S.procs.page = UI.pager.clamp(S.procs.page, total);
+        if (self.titleEl) self.titleEl.textContent = "PROCESSOS" + (total > 1 ? "  ·  pág " + (S.procs.page + 1) + "/" + total + " (L1/R1)" : "");
         UI.clear(self.listHost);
-        if (total > 1) self.listHost.appendChild(pagerBar(S.procs.page, total, function (p) { S.procs.page = p; self.renderList(); }));
         var list = h("div", { cls: "list" });
         list.appendChild(h("div", { cls: "row list-head" }, [
           h("span", { cls: "c", text: "PID" }), h("span", { cls: "grow", text: "CMD" }),
@@ -603,20 +605,22 @@
   var LOG_SEV = ["all", "error", "warning", "info"];
   reg({
     id: "logs", live: true,
+    subs: LOG_SRC,
     build: function () { var el = h("div", { cls: "view", id: "view-logs" }); this.el = el; this.paused = false; return el; },
     show: function () { if (S.logs.mode === "detail") this.renderDetail(); else this.render(); },
     refresh: function () { if (S.logs.mode === "list" && !this.paused) this.load(true); },
+    // L1/R1 troca a ORIGEM do log (só na lista); no detalhe, ignora
+    lr: function (dir) { if (S.logs.mode !== "list") return; CD.state.sub.logs = subIndex("logs") + dir; this.render(); CD.focusFirst(this.el); },
     render: function () {
       var self = this, el = UI.clear(this.el);
-      el.appendChild(title("LOGS"));
-      var tb = h("div", { cls: "toolbar" });
-      LOG_SRC.forEach(function (s) { tb.appendChild(h("button", { cls: "chip" + (S.logs.source === s ? " on" : ""), focus: true, text: s, on: { click: function () { S.logs.source = s; self.load(); } } })); });
-      el.appendChild(tb);
+      S.logs.source = LOG_SRC[subIndex("logs")];   // origem = subpágina (L1/R1 ou subtab)
+      el.appendChild(title("LOGS · " + S.logs.source));
+      el.appendChild(subbar("logs"));               // origem como abas (dmesg/journal/agent/kiosk/ui)
+      // severidade + pausa numa linha compacta
       var tb2 = h("div", { cls: "toolbar" });
       LOG_SEV.forEach(function (s) { tb2.appendChild(h("button", { cls: "chip" + (S.logs.severity === s ? " on" : ""), focus: true, text: s, on: { click: function () { S.logs.severity = s; self.load(); } } })); });
       tb2.appendChild(h("button", { cls: "chip", focus: true, text: "|| pausar", on: { click: function (ev) { self.paused = !self.paused; ev.target.textContent = self.paused ? "|> retomar" : "|| pausar"; } } }));
       el.appendChild(tb2);
-      el.appendChild(h("div", { cls: "hint", text: "A abre a linha em detalhe · B volta" }));
       this.out = h("div", { cls: "box full", id: "logs-out" }); this.out.textContent = "(carregando…)"; el.appendChild(this.out);
       this.load();
     },
@@ -735,19 +739,29 @@
     if (key === "reload-ui" || key === "restart-agent") return "SYSTEM";
     return "DANGER"; // restart-kiosk, reboot, poweroff
   }
+  // executa uma ação do agente; perigosas pedem confirmação
+  function runAction(a) {
+    var doIt = function () {
+      api.post("/api/actions", { key: a.key }).then(function (r) { UI.toast(r.msg || "ok"); })
+        .catch(function (e) { UI.toast(e.message, true); });
+    };
+    if (a.dangerous) UI.confirm(a.label).then(function (ok) { if (ok) doIt(); });
+    else doIt();
+  }
+
   reg({
-    id: "tools", live: false, subs: ["DISPLAY", "AUDIO", "SYSTEM", "DANGER"],
+    id: "tools", live: false, subs: ["DISPLAY", "AUDIO"],
     build: function () { var el = h("div", { cls: "view", id: "view-tools" }); this.el = el; return el; },
     show: function () {
       var self = this;
       if (self.data) return self.renderSub();
-      var el = UI.clear(this.el); el.appendChild(title("TOOLS")); var host = h("div"); el.appendChild(host); host.appendChild(UI.loading());
+      var el = UI.clear(this.el); el.appendChild(title("AJUSTES")); var host = h("div"); el.appendChild(host); host.appendChild(UI.loading());
       api.get("/api/actions").then(function (d) { self.data = d.actions || []; self.renderSub(); })
         .catch(function () { self.data = []; self.renderSub(); });
     },
     renderSub: function () {
       var self = this, el = UI.clear(this.el), sub = subKey("tools");
-      el.appendChild(title("TOOLS · " + sub));
+      el.appendChild(title("AJUSTES · " + sub));
       el.appendChild(subbar("tools"));
       var b = h("div"); el.appendChild(b);
       var acts = self.data || [];
@@ -759,36 +773,45 @@
         ui.appendChild(row([{ t: "Fonte −", grow: true }], function () { CD.setFontScale(-0.1); }, true));
         ui.appendChild(row([{ t: "Fonte reset", grow: true }], function () { CD.resetFontScale(); }, true));
         ui.appendChild(row([{ t: "Screenshot", grow: true }, { t: "L2+R2", cls: "r" }], function () { CD.screenshot(); }, true));
-        inBucket("DISPLAY").forEach(function (a) { ui.appendChild(row([{ t: a.label, grow: true }], function () { self.run(a); }, true)); });
+        inBucket("DISPLAY").forEach(function (a) { ui.appendChild(row([{ t: a.label, grow: true }], function () { runAction(a); }, true)); });
         b.appendChild(ui);
         var bri = (CD.lastStatus && CD.lastStatus.brightness && CD.lastStatus.brightness.pct >= 0) ? CD.lastStatus.brightness.pct : -1;
         if (bri >= 0) b.appendChild(UI.gauge("BRILHO", bri));
-      } else if (sub === "AUDIO") {
+      } else { // AUDIO
         var la = h("div", { cls: "list" });
         var au = inBucket("AUDIO");
         if (!au.length) la.appendChild(h("div", { cls: "hint", text: "(sem controles de áudio)" }));
-        au.forEach(function (a) { la.appendChild(row([{ t: a.label, grow: true }], function () { self.run(a); }, true)); });
+        au.forEach(function (a) { la.appendChild(row([{ t: a.label, grow: true }], function () { runAction(a); }, true)); });
         b.appendChild(la);
-      } else if (sub === "SYSTEM") {
-        var ls = h("div", { cls: "list" });
-        inBucket("SYSTEM").forEach(function (a) { ls.appendChild(row([{ t: a.label, grow: true }, { t: "confirma", cls: "r" }], function () { self.run(a); }, true)); });
-        b.appendChild(ls);
-      } else { // DANGER
-        b.appendChild(h("div", { cls: "sub danger-head", text: "! DANGER ZONE — pede confirmação" }));
-        var ld = h("div", { cls: "list danger" });
-        inBucket("DANGER").forEach(function (a) { ld.appendChild(row([{ t: a.label, grow: true }, { t: "confirma", cls: "r" }], function () { self.run(a); }, true)); });
-        b.appendChild(ld);
       }
       refocus(self.el);
     },
-    run: function (a) {
-      var self = this;
-      var doIt = function () {
-        api.post("/api/actions", { key: a.key }).then(function (r) { UI.toast(r.msg || "ok"); })
-          .catch(function (e) { UI.toast(e.message, true); });
-      };
-      if (a.dangerous) UI.confirm(a.label).then(function (ok) { if (ok) doIt(); });
-      else doIt();
+    back: function () { return false; },
+  });
+
+  /* ============================ POWER (energia/serviços) ============================ */
+  reg({
+    id: "power", live: false,
+    build: function () { var el = h("div", { cls: "view", id: "view-power" }); this.el = el; return el; },
+    show: function () {
+      var self = this, el = UI.clear(this.el);
+      el.appendChild(title("POWER"));
+      el.appendChild(h("div", { cls: "hint", text: "Todas estas ações pedem confirmação (A)." }));
+      var host = h("div"); el.appendChild(host);
+      asyncRender(host, function () { return api.get("/api/actions"); }, function (d) {
+        var acts = (d.actions || []).filter(function (a) { return toolBucket(a.key) === "SYSTEM" || toolBucket(a.key) === "DANGER"; });
+        var soft = acts.filter(function (a) { return toolBucket(a.key) === "SYSTEM"; });   // recarregar UI, reiniciar agente
+        var hard = acts.filter(function (a) { return toolBucket(a.key) === "DANGER"; });   // restart kiosk, reboot, poweroff
+        host.appendChild(h("div", { cls: "sub", text: "SERVIÇOS" }));
+        var l1 = h("div", { cls: "list" });
+        soft.forEach(function (a) { l1.appendChild(row([{ t: a.label, grow: true }, { t: "confirma", cls: "r" }], function () { runAction(a); }, true)); });
+        host.appendChild(l1);
+        host.appendChild(h("div", { cls: "sub danger-head", text: "! DESLIGAR / REINICIAR" }));
+        var l2 = h("div", { cls: "list danger" });
+        hard.forEach(function (a) { l2.appendChild(row([{ t: a.label, grow: true }, { t: "confirma", cls: "r" }], function () { runAction(a); }, true)); });
+        host.appendChild(l2);
+        refocus(self.el);
+      });
     },
     back: function () { return false; },
   });

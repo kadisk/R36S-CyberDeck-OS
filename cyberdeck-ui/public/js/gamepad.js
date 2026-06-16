@@ -23,12 +23,21 @@
    * na direção dada (up/down/left/right). Funciona em grids (HOME), toolbars e listas.
    * Sem vizinho horizontal -> troca de aba (borda). Sem vizinho vertical -> fica. */
   function focusInto(el) { if (!el) return; try { el.focus(); el.scrollIntoView({ block: "nearest" }); } catch (e) {} }
+  function activeTabEl() { return document.querySelector("#tabs .tab.active"); }
+  function isTab(el) { return el && el.classList && el.classList.contains("tab"); }
   function move(dir) {
     if (confirmOpen()) return;
     hidePointer();                       // usar D-pad/setas -> modo FOCO (ponteiro some)
-    var items = focusables();
-    if (!items.length) { if (dir === "left") CD.nextTab(-1); else if (dir === "right") CD.nextTab(1); return; }
     var cur = document.activeElement;
+    // ---- foco NA BARRA DE ABAS (menu superior) ----
+    if (isTab(cur)) {
+      if (dir === "left" || dir === "right") { CD.nextTab(dir === "right" ? 1 : -1); var nt = activeTabEl(); if (nt) nt.focus(); }
+      else if (dir === "down") { var f0 = focusables()[0]; if (f0) focusInto(f0); }
+      // up: já está no topo, não faz nada
+      return;
+    }
+    var items = focusables();
+    if (!items.length) { if (dir === "left") CD.nextTab(-1); else if (dir === "right") CD.nextTab(1); else if (dir === "up") { var t0 = activeTabEl(); if (t0) t0.focus(); } return; }
     if (items.indexOf(cur) < 0) { focusInto(items[0]); return; }
     var cr = cur.getBoundingClientRect();
     var ccx = cr.left + cr.width / 2, ccy = cr.top + cr.height / 2;
@@ -49,7 +58,8 @@
     if (best) focusInto(best);
     else if (dir === "left") CD.nextTab(-1);
     else if (dir === "right") CD.nextTab(1);
-    // up/down na borda: não faz nada
+    else if (dir === "up") { var t = activeTabEl(); if (t) t.focus(); }   // topo do conteúdo -> menu superior
+    // down na borda: não faz nada
   }
   function activate() {
     var el = document.activeElement;
@@ -145,11 +155,13 @@
     var f = focusableUnder(px, py);                  // hover-select: foca o que está sob o ponteiro
     if (f && f !== document.activeElement) { try { f.focus(); } catch (e2) {} }
   });
+  // só clica se houver um FOCÁVEL sob o ponteiro; senão devolve false p/ ativar o foco atual
   function clickAtPointer() {
-    var el = document.elementFromPoint(px, py); if (!el) return false;
-    try { if (el.focus) el.focus(); } catch (e) {}
+    var el = focusableUnder(px, py); if (!el) return false;
+    try { el.focus(); } catch (e) {}
     el.click(); return true;
   }
+  CD.hidePointer = function () { hidePointer(); };   // usado pelo router ao trocar de seção
   function scrollTarget() {
     var el = document.elementFromPoint(px, py) || activeEl();
     while (el && el !== document.body) {
