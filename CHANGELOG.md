@@ -4,6 +4,22 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added — 2026-06-16 — Saúde do sistema na HOME + header com severidade (relatório UX, fase 1/P0)
+- **`GET /api/health`** (`lib/health.js`): agrega status + resumo systemd (cacheado 10s) e
+  devolve nível geral (ok/warn/crit) + alertas acionáveis `{level,label,target}` com régua
+  de thresholds (temp/load-por-core/RAM/tensão de bateria).
+- **HOME com banner de SAÚDE GERAL**: `SYS OK/WARN/CRIT` + linha de métricas + **alertas
+  clicáveis** (ex.: "systemd degraded: zram-swap", "sem rede / sem IP") que abrem a aba alvo.
+  Antes a HOME era só launcher; agora responde "o sistema está bem?" sem navegar.
+- **Header vira barra de status com severidade**: `NET OFF` (warn), `load/cores`, `temp` e
+  `bat` ganham cor ok/warn/crit (helper `CD.ui.level`, mesma régua do backend).
+- **Bateria reordenada na STATUS**: estimativa/tensão em PRIMEIRO (`BAT ~79% · 3.92V`),
+  raw `capacity` do rk817 em segundo plano e marcado quando instável.
+- (correção) `sd-get-screenshots.sh` agora faz `chown` da árvore inteira (pasta base + grupo
+  correto) — os prints deixam de vir como root.
+- Validado no host (node --check; `/api/health` por curl; render do banner por harness
+  headless com fetch stubado). Não testado no R36S físico.
+
 ### Changed — 2026-06-16 — UX a partir dos prints reais: navegação 2D, modos de input, bateria, menu
 - **Navegação espacial 2D**: o D-pad/setas agora movem o foco para o vizinho mais próximo
   em qualquer direção (grid da HOME, toolbars, listas); ←→ na borda troca de aba. Antes só

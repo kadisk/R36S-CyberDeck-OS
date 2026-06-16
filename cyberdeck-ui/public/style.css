@@ -40,6 +40,7 @@ body.nocursor, body.nocursor * { cursor: none !important; }
 .brand { color: var(--accent); font-weight: bold; letter-spacing: 1px; font-size: 14px; }
 .spacer { flex: 1; }
 .tb { color: var(--fg-dim); font-size: 13px; white-space: nowrap; }
+.tb.ok { color: var(--fg-dim); }
 #tb-bat.warn, .tb.warn { color: var(--warn); }
 #tb-bat.crit, .tb.crit, #tb-temp.crit { color: var(--crit); }
 
@@ -76,6 +77,16 @@ body.nocursor, body.nocursor * { cursor: none !important; }
 .bar i { display: block; height: 100%; width: 0; background: var(--fg); }
 .bar i.warn { background: var(--warn); } .bar i.crit { background: var(--crit); }
 .gauge .val { width: 52px; text-align: right; font-size: 13px; }
+
+/* ---------- HOME: banner de saúde + alertas ---------- */
+.health { margin: 4px 0 8px; border: 1px solid var(--line); background: var(--bg2); padding: 5px 7px; }
+.health-line { font-size: 13px; }
+.health-line b { letter-spacing: 1px; }
+.health-line.ok b { color: var(--ok); } .health-line.warn b { color: var(--warn); } .health-line.crit b { color: var(--crit); }
+.health-metrics { font-size: 12px; color: var(--fg-dim); margin-top: 2px; }
+.alert { margin-top: 4px; padding: 3px 6px; font-size: 12px; border-left: 3px solid var(--warn); background: #1a1405; color: var(--warn); }
+.alert.crit { border-left-color: var(--crit); background: #1a0608; color: var(--crit); }
+.alert:focus { outline: none; background: var(--accent); color: var(--bg); border-left-color: var(--accent); }
 
 /* ---------- WELCOME cards ---------- */
 .welcome-head { text-align: center; margin: 2px 0 8px; }

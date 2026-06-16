@@ -50,13 +50,15 @@
 
   /* ============================ WELCOME ============================ */
   reg({
-    id: "welcome", live: false,
+    id: "welcome", live: true,
     build: function () {
       var el = h("div", { cls: "view", id: "view-welcome" });
       el.appendChild(h("div", { cls: "welcome-head" }, [
         h("div", { cls: "big", text: "R36S CYBERDECK" }),
         h("div", { cls: "sm", id: "wel-sub", text: "painel técnico portátil" }),
       ]));
+      // banner de SAÚDE GERAL + alertas (preenchido por /api/health)
+      this.health = h("div", { cls: "health" }); el.appendChild(this.health);
       // cards agrupados por categoria semântica (cada grupo com seu cabeçalho)
       GROUPS.forEach(function (g) {
         var items = META.filter(function (m) { return m.group === g; });
@@ -74,7 +76,38 @@
       });
       this.el = el; return el;
     },
-    show: function () { refocus(this.el); },
+    show: function () { this.loadHealth(); refocus(this.el); },
+    refresh: function () { this.loadHealth(); },
+    loadHealth: function () {
+      var self = this;
+      api.get("/api/health", { timeout: 6000 }).then(function (d) { self.renderHealth(d); })
+        .catch(function () { if (self.health) { UI.clear(self.health).appendChild(h("div", { cls: "health-line crit", text: "agente OFF — sem dados de saúde" })); } });
+    },
+    renderHealth: function (d) {
+      var host = UI.clear(this.health); var s = d.summary || {};
+      var lvl = d.level || "ok";
+      var lvlTxt = { ok: "SYS OK", warn: "SYS WARN", crit: "SYS CRIT" }[lvl] || "SYS ?";
+      // linha 1: nível geral + agente + rede + systemd
+      var line = h("div", { cls: "health-line " + lvl }, [
+        h("b", { text: lvlTxt }),
+        document.createTextNode("  agente ON · " + (s.net_ip ? "rede " + s.net_ip : "sem rede") +
+          " · systemd " + (s.systemd || "?") + (s.failed > 0 ? " (" + s.failed + " falha)" : "")),
+      ]);
+      host.appendChild(line);
+      // linha 2: métricas-chave compactas
+      var bat = (s.bat_ac === 1) ? "carregando" : (s.bat_est >= 0 ? "~" + s.bat_est + "%" : (s.bat_volt > 0 ? s.bat_volt + "V" : "—"));
+      host.appendChild(h("div", { cls: "health-metrics" },
+        "load " + (s.load >= 0 ? s.load : "—") + "/" + (s.cores || "?") +
+        " · temp " + (s.temp >= 0 ? s.temp + "°C" : "—") +
+        " · RAM " + (s.mem_pct != null ? s.mem_pct + "%" : "—") +
+        " · bat " + bat +
+        " · up " + UI.fmt.uptime(s.uptime)));
+      // alertas acionáveis (clicáveis -> abrem a aba alvo)
+      (d.items || []).forEach(function (it) {
+        host.appendChild(h("div", { cls: "alert " + it.level, focus: true, on: { click: function () { CD.go(it.target); } } },
+          "! " + it.label));
+      });
+    },
     onStatus: function (d) {
       var sub = document.getElementById("wel-sub");
       if (sub && d) sub.textContent = (d.host || "") + " · up " + UI.fmt.uptime(d.uptime) + " · " + (d.cores || "?") + " cores";
@@ -104,9 +137,10 @@
       b.appendChild(UI.kv("TEMP", d.temp >= 0 ? d.temp + " °C" : "—"));
       var bt = d.battery || {};
       var lowTrust = bt.capacity_trust === "low";
-      b.appendChild(UI.kv("BATERIA", (bt.pct >= 0 ? bt.pct + "%" : "—") + (bt.status ? " " + bt.status : "") + (bt.ac === 1 ? " [AC]" : "") + (lowTrust ? "  (instável)" : "")));
-      b.appendChild(UI.kv("ESTIMADO ~", (bt.est >= 0 ? bt.est + "%" : "—") + (bt.ocv > 0 ? " · OCV " + bt.ocv + " V" : "")));
-      b.appendChild(UI.kv("TENSÃO/CORR.", (bt.volt > 0 ? bt.volt + " V" : "—") + (bt.curr !== -1 && bt.curr != null ? " · " + bt.curr + " mA" : "")));
+      // bateria: estimativa/tensão em PRIMEIRO (rk817 capacity é instável); raw em segundo
+      b.appendChild(UI.kv("BAT ~", (bt.est >= 0 ? bt.est + "%" : "—") + (bt.volt > 0 ? " · " + bt.volt + " V" : "") + (bt.curr !== -1 && bt.curr != null ? " · " + bt.curr + " mA" : "")));
+      b.appendChild(UI.kv("ESTADO", (bt.ac === 1 ? "carregando [AC]" : (bt.status || "—")) + (bt.ocv > 0 ? " · OCV " + bt.ocv + " V" : "")));
+      b.appendChild(UI.kv("RAW (rk817)", (bt.pct >= 0 ? bt.pct + "% capacity" : "—") + (lowTrust ? " · instável" : "")));
       var n = (d.net && d.net[0]) || {};
       b.appendChild(UI.kv("REDE", n.iface ? (n.iface + " " + n.ip) : "(sem rede)"));
     },

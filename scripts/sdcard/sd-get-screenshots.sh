@@ -29,7 +29,7 @@ NAME="${SD_NAME:-$CARD}"
 # destino padrão: FORA do repositório (home do usuário, não em artifacts/ — capturas
 # não devem entrar no git). Resolve a home do usuário real mesmo rodando sob sudo.
 USER_HOME="$(eval echo ~"${SUDO_USER:-$USER}")"
-[ -n "$DEST" ] || DEST="$USER_HOME/cyberdeck-screenshots/$NAME"
+if [ -n "$DEST" ]; then OWN_DIR="$DEST"; else DEST="$USER_HOME/cyberdeck-screenshots/$NAME"; OWN_DIR="$USER_HOME/cyberdeck-screenshots"; fi
 
 say "================= RECUPERAR SCREENSHOTS (read-only) ================="
 say "Cartão '$CARD' -> $DEV  (rootfs $P2, montado RO)"
@@ -47,8 +47,12 @@ COUNT="$(find "$SRC" -maxdepth 1 -type f -name '*.png' | wc -l)"
 mkdir -p "$DEST"
 # cópia preservando timestamps; não apaga o que já houver no destino
 cp -a -n "$SRC"/*.png "$DEST"/ 2>/dev/null || cp -a "$SRC"/*.png "$DEST"/
-# arquivos foram criados como root (sudo) — devolve a posse ao usuário real
-[ -n "${SUDO_USER:-}" ] && chown -R "$SUDO_USER" "$DEST" 2>/dev/null || true
+# arquivos/pastas foram criados como root (sudo) — devolve a posse ao usuário real
+# (árvore inteira, incluindo a pasta base, com o grupo primário correto do usuário).
+if [ -n "${SUDO_USER:-}" ]; then
+    GRP="$(id -gn "$SUDO_USER" 2>/dev/null || echo "$SUDO_USER")"
+    chown -R "$SUDO_USER:$GRP" "$OWN_DIR" || warn "não consegui ajustar o dono de $OWN_DIR"
+fi
 sync
 
 ok "$COUNT screenshot(s) copiados de '$NAME' para: $DEST"

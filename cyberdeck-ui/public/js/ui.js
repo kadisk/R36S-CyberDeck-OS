@@ -38,6 +38,19 @@
   /* badge de estado a partir de um "kind": ok|warn|crit|off|run */
   UI.badge = function (text, kind) { return UI.h("span", { cls: "badge " + (kind || "off"), text: text }); };
 
+  /* severidade centralizada (mesma régua do backend lib/health.js) -> ok|warn|crit */
+  UI.level = function (kind, v, cores) {
+    if (v == null || v < 0) return "ok";
+    switch (kind) {
+      case "temp": return v >= 80 ? "crit" : v >= 65 ? "warn" : "ok";
+      case "ram": return v > 90 ? "crit" : v >= 75 ? "warn" : "ok";
+      case "storage": return v > 90 ? "crit" : v >= 80 ? "warn" : "ok";
+      case "battVolt": return v < 3.55 ? "crit" : v <= 3.75 ? "warn" : "ok";
+      case "loadPerCore": { var n = cores ? v / cores : v; return n > 1.25 ? "crit" : n >= 0.75 ? "warn" : "ok"; }
+      default: return "ok";
+    }
+  };
+
   /* gauge com barra colorida por nível */
   UI.gauge = function (label, pct) {
     pct = Math.max(0, Math.min(100, pct || 0));
