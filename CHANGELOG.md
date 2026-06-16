@@ -4,6 +4,20 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Changed — 2026-06-16 — Polimento visual (relatório UX V4): foco refinado, HOME cockpit
+- **Foco refinado** (o maior ganho): em vez de bloco ciano preenchido, item focado ganha
+  **barra lateral ciano + fundo sutil**, mantendo o texto legível. Vale p/ linhas, cards,
+  chips, subtabs e alertas. Resolve a cara de "debug UI".
+- **Saída (CMD/LOGS/arquivo) não fica mais ciano cheio**: `pre/.box` em foco ganham só
+  uma borda ciano fina (fundo escuro).
+- **Aba ativa = underline ciano + fundo sutil** (não mais barra verde preenchida).
+- **HOME vira cockpit**: removido o título-herói redundante; **metric tiles** (CPU/RAM/
+  TEMP/BAT com barras e cor por severidade) + alert strip + atalhos.
+- **NET checklist** usa `✓ / × / ?` (mais legível que `[x]/[!]`).
+- **Subabas do STATUS** em PT: AO VIVO / ENERGIA / TENDÊNCIA.
+- Validado por render headless. Não testado no R36S físico. Pendente (V4): aprofundar
+  painéis/microcopy nas demais telas.
+
 ### Changed — 2026-06-16 — Mais espaço p/ listas, L1/R1 = página/origem, A no gamepad, POWER separado
 - **L1/R1 agora paginam/trocam origem** na seção ativa: PROCS/FS/SVC paginam (página no
   título, sem barra ocupando espaço), LOGS troca a **origem** (dmesg/journal/agent/kiosk/ui

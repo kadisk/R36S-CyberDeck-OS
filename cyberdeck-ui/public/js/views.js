@@ -110,12 +110,9 @@
     id: "welcome", live: true,
     build: function () {
       var el = h("div", { cls: "view", id: "view-welcome" });
-      el.appendChild(h("div", { cls: "welcome-head" }, [
-        h("div", { cls: "big", text: "R36S CYBERDECK" }),
-        h("div", { cls: "sm", id: "wel-sub", text: "painel técnico portátil" }),
-      ]));
-      // banner de SAÚDE GERAL + alertas (preenchido por /api/health)
+      // (sem título-herói: a marca já está no topbar) — cockpit: saúde + métricas + atalhos
       this.health = h("div", { cls: "health" }); el.appendChild(this.health);
+      this.tiles = h("div", { cls: "tiles" }); el.appendChild(this.tiles);   // CPU/RAM/TEMP/BAT
       // atalhos CRÍTICOS apenas (o resto está na barra de abas) — HOME cabe em 1 tela
       var crit = ["status", "procs", "logs", "network", "systemd", "tools"];
       var cards = h("div", { cls: "cards" });
@@ -130,7 +127,7 @@
       el.appendChild(cards);
       this.el = el; return el;
     },
-    show: function () { this.loadHealth(); refocus(this.el); },
+    show: function () { this.loadHealth(); if (CD.lastStatus) this.onStatus(CD.lastStatus); refocus(this.el); },
     refresh: function () { this.loadHealth(); },
     loadHealth: function () {
       var self = this;
@@ -148,14 +145,6 @@
           " · systemd " + (s.systemd || "?") + (s.failed > 0 ? " (" + s.failed + " falha)" : "")),
       ]);
       host.appendChild(line);
-      // linha 2: métricas-chave compactas
-      var bat = (s.bat_ac === 1) ? "carregando" : (s.bat_est >= 0 ? "~" + s.bat_est + "%" : (s.bat_volt > 0 ? s.bat_volt + "V" : "—"));
-      host.appendChild(h("div", { cls: "health-metrics" },
-        "load " + (s.load >= 0 ? s.load : "—") + "/" + (s.cores || "?") +
-        " · temp " + (s.temp >= 0 ? s.temp + "°C" : "—") +
-        " · RAM " + (s.mem_pct != null ? s.mem_pct + "%" : "—") +
-        " · bat " + bat +
-        " · up " + UI.fmt.uptime(s.uptime)));
       // alertas acionáveis (clicáveis -> abrem a aba alvo)
       (d.items || []).forEach(function (it) {
         host.appendChild(h("div", { cls: "alert " + it.level, focus: true, on: { click: function () { CD.go(it.target); } } },
@@ -163,15 +152,33 @@
       });
     },
     onStatus: function (d) {
-      var sub = document.getElementById("wel-sub");
-      if (sub && d) sub.textContent = (d.host || "") + " · up " + UI.fmt.uptime(d.uptime) + " · " + (d.cores || "?") + " cores";
+      if (!this.tiles || !d) return;
+      var bt = d.battery || {};
+      var batVal = (bt.ac === 1) ? "AC" : (bt.est >= 0 ? bt.est + "%" : (bt.volt > 0 ? bt.volt + "V" : "—"));
+      var batSub = bt.volt > 0 ? bt.volt + "V" : "";
+      var tiles = [
+        { lbl: "CPU", val: (d.cpu >= 0 ? Math.round(d.cpu) + "%" : "—"), bar: d.cpu, lvl: UI.level("ram", d.cpu) },
+        { lbl: "RAM", val: (d.mem ? Math.round(d.mem.pct) + "%" : "—"), bar: d.mem ? d.mem.pct : -1, lvl: UI.level("ram", d.mem ? d.mem.pct : 0) },
+        { lbl: "TEMP", val: (d.temp >= 0 ? d.temp + "°" : "—"), sub: UI.level("temp", d.temp) === "ok" ? "ok" : "alto", lvl: UI.level("temp", d.temp) },
+        { lbl: "BAT", val: batVal, sub: batSub, lvl: "ok" },
+      ];
+      var host = UI.clear(this.tiles);
+      tiles.forEach(function (t) {
+        var tile = h("div", { cls: "tile " + (t.lvl || "") }, [
+          h("div", { cls: "tile-lbl", text: t.lbl }),
+          h("div", { cls: "tile-val", text: t.val }),
+        ]);
+        if (t.bar >= 0) { var b = h("div", { cls: "tile-bar" }); var i = h("i"); i.style.width = Math.max(0, Math.min(100, t.bar)) + "%"; b.appendChild(i); tile.appendChild(b); }
+        else if (t.sub) tile.appendChild(h("div", { cls: "tile-sub", text: t.sub }));
+        host.appendChild(tile);
+      });
     },
     back: function () { return false; },
   });
 
   /* ============================ STATUS (LIVE/POWER/TREND) ============================ */
   reg({
-    id: "status", live: false, subs: ["LIVE", "POWER", "TREND"],
+    id: "status", live: false, subs: ["AO VIVO", "ENERGIA", "TENDÊNCIA"],
     build: function () { var el = h("div", { cls: "view", id: "view-status" }); this.el = el; return el; },
     show: function () { this.render(); },
     render: function () {
@@ -186,7 +193,7 @@
       var d = this.last || CD.lastStatus; var b = UI.clear(this.body);
       if (!d) { b.appendChild(UI.loading()); return; }
       var sub = subKey("status");
-      if (sub === "LIVE") {
+      if (sub === "AO VIVO") {
         b.appendChild(UI.gauge("CPU", d.cpu >= 0 ? d.cpu : 0));
         if (d.mem) b.appendChild(UI.gauge("RAM", d.mem.pct));
         b.appendChild(UI.kv("MEM", d.mem ? (d.mem.used + " / " + d.mem.total + " MB") : "—"));
@@ -195,7 +202,7 @@
         b.appendChild(UI.kv("UPTIME", UI.fmt.uptime(d.uptime)));
         var n = (d.net && d.net[0]) || {};
         b.appendChild(UI.kv("REDE", n.iface ? (n.iface + " " + n.ip) : "(sem rede)"));
-      } else if (sub === "POWER") {
+      } else if (sub === "ENERGIA") {
         var bt = d.battery || {}, lowTrust = bt.capacity_trust === "low";
         b.appendChild(UI.kv("BAT ~", (bt.est >= 0 ? bt.est + "%" : "—") + (bt.volt > 0 ? " · " + bt.volt + " V" : "") + (bt.curr !== -1 && bt.curr != null ? " · " + bt.curr + " mA" : "")));
         b.appendChild(UI.kv("ESTADO", (bt.ac === 1 ? "carregando [AC]" : (bt.status || "—")) + (bt.ocv > 0 ? " · OCV " + bt.ocv + " V" : "")));
@@ -575,7 +582,7 @@
         // checklist de diagnóstico
         b.appendChild(h("div", { cls: "sub", text: "DIAGNÓSTICO" }));
         var check = function (ok, label, warnIfNo) {
-          var mark = ok ? "[x]" : (warnIfNo ? "[!]" : "[ ]");
+          var mark = ok ? "✓" : (warnIfNo ? "×" : "?");
           b.appendChild(h("div", { cls: "chkline " + (ok ? "ok" : warnIfNo ? "warn" : "off"), text: mark + " " + label }));
         };
         check(ext.length > 0, "interface externa detectada (dongle USB)", true);
