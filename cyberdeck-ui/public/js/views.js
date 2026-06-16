@@ -31,6 +31,31 @@
   function title(t) { return h("div", { cls: "vtitle", text: t }); }
   function refocus(el) { if (CD.focusFirst) CD.focusFirst(el); }
 
+  /* breadcrumb compacto: "/ a > b > c" (trunca no meio se profundo) */
+  function fsCrumb(p) {
+    if (!p || p === "/") return "/";
+    var parts = p.split("/").filter(Boolean);
+    if (parts.length > 4) parts = ["…"].concat(parts.slice(-3));
+    return "/ " + parts.join(" > ");
+  }
+  /* rótulo de tipo p/ a coluna do FS (DIR/LINK/TXT/LOG/BIN/…) */
+  function fsTypeLabel(e) {
+    if (e.type === "dir") return "DIR";
+    if (e.type === "symlink") return "LINK";
+    if (e.type === "block") return "BLK";
+    if (e.type === "char") return "CHR";
+    if (e.type === "fifo") return "PIPE";
+    if (e.type === "socket") return "SOCK";
+    if (e.type !== "file") return "?";
+    var m = (e.name.match(/\.([A-Za-z0-9]+)$/) || [])[1];
+    if (!m) return "FILE";
+    m = m.toLowerCase();
+    if (m === "log") return "LOG";
+    if (/^(conf|cfg|ini|txt|sh|json|md|xml|ya?ml|service|rules|list|env|toml|desktop)$/.test(m)) return "TXT";
+    if (/^(png|jpg|jpeg|gif|bmp|gz|xz|zip|bin|so|o|img|dtb|ko)$/.test(m)) return "BIN";
+    return "FILE";
+  }
+
   /* row helper: cols = array de {t, cls, grow} */
   function row(cols, onClick, focus) {
     var attrs = { cls: "row" };
@@ -179,8 +204,8 @@
         kvGroup(b, "ARMAZENAMENTO", (hw.storage || []).map(function (s) { return [s.dev, s.gb + " GB" + (s.ro ? " (ro)" : "") + (s.model ? " · " + s.model : "")]; }));
         kvGroup(b, "TELA", [["FB", dp.framebuffer ? (dp.framebuffer.name + " " + dp.framebuffer.virtual_size + " @" + dp.framebuffer.bits_per_pixel + "bpp") : "—"],
           ["BACKLIGHT", dp.backlight ? (dp.backlight.cur + "/" + dp.backlight.max + " (" + dp.backlight.pct + "%)") : "—"], ["PANEL", dp.panel]]);
-        kvGroup(b, "KERNEL/BOOT", [["VERSION", k.version], ["MÓDULOS", k.modules_count], ["CMDLINE", k.cmdline]]);
-        if (k.dmesg_hw) { b.appendChild(h("div", { cls: "sub", text: "DMESG (hw)" })); b.appendChild(h("pre", { cls: "box", text: k.dmesg_hw })); }
+        kvGroup(b, "KERNEL/BOOT", [["VERSION", k.version], ["MÓDULOS", k.modules_count]]);
+        b.appendChild(h("div", { cls: "hint", text: "cmdline, dmesg e módulos completos na aba KERNEL" }));
         b.appendChild(h("div", { cls: "sub", text: "INPUT" }));
         (ip.devices || []).forEach(function (dv) { b.appendChild(UI.kv((dv.joypad ? "* " : "") + (dv.event || "?"), dv.name)); });
         b.appendChild(h("div", { cls: "sub", text: "USB" }));
@@ -198,7 +223,8 @@
     render: function () {
       var self = this, el = UI.clear(this.el);
       if (S.fs.mode === "view") return this.renderFile();
-      el.appendChild(title("FS  " + S.fs.path));
+      el.appendChild(title("FS"));
+      el.appendChild(h("div", { cls: "crumb", text: fsCrumb(S.fs.path) }));
       // atalhos
       var tb = h("div", { cls: "toolbar" });
       api.get("/api/fs/bookmarks").then(function (d) {
@@ -210,13 +236,14 @@
       var listHost = h("div"); el.appendChild(listHost);
       asyncRender(listHost, function () { return api.get("/api/fs/list?path=" + encodeURIComponent(S.fs.path)); }, function (d) {
         var list = h("div", { cls: "list" });
-        if (d.parent != null) list.appendChild(row([{ t: "[..]", grow: true }], function () { self.nav(d.parent); }, true));
+        if (d.parent != null) list.appendChild(row([{ t: "UP", cls: "fstype" }, { t: "..", grow: true }], function () { self.nav(d.parent); }, true));
         (d.entries || []).forEach(function (e) {
-          var tag = e.type === "dir" ? "/" : e.type === "symlink" ? "→" : e.type === "file" ? " " : "•";
-          var sz = e.type === "file" ? UI.fmt.bytes(e.size) : (e.type === "symlink" ? "→" + (e.target || "") : e.type);
+          var name = e.name + (e.type === "symlink" ? " → " + (e.target || "") : "");
           list.appendChild(row([
-            { t: tag + e.name, grow: true },
-            { t: e.mode, cls: "r" }, { t: sz, cls: "r" },
+            { t: fsTypeLabel(e), cls: "fstype t-" + e.type },
+            { t: name, grow: true },
+            { t: e.type === "file" ? UI.fmt.bytes(e.size) : "", cls: "r" },
+            { t: e.mode, cls: "r" },
           ], function () { self.open(e); }, true));
         });
         if (d.truncated) list.appendChild(h("div", { cls: "hint", text: "… lista truncada (" + d.count + " itens)" }));
@@ -560,7 +587,10 @@
           host.appendChild(h("div", { cls: "sub", text: cat.toUpperCase() }));
           var list = h("div", { cls: "list" });
           cats[cat].forEach(function (c) {
-            list.appendChild(row([{ t: c.desc, grow: true }, { t: c.cmd, cls: "r" }], function () { self.run(c.key); }, true));
+            list.appendChild(row([
+              { t: "[" + (c.risk === "diag" ? "DIAG" : "SAFE") + "]", cls: "tag-" + (c.risk || "safe") },
+              { t: c.desc, grow: true }, { t: c.cmd, cls: "r" },
+            ], function () { self.run(c.key); }, true));
           });
           host.appendChild(list);
         });
@@ -570,13 +600,17 @@
     run: function (key) {
       var self = this; S.cmd.mode = "out"; S.cmd.key = key;
       var el = UI.clear(this.el);
-      el.appendChild(title("CMD"));
-      this.out = h("pre", { cls: "box full", focus: true, text: "… executando " + key + " …" }); el.appendChild(this.out);
+      el.appendChild(title("CMD  " + key));
+      this.head = h("div", { cls: "out-head", text: "… executando …" }); el.appendChild(this.head);
+      this.out = h("pre", { cls: "box full", focus: true, text: "" }); el.appendChild(this.out);
       refocus(this.el);
       api.post("/api/commands/exec", { key: key }).then(function (r) {
-        self.out.textContent = "$ " + r.cmd + "\n\n" + r.output + "\n\n[exit " + r.code + (r.timed_out ? " · TIMEOUT" : "") + "]";
-        self.out.scrollTop = 0;
-      }).catch(function (e) { self.out.textContent = e.business ? e.message : "(agente offline)"; });
+        var st = r.timed_out ? "TIMEOUT" : (r.ok ? "OK" : "ERRO");
+        var stcls = r.timed_out ? "crit" : (r.ok ? "ok" : "crit");
+        UI.clear(self.head).appendChild(h("span", { cls: "badge " + stcls, text: st }));
+        UI.append(self.head, "  $ " + r.cmd + "   ·   exit " + r.code + " · " + (r.ms != null ? r.ms + "ms" : ""));
+        self.out.textContent = r.output; self.out.scrollTop = 0;
+      }).catch(function (e) { UI.clear(self.head); self.out.textContent = e.business ? e.message : "(agente offline)"; });
     },
     renderOut: function () { this.run(S.cmd.key); },
     back: function () { if (S.cmd.mode === "out") { S.cmd.mode = "list"; this.renderList(); return true; } return false; },
@@ -592,24 +626,32 @@
 
       // ---- DISPLAY / UI (cliente; funciona mesmo offline p/ a fonte) ----
       el.appendChild(h("div", { cls: "sub", text: "DISPLAY / UI" }));
+      var bri = (CD.lastStatus && CD.lastStatus.brightness && CD.lastStatus.brightness.pct >= 0) ? CD.lastStatus.brightness.pct : -1;
+      var fs = Math.round((CD.state.fontScale || 1) * 100);
       var ui = h("div", { cls: "list" });
-      ui.appendChild(row([{ t: "Fonte −", grow: true }, { t: "menor", cls: "r" }], function () { CD.setFontScale(-0.1); }, true));
-      ui.appendChild(row([{ t: "Fonte +", grow: true }, { t: "maior", cls: "r" }], function () { CD.setFontScale(+0.1); }, true));
-      ui.appendChild(row([{ t: "Fonte 100%", grow: true }, { t: "reset", cls: "r" }], function () { CD.resetFontScale(); }, true));
+      ui.appendChild(row([{ t: "Fonte", grow: true }, { t: fs + "%", cls: "r" }, { t: "−/+/reset", cls: "r" }], function () { CD.setFontScale(+0.1); }, true));
+      ui.appendChild(row([{ t: "Fonte −", grow: true }], function () { CD.setFontScale(-0.1); }, true));
+      ui.appendChild(row([{ t: "Fonte reset", grow: true }], function () { CD.resetFontScale(); }, true));
       ui.appendChild(row([{ t: "Screenshot", grow: true }, { t: "L1+R1", cls: "r" }], function () { CD.screenshot(); }, true));
       el.appendChild(ui);
+      if (bri >= 0) el.appendChild(UI.gauge("BRILHO", bri));
 
-      // ---- ações do sistema (do agente) ----
-      el.appendChild(h("div", { cls: "sub", text: "SISTEMA" }));
+      // ---- ações do sistema: separa NORMAIS de PERIGOSAS (Danger Zone) ----
       var host = h("div"); el.appendChild(host);
       asyncRender(host, function () { return api.get("/api/actions"); }, function (d) {
-        var list = h("div", { cls: "list" });
-        (d.actions || []).forEach(function (a) {
-          list.appendChild(row([{ t: (a.dangerous ? "! " : "") + a.label, grow: true }, { t: a.dangerous ? "confirma" : "", cls: "r" }],
-            function () { self.run(a); }, true));
-        });
-        host.appendChild(list);
-        self.msg = h("div"); host.appendChild(self.msg);
+        var acts = d.actions || [];
+        var safe = acts.filter(function (a) { return !a.dangerous; });
+        var danger = acts.filter(function (a) { return a.dangerous; });
+        host.appendChild(h("div", { cls: "sub", text: "SISTEMA / ÁUDIO" }));
+        var l1 = h("div", { cls: "list" });
+        safe.forEach(function (a) { l1.appendChild(row([{ t: a.label, grow: true }], function () { self.run(a); }, true)); });
+        host.appendChild(l1);
+        if (danger.length) {
+          host.appendChild(h("div", { cls: "sub danger-head", text: "! DANGER ZONE — pede confirmação" }));
+          var l2 = h("div", { cls: "list danger" });
+          danger.forEach(function (a) { l2.appendChild(row([{ t: a.label, grow: true }, { t: "confirma", cls: "r" }], function () { self.run(a); }, true)); });
+          host.appendChild(l2);
+        }
         refocus(self.el);
       });
     },

@@ -41,8 +41,12 @@ const COMMANDS = {
 
 function err(code, message) { const e = new Error(message); e.code = code; return e; }
 
+// risco/custo p/ a UI marcar visualmente (nenhum comando aqui MUTA o sistema):
+//   safe = leitura barata · diag = diagnóstico mais pesado (dmesg/journal/ss/top)
+function riskOf(k) { return COMMANDS[k].cat === "debug" || /^(ss|lsusb|sensors)$/.test(k) ? "diag" : "safe"; }
+
 function list() {
-  return Object.keys(COMMANDS).map((k) => ({ key: k, cat: COMMANDS[k].cat, desc: COMMANDS[k].desc, cmd: COMMANDS[k].cmd.join(" ") }));
+  return Object.keys(COMMANDS).map((k) => ({ key: k, cat: COMMANDS[k].cat, desc: COMMANDS[k].desc, cmd: COMMANDS[k].cmd.join(" "), risk: riskOf(k) }));
 }
 
 async function execKey(key) {
@@ -56,6 +60,7 @@ async function execKey(key) {
     code: r.code,
     ok: r.ok,
     timed_out: r.timedOut,
+    ms: r.ms,
     output: (r.stdout + r.stderr).trim() || "(sem saída)",
   };
 }

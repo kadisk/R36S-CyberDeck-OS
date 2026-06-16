@@ -121,6 +121,25 @@ body.pointer-on, body.pointer-on * { cursor: default !important; }
 .pbar-h { width: 46px; flex: none; text-align: center; color: var(--accent); }
 .row:focus .pbar { border-color: var(--bg); }
 
+/* tags de risco (CMD) */
+.row .tag-safe { color: var(--fg-dim); flex: none; width: 48px; }
+.row .tag-diag { color: var(--warn); flex: none; width: 48px; }
+
+/* coluna de tipo (FS) */
+.row .fstype { color: var(--fg-dim); flex: none; width: 42px; }
+.row .fstype.t-dir { color: var(--accent); }
+.row .fstype.t-symlink { color: var(--warn); }
+
+/* breadcrumb (FS) */
+.crumb { font-size: 12px; color: var(--fg-dim); margin-bottom: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* cabeçalho de saída unificado (CMD) */
+.out-head { font-size: 12px; color: var(--fg-dim); margin-bottom: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Danger Zone (TOOLS) */
+.sub.danger-head { color: var(--crit); }
+.list.danger .row { border-left: 3px solid var(--crit); }
+
 /* linhas de log coloridas por severidade */
 .logline { white-space: pre-wrap; word-break: break-word; font-size: 12px; line-height: 1.3; color: var(--fg-dim); }
 .logline.err { color: var(--crit); }

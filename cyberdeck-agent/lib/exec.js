@@ -17,9 +17,10 @@ const DEFAULT_MAXBUF = 1 << 20; // 1 MiB
  */
 function run(file, args, opts) {
   opts = opts || {};
+  const t0 = Date.now();
   return new Promise((resolve) => {
     let done = false;
-    const finish = (o) => { if (!done) { done = true; resolve(o); } };
+    const finish = (o) => { if (!done) { done = true; o.ms = Date.now() - t0; resolve(o); } };
     let child;
     try {
       child = execFile(file, Array.isArray(args) ? args : [], {

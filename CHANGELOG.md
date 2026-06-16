@@ -4,6 +4,18 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Changed — 2026-06-16 — CMD/TOOLS/FS/DEVICE (relatório UX, fase 4)
+- **CMD**: tags de risco por comando (**[SAFE]/[DIAG]**) e **saída unificada** com
+  cabeçalho de status (OK/ERRO/TIMEOUT), `exit code` e **duração (ms)**. `exec` agora mede ms.
+- **TOOLS**: separa **DANGER ZONE** (reboot/poweroff/restart — borda vermelha, confirmação)
+  das ações normais (Brilho/Volume); mostra **barra de BRILHO** e a % de fonte atual.
+- **FS**: **breadcrumb** compacto (`/ a > b > c`), **coluna de TIPO** (DIR/LINK/TXT/LOG/BIN…)
+  e alvo do symlink inline.
+- **DEVICE**: menos denso — cmdline/dmesg/módulos completos ficam na aba KERNEL (eram
+  duplicados); DEVICE aponta para lá.
+- Validado por render headless (CMD tags, TOOLS Danger Zone + barra, FS breadcrumb/tipo).
+  Não testado no R36S físico.
+
 ### Changed — 2026-06-16 — Telas operacionais: LOGS/PROCS/SVC (relatório UX, fase 3)
 - **LOGS** colore cada linha por **severidade** (heurística): erro/exit-code/failed em
   vermelho, warning em âmbar, resto apagado — falhas saltam à vista.
