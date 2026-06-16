@@ -155,6 +155,16 @@ body.pointer-on, body.pointer-on * { cursor: default !important; }
 .row:focus .c, .row:focus .grow, .row:focus b, .row:focus span { color: var(--bg) !important; }
 .tab:focus { outline: 2px solid var(--accent); outline-offset: -2px; color: var(--accent); }
 
+/* ---------- subpáginas (L1/R1) ---------- */
+.subbar { display: flex; gap: 3px; margin-bottom: 7px; border-bottom: 1px solid var(--line2); padding-bottom: 5px; }
+.subtab {
+  flex: 1; min-width: 0; background: var(--bg2); color: var(--fg-dim);
+  border: 1px solid var(--line); font: inherit; font-size: 11px; letter-spacing: .5px;
+  padding: 3px 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.subtab.on { background: var(--accent-dim); color: var(--fg); border-color: var(--accent); }
+.subtab:focus { background: var(--accent); color: var(--bg); outline: none; }
+
 /* ---------- toolbar (filtros/ordenação) ---------- */
 .toolbar { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
 .chip {

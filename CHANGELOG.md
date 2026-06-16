@@ -4,6 +4,20 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Changed — 2026-06-16 — Subpáginas (L1/R1) p/ reduzir scroll (relatório UX V3, parte 1)
+- **Subpáginas por seção** navegáveis com **L1/R1** (combo L1+R1 segue = screenshot; teclas
+  `[` `]` no dev): cada tela densa vira seções que cabem em 640×480 sem rolar. Barra de
+  subtabs no topo + dica no rodapé. Infra: `CD.subCycle`, `state.sub`.
+- **HOME cabe em uma tela**: banner de saúde + alertas + **6 atalhos críticos**
+  (STATUS/PROCS/LOGS/NET/SVC/TOOLS). As demais seções seguem na barra de abas (sem scroll).
+- **STATUS** → **LIVE / POWER / TREND** (métricas ao vivo · bateria/brilho · sparklines).
+- **DEVICE** → **ID / CPU / DISPLAY / BOOT / INPUT** (fim da lista longa rolável).
+- **TOOLS** → **DISPLAY / AUDIO / SYSTEM / DANGER**: a Danger Zone (reboot/poweroff/
+  restart-kiosk) agora fica numa subpágina **isolada** das ações do dia a dia.
+- Validado por render headless (HOME 1 tela, DEVICE/STATUS/TOOLS subpáginas sem scroll).
+  Não testado no R36S físico. **Pendente** (próxima parte do V3): paginação de listas longas
+  (PROCS ALL, SVC ALL, FS), CMD por categoria e LOGS com detalhe por linha.
+
 ### Changed — 2026-06-16 — CMD/TOOLS/FS/DEVICE (relatório UX, fase 4)
 - **CMD**: tags de risco por comando (**[SAFE]/[DIAG]**) e **saída unificada** com
   cabeçalho de status (OK/ERRO/TIMEOUT), `exit code` e **duração (ms)**. `exec` agora mede ms.

@@ -96,6 +96,8 @@
       case "Tab": moveFocus(e.shiftKey ? -1 : 1); break;
       case "Enter": activate(); break;
       case "Escape": case "Backspace": CD.back(); break;
+      case "[": CD.subCycle(-1); break;     // subpágina anterior (dev)
+      case "]": CD.subCycle(1); break;      // próxima subpágina (dev)
       case "PageDown": scrollContent(120); break;
       case "PageUp": scrollContent(-120); break;
       default: return;
@@ -190,6 +192,9 @@
       var l1 = gp.buttons[M.L1] && gp.buttons[M.L1].pressed;
       var r1 = gp.buttons[M.R1] && gp.buttons[M.R1].pressed;
       if (l1 && r1) { if (!comboShot) { comboShot = true; CD.screenshot(); } } else { comboShot = false; }
+      // L1/R1 isolados = trocar subpágina da seção ativa (não dispara durante o combo)
+      edge(gp, M.L1, function () { if (!r1 && !confirmOpen()) CD.subCycle(-1); });
+      edge(gp, M.R1, function () { if (!l1 && !confirmOpen()) CD.subCycle(1); });
 
       // A: se o ponteiro real foi movido há pouco, clica nele (como um mouse);
       // senão, ativa o item focado (navegação por D-pad).

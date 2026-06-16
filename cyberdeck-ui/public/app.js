@@ -61,9 +61,13 @@
       systemd: "A: detalhe/ação · B: voltar · ←→ abas",
       procs: "A: detalhe · B: voltar · ↓ ordena/filtra",
       cmd: "A: executar · B: voltar à lista",
-      tools: "A: executar (⚠ pede confirmação) · B: voltar",
+      tools: "A: executar (⚠ confirma) · L1/R1: página · B: voltar",
+      device: "L1/R1: página · ←→: abas · B: voltar",
     };
     h.textContent = map[id] || "A: ok · B: voltar · ←→: abas · ↑↓: foco";
+    // sufixo L1/R1 quando a view tiver subpáginas e o hint não mencionar
+    var v = views[id];
+    if (v && v.subs && v.subs.length && h.textContent.indexOf("L1/R1") < 0) h.textContent += " · L1/R1: página";
   }
 
   /* ---- topbar + status polling ---- */

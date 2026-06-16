@@ -31,6 +31,26 @@
   function title(t) { return h("div", { cls: "vtitle", text: t }); }
   function refocus(el) { if (CD.focusFirst) CD.focusFirst(el); }
 
+  /* ---- subpáginas (L1/R1) — evitam scroll dividindo a tela em seções ---- */
+  function subIndex(id) { var v = V[id]; var n = (v && v.subs) ? v.subs.length : 0; var i = CD.state.sub[id] || 0; return n ? ((i % n) + n) % n : 0; }
+  function subKey(id) { var v = V[id]; return (v && v.subs) ? v.subs[subIndex(id)] : null; }
+  function subbar(id) {
+    var v = V[id], idx = subIndex(id), bar = h("div", { cls: "subbar" });
+    (v.subs || []).forEach(function (lbl, i) {
+      bar.appendChild(h("button", { cls: "subtab" + (i === idx ? " on" : ""), focus: true,
+        on: { click: (function (j) { return function () { CD.state.sub[id] = j; v.show(); CD.focusFirst(v.el); }; })(i) } }, lbl));
+    });
+    return bar;
+  }
+  // troca a subpágina da seção ativa (chamado por L1/R1). Retorna true se tratou.
+  CD.subCycle = function (dir) {
+    var id = CD.state.section, v = V[id];
+    if (!v || !v.subs || !v.subs.length) return false;
+    CD.state.sub[id] = subIndex(id) + dir;
+    v.show(); CD.focusFirst(v.el);
+    return true;
+  };
+
   /* breadcrumb compacto: "/ a > b > c" (trunca no meio se profundo) */
   function fsCrumb(p) {
     if (!p || p === "/") return "/";
@@ -84,21 +104,18 @@
       ]));
       // banner de SAÚDE GERAL + alertas (preenchido por /api/health)
       this.health = h("div", { cls: "health" }); el.appendChild(this.health);
-      // cards agrupados por categoria semântica (cada grupo com seu cabeçalho)
-      GROUPS.forEach(function (g) {
-        var items = META.filter(function (m) { return m.group === g; });
-        if (!items.length) return;
-        el.appendChild(h("div", { cls: "sub", text: g }));
-        var cards = h("div", { cls: "cards" });
-        items.forEach(function (m) {
-          cards.appendChild(h("div", { cls: "card", focus: true, on: { click: function () { CD.go(m.id); } } }, [
-            h("span", { cls: "ic", text: m.icon }),
-            h("span", { cls: "ti", text: m.title }),
-            h("span", { cls: "de", text: m.desc }),
-          ]));
-        });
-        el.appendChild(cards);
+      // atalhos CRÍTICOS apenas (o resto está na barra de abas) — HOME cabe em 1 tela
+      var crit = ["status", "procs", "logs", "network", "systemd", "tools"];
+      var cards = h("div", { cls: "cards" });
+      crit.forEach(function (id) {
+        var m = META.filter(function (x) { return x.id === id; })[0]; if (!m) return;
+        cards.appendChild(h("div", { cls: "card", focus: true, on: { click: function () { CD.go(m.id); } } }, [
+          h("span", { cls: "ic", text: m.icon }),
+          h("span", { cls: "ti", text: m.title }),
+          h("span", { cls: "de", text: m.desc }),
+        ]));
       });
+      el.appendChild(cards);
       this.el = el; return el;
     },
     show: function () { this.loadHealth(); refocus(this.el); },
@@ -140,77 +157,99 @@
     back: function () { return false; },
   });
 
-  /* ============================ STATUS ============================ */
+  /* ============================ STATUS (LIVE/POWER/TREND) ============================ */
   reg({
-    id: "status", live: false,
-    build: function () {
-      var el = h("div", { cls: "view", id: "view-status" });
-      el.appendChild(title("STATUS DO SISTEMA"));
+    id: "status", live: false, subs: ["LIVE", "POWER", "TREND"],
+    build: function () { var el = h("div", { cls: "view", id: "view-status" }); this.el = el; return el; },
+    show: function () { this.render(); },
+    render: function () {
+      var el = UI.clear(this.el);
+      el.appendChild(title("STATUS · " + subKey("status")));
+      el.appendChild(subbar("status"));
       this.body = h("div"); el.appendChild(this.body);
-      this.el = el; return el;
+      this.renderBody();
     },
-    show: function () { if (CD.lastStatus) this.onStatus(CD.lastStatus); else this.body.appendChild(UI.loading()); },
-    onStatus: function (d) {
-      if (!d) return;
-      var b = UI.clear(this.body);
-      b.appendChild(UI.gauge("CPU", d.cpu >= 0 ? d.cpu : 0));
-      if (d.mem) b.appendChild(UI.gauge("RAM", d.mem.pct));
-      if (d.brightness && d.brightness.pct >= 0) b.appendChild(UI.gauge("BRILHO", d.brightness.pct));
-      b.appendChild(UI.kv("MEM", d.mem ? (d.mem.used + " / " + d.mem.total + " MB") : "—"));
-      b.appendChild(UI.kv("LOAD", d.load));
-      b.appendChild(UI.kv("UPTIME", UI.fmt.uptime(d.uptime)));
-      b.appendChild(UI.kv("TEMP", d.temp >= 0 ? d.temp + " °C" : "—"));
-      var bt = d.battery || {};
-      var lowTrust = bt.capacity_trust === "low";
-      // bateria: estimativa/tensão em PRIMEIRO (rk817 capacity é instável); raw em segundo
-      b.appendChild(UI.kv("BAT ~", (bt.est >= 0 ? bt.est + "%" : "—") + (bt.volt > 0 ? " · " + bt.volt + " V" : "") + (bt.curr !== -1 && bt.curr != null ? " · " + bt.curr + " mA" : "")));
-      b.appendChild(UI.kv("ESTADO", (bt.ac === 1 ? "carregando [AC]" : (bt.status || "—")) + (bt.ocv > 0 ? " · OCV " + bt.ocv + " V" : "")));
-      b.appendChild(UI.kv("RAW (rk817)", (bt.pct >= 0 ? bt.pct + "% capacity" : "—") + (lowTrust ? " · instável" : "")));
-      var n = (d.net && d.net[0]) || {};
-      b.appendChild(UI.kv("REDE", n.iface ? (n.iface + " " + n.ip) : "(sem rede)"));
-      // tendência (histórico da sessão) via sparklines
-      if (CD.history && CD.history.get("cpu").length > 1) {
-        b.appendChild(h("div", { cls: "sub", text: "TENDÊNCIA (sessão)" }));
-        b.appendChild(UI.kv("CPU", UI.sparkline(CD.history.get("cpu"), { min: 0, max: 100 })));
-        b.appendChild(UI.kv("RAM", UI.sparkline(CD.history.get("ram"), { min: 0, max: 100 })));
-        b.appendChild(UI.kv("TEMP", UI.sparkline(CD.history.get("temp"))));
-        b.appendChild(UI.kv("LOAD", UI.sparkline(CD.history.get("load"))));
-        b.appendChild(UI.kv("BAT", UI.sparkline(CD.history.get("bat"))));
+    onStatus: function (d) { this.last = d; if (CD.state.section === "status" && this.body) this.renderBody(); },
+    renderBody: function () {
+      var d = this.last || CD.lastStatus; var b = UI.clear(this.body);
+      if (!d) { b.appendChild(UI.loading()); return; }
+      var sub = subKey("status");
+      if (sub === "LIVE") {
+        b.appendChild(UI.gauge("CPU", d.cpu >= 0 ? d.cpu : 0));
+        if (d.mem) b.appendChild(UI.gauge("RAM", d.mem.pct));
+        b.appendChild(UI.kv("MEM", d.mem ? (d.mem.used + " / " + d.mem.total + " MB") : "—"));
+        b.appendChild(UI.kv("LOAD", d.load + "  (" + (d.cores || "?") + " cores)"));
+        b.appendChild(UI.kv("TEMP", d.temp >= 0 ? d.temp + " °C" : "—"));
+        b.appendChild(UI.kv("UPTIME", UI.fmt.uptime(d.uptime)));
+        var n = (d.net && d.net[0]) || {};
+        b.appendChild(UI.kv("REDE", n.iface ? (n.iface + " " + n.ip) : "(sem rede)"));
+      } else if (sub === "POWER") {
+        var bt = d.battery || {}, lowTrust = bt.capacity_trust === "low";
+        b.appendChild(UI.kv("BAT ~", (bt.est >= 0 ? bt.est + "%" : "—") + (bt.volt > 0 ? " · " + bt.volt + " V" : "") + (bt.curr !== -1 && bt.curr != null ? " · " + bt.curr + " mA" : "")));
+        b.appendChild(UI.kv("ESTADO", (bt.ac === 1 ? "carregando [AC]" : (bt.status || "—")) + (bt.ocv > 0 ? " · OCV " + bt.ocv + " V" : "")));
+        b.appendChild(UI.kv("RAW (rk817)", (bt.pct >= 0 ? bt.pct + "% capacity" : "—") + (lowTrust ? " · instável" : "")));
+        if (d.brightness && d.brightness.pct >= 0) b.appendChild(UI.gauge("BRILHO", d.brightness.pct));
+        b.appendChild(UI.kv("TEMP", d.temp >= 0 ? d.temp + " °C" : "—"));
+      } else { // TREND
+        if (CD.history && CD.history.get("cpu").length > 1) {
+          b.appendChild(UI.kv("CPU", UI.sparkline(CD.history.get("cpu"), { min: 0, max: 100 })));
+          b.appendChild(UI.kv("RAM", UI.sparkline(CD.history.get("ram"), { min: 0, max: 100 })));
+          b.appendChild(UI.kv("TEMP", UI.sparkline(CD.history.get("temp"))));
+          b.appendChild(UI.kv("LOAD", UI.sparkline(CD.history.get("load"))));
+          b.appendChild(UI.kv("BAT", UI.sparkline(CD.history.get("bat"))));
+          b.appendChild(h("div", { cls: "hint", text: "tendência da sessão (~2 min)" }));
+        } else { b.appendChild(UI.empty("coletando histórico…")); }
       }
     },
     back: function () { return false; },
   });
 
-  /* ============================ DEVICE ============================ */
+  /* ============================ DEVICE (ID/CPU/DISPLAY/BOOT/INPUT) ============================ */
   function kvGroup(host, name, pairs) {
-    host.appendChild(h("div", { cls: "sub", text: name }));
+    if (name) host.appendChild(h("div", { cls: "sub", text: name }));
     pairs.forEach(function (p) { if (p) host.appendChild(UI.kv(p[0], p[1])); });
   }
   reg({
-    id: "device", live: false,
-    build: function () { var el = h("div", { cls: "view", id: "view-device" }); el.appendChild(title("DISPOSITIVO & SISTEMA")); this.body = h("div"); el.appendChild(this.body); this.el = el; return el; },
+    id: "device", live: false, subs: ["ID", "CPU", "DISPLAY", "BOOT", "INPUT"],
+    build: function () { var el = h("div", { cls: "view", id: "view-device" }); this.el = el; return el; },
     show: function () {
       var self = this;
-      asyncRender(this.body, function () { return api.get("/api/device", { timeout: 12000 }); }, function (d) {
-        var b = self.body, id = d.identity || {}, hw = d.hardware || {}, k = d.kernel || {}, dp = d.display || {}, ip = d.input || {};
-        kvGroup(b, "IDENTIDADE", [["HOST", id.hostname], ["DISTRO", id.distro], ["KERNEL", id.kernel], ["ARCH", id.arch],
+      if (self.data) return self.renderSub();
+      var el = UI.clear(this.el); el.appendChild(title("DEVICE")); var host = h("div"); el.appendChild(host); host.appendChild(UI.loading());
+      api.get("/api/device", { timeout: 12000 }).then(function (d) { self.data = d; self.renderSub(); })
+        .catch(function (e) { var el2 = UI.clear(self.el); el2.appendChild(title("DEVICE")); el2.appendChild(UI.errBox(e)); });
+    },
+    renderSub: function () {
+      var self = this, d = self.data || {}, el = UI.clear(this.el);
+      var sub = subKey("device");
+      el.appendChild(title("DEVICE · " + sub));
+      el.appendChild(subbar("device"));
+      var b = h("div"); el.appendChild(b);
+      var id = d.identity || {}, hw = d.hardware || {}, k = d.kernel || {}, dp = d.display || {}, ip = d.input || {};
+      if (sub === "ID") {
+        kvGroup(b, "", [["HOST", id.hostname], ["DISTRO", id.distro], ["KERNEL", id.kernel], ["ARCH", id.arch],
           ["UPTIME", UI.fmt.uptime(id.uptime_s)], ["TZ", id.timezone], ["USER", id.user], ["ROOTFS", id.rootfs]]);
-        kvGroup(b, "HARDWARE", [["MODELO", hw.model], ["SoC", hw.soc], ["CPU", hw.cpu_model], ["CORES", hw.cores],
-          ["GPU", hw.gpu], ["PMIC", hw.pmic],
-          ["RAM", hw.mem ? (hw.mem.total_mb + " MB (livre " + hw.mem.available_mb + ")") : "—"],
+      } else if (sub === "CPU") {
+        kvGroup(b, "", [["SoC", hw.soc], ["CPU", hw.cpu_model], ["CORES", hw.cores], ["GPU", hw.gpu],
+          ["RAM", hw.mem ? (hw.mem.total_mb + " MB · livre " + hw.mem.available_mb) : "—"],
           ["SWAP/ZRAM", hw.mem && hw.mem.swap_total_mb > 0 ? hw.mem.swap_total_mb + " MB" : (hw.zram && hw.zram.length && hw.zram[0].mb > 0 ? hw.zram[0].mb + " MB zram" : "inativo")]]);
-        (hw.freq || []).forEach(function (f) { b.appendChild(UI.kv("CPU" + f.cpu, (f.cur_mhz > 0 ? f.cur_mhz : "?") + " MHz (" + f.min_mhz + "–" + f.max_mhz + ") " + f.governor)); });
+        (hw.freq || []).forEach(function (f) { b.appendChild(UI.kv("CPU" + f.cpu, (f.cur_mhz > 0 ? f.cur_mhz : "?") + " MHz · " + f.governor)); });
         (hw.thermals || []).forEach(function (t) { b.appendChild(UI.kv("TEMP " + t.type, t.temp_c >= 0 ? t.temp_c + " °C" : "—")); });
-        kvGroup(b, "ARMAZENAMENTO", (hw.storage || []).map(function (s) { return [s.dev, s.gb + " GB" + (s.ro ? " (ro)" : "") + (s.model ? " · " + s.model : "")]; }));
-        kvGroup(b, "TELA", [["FB", dp.framebuffer ? (dp.framebuffer.name + " " + dp.framebuffer.virtual_size + " @" + dp.framebuffer.bits_per_pixel + "bpp") : "—"],
+      } else if (sub === "DISPLAY") {
+        kvGroup(b, "", [["FB", dp.framebuffer ? (dp.framebuffer.name + " " + dp.framebuffer.virtual_size + " @" + dp.framebuffer.bits_per_pixel + "bpp") : "—"],
           ["BACKLIGHT", dp.backlight ? (dp.backlight.cur + "/" + dp.backlight.max + " (" + dp.backlight.pct + "%)") : "—"], ["PANEL", dp.panel]]);
-        kvGroup(b, "KERNEL/BOOT", [["VERSION", k.version], ["MÓDULOS", k.modules_count]]);
+        kvGroup(b, "ARMAZENAMENTO", (hw.storage || []).map(function (s) { return [s.dev, s.gb + " GB" + (s.ro ? " (ro)" : "") + (s.model ? " · " + s.model : "")]; }));
+      } else if (sub === "BOOT") {
+        kvGroup(b, "", [["VERSION", k.version], ["MODELO DT", k.dtb_model || hw.model], ["MÓDULOS", k.modules_count]]);
         b.appendChild(h("div", { cls: "hint", text: "cmdline, dmesg e módulos completos na aba KERNEL" }));
-        b.appendChild(h("div", { cls: "sub", text: "INPUT" }));
+      } else { // INPUT
         (ip.devices || []).forEach(function (dv) { b.appendChild(UI.kv((dv.joypad ? "* " : "") + (dv.event || "?"), dv.name)); });
         b.appendChild(h("div", { cls: "sub", text: "USB" }));
-        (ip.usb || []).forEach(function (u) { b.appendChild(UI.kv(u.id || "?", u.name || u.raw || "")); });
-      });
+        var usb = ip.usb || [];
+        if (!usb.length) b.appendChild(h("div", { cls: "hint", text: "(nenhum USB)" }));
+        usb.forEach(function (u) { b.appendChild(UI.kv(u.id || "?", u.name || u.raw || "")); });
+      }
+      refocus(self.el);
     },
     back: function () { return false; },
   });
@@ -616,44 +655,58 @@
     back: function () { if (S.cmd.mode === "out") { S.cmd.mode = "list"; this.renderList(); return true; } return false; },
   });
 
-  /* ============================ TOOLS (ações) ============================ */
+  /* ============================ TOOLS (DISPLAY/AUDIO/SYSTEM/DANGER) ============================ */
+  function toolBucket(key) {
+    if (/^bright-/.test(key)) return "DISPLAY";
+    if (/^volume-/.test(key)) return "AUDIO";
+    if (key === "reload-ui" || key === "restart-agent") return "SYSTEM";
+    return "DANGER"; // restart-kiosk, reboot, poweroff
+  }
   reg({
-    id: "tools", live: false,
+    id: "tools", live: false, subs: ["DISPLAY", "AUDIO", "SYSTEM", "DANGER"],
     build: function () { var el = h("div", { cls: "view", id: "view-tools" }); this.el = el; return el; },
     show: function () {
-      var self = this, el = UI.clear(this.el);
-      el.appendChild(title("FERRAMENTAS / AÇÕES"));
-
-      // ---- DISPLAY / UI (cliente; funciona mesmo offline p/ a fonte) ----
-      el.appendChild(h("div", { cls: "sub", text: "DISPLAY / UI" }));
-      var bri = (CD.lastStatus && CD.lastStatus.brightness && CD.lastStatus.brightness.pct >= 0) ? CD.lastStatus.brightness.pct : -1;
-      var fs = Math.round((CD.state.fontScale || 1) * 100);
-      var ui = h("div", { cls: "list" });
-      ui.appendChild(row([{ t: "Fonte", grow: true }, { t: fs + "%", cls: "r" }, { t: "−/+/reset", cls: "r" }], function () { CD.setFontScale(+0.1); }, true));
-      ui.appendChild(row([{ t: "Fonte −", grow: true }], function () { CD.setFontScale(-0.1); }, true));
-      ui.appendChild(row([{ t: "Fonte reset", grow: true }], function () { CD.resetFontScale(); }, true));
-      ui.appendChild(row([{ t: "Screenshot", grow: true }, { t: "L1+R1", cls: "r" }], function () { CD.screenshot(); }, true));
-      el.appendChild(ui);
-      if (bri >= 0) el.appendChild(UI.gauge("BRILHO", bri));
-
-      // ---- ações do sistema: separa NORMAIS de PERIGOSAS (Danger Zone) ----
-      var host = h("div"); el.appendChild(host);
-      asyncRender(host, function () { return api.get("/api/actions"); }, function (d) {
-        var acts = d.actions || [];
-        var safe = acts.filter(function (a) { return !a.dangerous; });
-        var danger = acts.filter(function (a) { return a.dangerous; });
-        host.appendChild(h("div", { cls: "sub", text: "SISTEMA / ÁUDIO" }));
-        var l1 = h("div", { cls: "list" });
-        safe.forEach(function (a) { l1.appendChild(row([{ t: a.label, grow: true }], function () { self.run(a); }, true)); });
-        host.appendChild(l1);
-        if (danger.length) {
-          host.appendChild(h("div", { cls: "sub danger-head", text: "! DANGER ZONE — pede confirmação" }));
-          var l2 = h("div", { cls: "list danger" });
-          danger.forEach(function (a) { l2.appendChild(row([{ t: a.label, grow: true }, { t: "confirma", cls: "r" }], function () { self.run(a); }, true)); });
-          host.appendChild(l2);
-        }
-        refocus(self.el);
-      });
+      var self = this;
+      if (self.data) return self.renderSub();
+      var el = UI.clear(this.el); el.appendChild(title("TOOLS")); var host = h("div"); el.appendChild(host); host.appendChild(UI.loading());
+      api.get("/api/actions").then(function (d) { self.data = d.actions || []; self.renderSub(); })
+        .catch(function () { self.data = []; self.renderSub(); });
+    },
+    renderSub: function () {
+      var self = this, el = UI.clear(this.el), sub = subKey("tools");
+      el.appendChild(title("TOOLS · " + sub));
+      el.appendChild(subbar("tools"));
+      var b = h("div"); el.appendChild(b);
+      var acts = self.data || [];
+      var inBucket = function (name) { return acts.filter(function (a) { return toolBucket(a.key) === name; }); };
+      if (sub === "DISPLAY") {
+        var fs = Math.round((CD.state.fontScale || 1) * 100);
+        var ui = h("div", { cls: "list" });
+        ui.appendChild(row([{ t: "Fonte +", grow: true }, { t: fs + "%", cls: "r" }], function () { CD.setFontScale(+0.1); }, true));
+        ui.appendChild(row([{ t: "Fonte −", grow: true }], function () { CD.setFontScale(-0.1); }, true));
+        ui.appendChild(row([{ t: "Fonte reset", grow: true }], function () { CD.resetFontScale(); }, true));
+        ui.appendChild(row([{ t: "Screenshot", grow: true }, { t: "L1+R1", cls: "r" }], function () { CD.screenshot(); }, true));
+        inBucket("DISPLAY").forEach(function (a) { ui.appendChild(row([{ t: a.label, grow: true }], function () { self.run(a); }, true)); });
+        b.appendChild(ui);
+        var bri = (CD.lastStatus && CD.lastStatus.brightness && CD.lastStatus.brightness.pct >= 0) ? CD.lastStatus.brightness.pct : -1;
+        if (bri >= 0) b.appendChild(UI.gauge("BRILHO", bri));
+      } else if (sub === "AUDIO") {
+        var la = h("div", { cls: "list" });
+        var au = inBucket("AUDIO");
+        if (!au.length) la.appendChild(h("div", { cls: "hint", text: "(sem controles de áudio)" }));
+        au.forEach(function (a) { la.appendChild(row([{ t: a.label, grow: true }], function () { self.run(a); }, true)); });
+        b.appendChild(la);
+      } else if (sub === "SYSTEM") {
+        var ls = h("div", { cls: "list" });
+        inBucket("SYSTEM").forEach(function (a) { ls.appendChild(row([{ t: a.label, grow: true }, { t: "confirma", cls: "r" }], function () { self.run(a); }, true)); });
+        b.appendChild(ls);
+      } else { // DANGER
+        b.appendChild(h("div", { cls: "sub danger-head", text: "! DANGER ZONE — pede confirmação" }));
+        var ld = h("div", { cls: "list danger" });
+        inBucket("DANGER").forEach(function (a) { ld.appendChild(row([{ t: a.label, grow: true }, { t: "confirma", cls: "r" }], function () { self.run(a); }, true)); });
+        b.appendChild(ld);
+      }
+      refocus(self.el);
     },
     run: function (a) {
       var self = this;
