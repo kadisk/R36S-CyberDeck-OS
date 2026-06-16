@@ -10,6 +10,22 @@ const { run } = require("./exec");
 
 function err(code, message) { const e = new Error(message); e.code = code; return e; }
 
+/* volume via ALSA (amixer). Tenta controles comuns do rk817 até um funcionar. */
+const VOL_CONTROLS = ["Master", "Playback", "PCM", "Speaker", "Headphone"];
+async function amixer(arg) {
+  let last = "";
+  for (const c of VOL_CONTROLS) {
+    const r = await run("amixer", ["-M", "sset", c, arg], { timeout: 4000 });
+    last = (r.stderr || r.stdout || "").trim();
+    if (r.ok) {
+      const m = r.stdout.match(/\[(\d+)%\]/);
+      const mute = /\[off\]/.test(r.stdout) ? " (mudo)" : "";
+      return { msg: "volume " + (m ? m[1] + "%" : "ok") + mute, control: c };
+    }
+  }
+  throw err("INTERNAL", "amixer: nenhum controle de volume disponível (" + last + ")");
+}
+
 function setBright(delta) {
   const dir = backlightDir();
   if (!dir) return "sem backlight";
@@ -24,6 +40,9 @@ function setBright(delta) {
 const ACTIONS = {
   "bright-up":      { label: "Brilho +",                    dangerous: false, fn: async () => ({ msg: setBright(+0.1) }) },
   "bright-down":    { label: "Brilho −",                    dangerous: false, fn: async () => ({ msg: setBright(-0.1) }) },
+  "volume-up":      { label: "Volume +",                    dangerous: false, fn: async () => amixer("5%+") },
+  "volume-down":    { label: "Volume −",                    dangerous: false, fn: async () => amixer("5%-") },
+  "volume-mute":    { label: "Mudo (alternar)",             dangerous: false, fn: async () => amixer("toggle") },
   "reload-ui":      { label: "Recarregar UI",               dangerous: true,  fn: async () => svc("restart", "cyberdeck-x.service", "recarregando UI") },
   "restart-agent":  { label: "Reiniciar cyberdeck-agent",   dangerous: true,  fn: async () => svc("restart", "cyberdeck-agent.service", "reiniciando agente") },
   "restart-kiosk":  { label: "Reiniciar kiosk",             dangerous: true,  fn: async () => svc("restart", "cyberdeck.service", "reiniciando kiosk") },

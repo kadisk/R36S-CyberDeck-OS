@@ -100,7 +100,42 @@
     if (v && v.live && v.refresh) try { v.refresh(); } catch (e) {}
   }, 4000);
 
+  /* ---- escala de fonte (mantém a proporção: zoom só do #content) ---- */
+  CD.applyFontScale = function (scale) {
+    scale = Math.max(0.7, Math.min(1.8, Number(scale) || 1));
+    CD.state.fontScale = scale;
+    content.style.zoom = scale;            // escala texto+espaçamento juntos (proporcional)
+    return scale;
+  };
+  CD.setFontScale = function (delta) {
+    var s = CD.applyFontScale(Math.round((CD.state.fontScale + delta) * 100) / 100);
+    UI.toast("fonte " + Math.round(s * 100) + "%");
+    CD.api.post("/api/settings", { fontScale: s }).catch(function () {}); // persiste (best-effort)
+  };
+  CD.resetFontScale = function () { CD.applyFontScale(1); UI.toast("fonte 100%"); CD.api.post("/api/settings", { fontScale: 1 }).catch(function () {}); };
+
+  /* ---- screenshot (salvo pelo agente em /root/screenshots) ---- */
+  var shotBusy = false;
+  CD.screenshot = function () {
+    if (shotBusy) return; shotBusy = true;
+    UI.toast("capturando tela…");
+    CD.api.post("/api/screenshot", {}, { timeout: 12000 }).then(function (d) {
+      UI.toast("salvo: " + (d.file || "ok"));
+    }).catch(function (e) {
+      UI.toast(e.business ? e.message : "falha no screenshot (agente offline)", true);
+    }).then(function () { shotBusy = false; }, function () { shotBusy = false; });
+  };
+
+  /* ---- volume (teclas de volume -> amixer no agente) ---- */
+  CD.volume = function (key) {
+    CD.api.post("/api/actions", { key: key }).then(function (d) { UI.toast(d.msg || "volume"); })
+      .catch(function (e) { UI.toast(e.business ? e.message : "agente offline", true); });
+  };
+
   /* ---- start ---- */
+  // carrega preferências (escala de fonte) antes de exibir
+  CD.api.get("/api/settings", { timeout: 4000 }).then(function (s) { CD.applyFontScale(s.fontScale); }).catch(function () {});
+
   // permite abrir direto numa seção (ex.: index.html#procs) — útil p/ teste
   var initial = (location.hash || "").replace("#", "");
   CD.go(views[initial] ? initial : "welcome");

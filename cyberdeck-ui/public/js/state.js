@@ -9,6 +9,7 @@
   CD.state = {
     section: "welcome",     // aba ativa
     agent: "unknown",       // "on" | "off" | "unknown"
+    fontScale: 1,           // escala de fonte do conteúdo (0.7–1.8), persistida no agente
     fullscreen: false,
     // por-view:
     fs: { path: "/", mode: "list" },          // list | view

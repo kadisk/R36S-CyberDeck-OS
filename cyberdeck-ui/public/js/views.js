@@ -17,6 +17,7 @@
     { id: "logs",    title: "LOGS",    icon: "!", desc: "dmesg / journal",        tab: true },
     { id: "cmd",     title: "CMD",     icon: ">", desc: "Comandos prontos",       tab: true },
     { id: "tools",   title: "TOOLS",   icon: "+", desc: "Ações do sistema",       tab: true },
+    { id: "kernel",  title: "KERNEL",  icon: "K", desc: "Kernel & Device Tree",   tab: false },
     { id: "keys",    title: "KEYS",    icon: "@", desc: "Teste de gamepad",       tab: false },
   ];
   CD.META = META;
@@ -506,6 +507,18 @@
     show: function () {
       var self = this, el = UI.clear(this.el);
       el.appendChild(title("FERRAMENTAS / AÇÕES"));
+
+      // ---- DISPLAY / UI (cliente; funciona mesmo offline p/ a fonte) ----
+      el.appendChild(h("div", { cls: "sub", text: "DISPLAY / UI" }));
+      var ui = h("div", { cls: "list" });
+      ui.appendChild(row([{ t: "Fonte −", grow: true }, { t: "menor", cls: "r" }], function () { CD.setFontScale(-0.1); }, true));
+      ui.appendChild(row([{ t: "Fonte +", grow: true }, { t: "maior", cls: "r" }], function () { CD.setFontScale(+0.1); }, true));
+      ui.appendChild(row([{ t: "Fonte 100%", grow: true }, { t: "reset", cls: "r" }], function () { CD.resetFontScale(); }, true));
+      ui.appendChild(row([{ t: "📷 Screenshot", grow: true }, { t: "L1+R1", cls: "r" }], function () { CD.screenshot(); }, true));
+      el.appendChild(ui);
+
+      // ---- ações do sistema (do agente) ----
+      el.appendChild(h("div", { cls: "sub", text: "SISTEMA" }));
       var host = h("div"); el.appendChild(host);
       asyncRender(host, function () { return api.get("/api/actions"); }, function (d) {
         var list = h("div", { cls: "list" });
@@ -526,6 +539,60 @@
       };
       if (a.dangerous) UI.confirm(a.label).then(function (ok) { if (ok) doIt(); });
       else doIt();
+    },
+    back: function () { return false; },
+  });
+
+  /* ============================ KERNEL & DTB ============================ */
+  reg({
+    id: "kernel", live: false,
+    build: function () { var el = h("div", { cls: "view", id: "view-kernel" }); el.appendChild(title("KERNEL & DEVICE TREE")); this.body = h("div"); el.appendChild(this.body); this.el = el; return el; },
+    show: function () {
+      var self = this;
+      asyncRender(this.body, function () { return api.get("/api/kernel", { timeout: 8000 }); }, function (d) {
+        var b = self.body;
+        kvGroup(b, "KERNEL", [
+          ["RELEASE", d.osrelease], ["TIPO", d.ostype], ["ARCH", d.arch], ["HOST", d.hostname],
+          ["TAINTED", d.tainted === 0 ? "0 (limpo)" : d.tainted], ["CONFIG", d.config_source || "—"],
+          ["MÓDULOS", d.modules_total],
+        ]);
+        b.appendChild(h("div", { cls: "sub", text: "VERSION" }));
+        b.appendChild(h("pre", { cls: "box", text: d.version || "—" }));
+        b.appendChild(h("div", { cls: "sub", text: "CMDLINE / BOOTARGS" }));
+        b.appendChild(h("pre", { cls: "box", text: d.cmdline || "—" }));
+
+        var dt = d.dtb || {};
+        kvGroup(b, "DEVICE TREE (DTB)", [
+          ["PRESENTE", dt.present ? "/proc/device-tree" : "não"],
+          ["MODELO", dt.model], ["SERIAL", dt.serial || "—"],
+        ]);
+        if (dt.compatible && dt.compatible.length) {
+          b.appendChild(h("div", { cls: "sub", text: "COMPATIBLE" }));
+          b.appendChild(h("pre", { cls: "box", text: dt.compatible.join("\n") }));
+        }
+        if (dt.bootargs) { b.appendChild(h("div", { cls: "sub", text: "DTB bootargs (chosen)" })); b.appendChild(h("pre", { cls: "box", text: dt.bootargs })); }
+
+        // nós de topo do device-tree
+        if (dt.nodes && dt.nodes.length) {
+          b.appendChild(h("div", { cls: "sub", text: "NÓS (" + dt.nodes.length + ") — A abre no FS" }));
+          var nl = h("div", { cls: "list" });
+          dt.nodes.forEach(function (n) {
+            nl.appendChild(row([{ t: n.name, grow: true }, { t: n.compatible, cls: "r" }], function () {
+              S.fs.path = "/proc/device-tree/" + n.name; S.fs.mode = "list"; CD.go("fs");
+            }, true));
+          });
+          b.appendChild(nl);
+        }
+
+        // módulos carregados
+        b.appendChild(h("div", { cls: "sub", text: "MÓDULOS (" + (d.modules || []).length + ")" }));
+        var ml = h("div", { cls: "list" });
+        ml.appendChild(h("div", { cls: "row list-head" }, [h("span", { cls: "grow", text: "módulo" }), h("span", { cls: "c r", text: "KB" }), h("span", { cls: "c r", text: "uso" })]));
+        (d.modules || []).forEach(function (m) {
+          ml.appendChild(row([{ t: m.name, grow: true }, { t: m.size_kb, cls: "r" }, { t: m.used + (m.by ? " · " + m.by : ""), cls: "r" }], null, false));
+        });
+        b.appendChild(ml);
+      });
     },
     back: function () { return false; },
   });

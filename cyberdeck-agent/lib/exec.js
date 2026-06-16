@@ -26,7 +26,7 @@ function run(file, args, opts) {
         timeout: opts.timeout || DEFAULT_TIMEOUT,
         maxBuffer: opts.maxBuffer || DEFAULT_MAXBUF,
         killSignal: "SIGKILL",
-        env: process.env,
+        env: opts.env ? Object.assign({}, process.env, opts.env) : process.env,
       }, (err, stdout, stderr) => {
         finish({
           ok: !err,

@@ -29,7 +29,8 @@ OUT="$OUT_DIR/r36s-cyberdeck-x11.img"
 PKGS="xserver-xorg-core xserver-xorg-video-fbdev xserver-xorg-input-evdev \
       xserver-xorg-input-joystick \
       xinit x11-xserver-utils chromium fonts-dejavu-core ca-certificates zram-tools \
-      nodejs iproute2 wireless-tools"
+      nodejs iproute2 wireless-tools \
+      fbcat scrot alsa-utils"
 
 DEBOOTSTRAP="$(command -v debootstrap || true)"
 [ -z "$DEBOOTSTRAP" ] && [ -x /tmp/dbs/out/usr/sbin/debootstrap ] && \

@@ -4,6 +4,22 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added — 2026-06-16 — Escala de fonte, screenshot, volume e aba KERNEL/DTB
+- **Escala de fonte** configurável (TOOLS → DISPLAY/UI, ou teclas +/−): aumenta/diminui
+  mantendo a proporção (zoom do `#content`). Persistida pelo agente em
+  `/var/lib/cyberdeck/settings.json` (`GET/POST /api/settings`).
+- **Screenshot** por combo **L1+R1** (ou F12/PrintScreen): `POST /api/screenshot` salva
+  PNG em `/root/screenshots/` (fbgrab → fallback scrot). Novo
+  `scripts/sdcard/sd-get-screenshots.sh <cartao>` recupera os prints p/ o host (rootfs RO).
+- **Teclas de volume mapeadas**: `AudioVolumeUp/Down/Mute` chamam ações
+  `volume-up/down/mute` (via `amixer`, allowlist em `actions.js`).
+- **Aba KERNEL** (card na HOME, `GET /api/kernel`): kernel detalhado (version, cmdline,
+  taint, printk, config, **módulos carregados** com tamanho/uso) + **Device Tree**
+  (modelo, compatible, serial, bootargs, nós de topo — clicáveis abrem no FS).
+- Build: adiciona `fbcat scrot alsa-utils`; FS ganha atalho `/root/screenshots`.
+- Validado no host (node --check + smoke headless: TOOLS/KERNEL/cards, zoom de fonte,
+  endpoints novos com erro gracioso). **Não testado no R36S físico.**
+
 ### Changed — 2026-06-15 — UI com fontes maiores + ponteiro mais suave
 - **Fontes aumentadas** em toda a CyberDeck UI p/ leitura no aparelho (base 13→15px;
   abas/cards/listas/kv/boxes proporcionalmente). Alturas das barras fixas ajustadas

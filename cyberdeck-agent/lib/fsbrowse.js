@@ -163,7 +163,7 @@ function read(reqPath) {
 /** Atalhos úteis p/ a UI. */
 function bookmarks() {
   const cands = ["/", "/etc", "/var/log", "/proc", "/sys", "/boot", "/home", "/root",
-    "/usr/local", "/usr/share/cyberdeck-ui", "/usr/local/lib/cyberdeck-agent"];
+    "/root/screenshots", "/usr/local", "/usr/share/cyberdeck-ui", "/usr/local/lib/cyberdeck-agent"];
   return cands.filter((p) => { try { fs.lstatSync(p); return true; } catch (e) { return false; } });
 }
 

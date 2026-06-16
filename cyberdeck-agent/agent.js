@@ -26,6 +26,9 @@ const fsbrowse = require("./lib/fsbrowse");
 const logs = require("./lib/logs");
 const commands = require("./lib/commands");
 const actions = require("./lib/actions");
+const settings = require("./lib/settings");
+const screenshot = require("./lib/screenshot");
+const kernel = require("./lib/kernel");
 
 const PORT = parseInt(process.argv[2] || "8080", 10);
 
@@ -45,6 +48,8 @@ async function handleGet(res, pathname, q) {
 
     case pathname === "/api/device":
       return ok(res, await device.get());
+    case pathname === "/api/kernel":
+      return ok(res, kernel.get());
 
     case pathname === "/api/network" || pathname === "/api/network/summary":
       return ok(res, await network.summary());
@@ -86,6 +91,8 @@ async function handleGet(res, pathname, q) {
       return ok(res, { commands: commands.list() });
     case pathname === "/api/actions":
       return ok(res, { actions: actions.list() });
+    case pathname === "/api/settings":
+      return ok(res, settings.read());
 
     default:
       return fail(res, "NOT_FOUND", "rota não encontrada: " + pathname);
@@ -106,6 +113,10 @@ async function handlePost(res, pathname, body) {
       return ok(res, await actions.run(String(body.key || body.action || "")));
     case "/api/systemd/action":
       return ok(res, await systemd.action(String(body.action || ""), String(body.unit || "")));
+    case "/api/settings":
+      return ok(res, settings.write({ fontScale: body.fontScale }));
+    case "/api/screenshot":
+      return ok(res, await screenshot.capture());
     default:
       return fail(res, "NOT_FOUND", "rota não encontrada: " + pathname);
   }

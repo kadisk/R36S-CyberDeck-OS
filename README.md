@@ -83,7 +83,8 @@ sudo scripts/sdcard/sd-update.sh <cartao> x11   # grava a imagem 'x11' no cartã
 Iteração rápida (sem regravar 4 GB):
 
 ```bash
-sudo scripts/sdcard/sd-update-ui.sh <cartao>    # empurra só a UI (HTML/JS) p/ o cartão
+sudo scripts/sdcard/sd-update-ui.sh <cartao>          # empurra só a UI (HTML/JS) p/ o cartão
+sudo scripts/sdcard/sd-get-screenshots.sh <cartao>    # recupera os prints (/root/screenshots) p/ o host
 ```
 
 Kit de SD completo em [`scripts/sdcard/`](scripts/sdcard/) (ver o README de lá): grava
@@ -103,6 +104,12 @@ do sistema, e nunca toca no cartão do ArkOS.
 | **B** / **Select** | voltar um nível |
 | **Analógico esq.** | move o **ponteiro REAL do X** |
 | **Analógico dir.** | **scroll** vertical |
+| **L1 + R1** (combo) | **screenshot** (salvo em `/root/screenshots/`) |
+| **Volume + / −** | volume do sistema (via `amixer`) |
+
+Atalhos de teclado (dev/USB): **+ / −** mudam o tamanho da fonte · **F12** ou
+**PrintScreen** tiram screenshot · **AudioVolumeUp/Down/Mute** controlam o volume.
+O tamanho da fonte também tem botões em **TOOLS → DISPLAY/UI** (persistido no agente).
 
 > O **analógico esquerdo move o ponteiro de verdade do X** (não um cursor desenhado):
 > isso é feito pelo driver `xserver-xorg-input-joystick` (`/etc/X11/xorg.conf.d/60-joystick.conf`),
@@ -145,7 +152,8 @@ A tela inicial é a **HOME**, um grid de **cards** (um por seção) navegável p
 | **NET** | interfaces (estado, IPs, MAC, RX/TX), gateway, DNS, SSID/sinal, conexões (`ss`) |
 | **LOGS** | dmesg / journal / unidades (agent, kiosk, ui) com filtro de severidade, busca e pausa |
 | **CMD** | comandos prontos por categoria (**allowlist**); saída em tela cheia, B volta |
-| **TOOLS** | ações: brilho ±, recarregar UI, reiniciar agente/kiosk, reboot, poweroff (com confirmação) |
+| **TOOLS** | DISPLAY/UI (fonte ±, screenshot) + ações: brilho/volume ±, recarregar UI, reiniciar agente/kiosk, reboot, poweroff |
+| **KERNEL** | kernel detalhado (version, cmdline, taint, módulos carregados) + **Device Tree** (modelo, compatible, bootargs, nós) — card na HOME |
 | **KEYS** | diagnóstico de input (teclas/botões/eixos ao vivo) — acessível por card na HOME |
 
 ### Endpoints do agente (`127.0.0.1:8080`, JSON `{ok,data}` / `{ok,error}`)
@@ -158,7 +166,9 @@ GET  /api/network/connections    GET  /api/systemd/summary   GET  /api/logs?sour
 GET  /api/systemd/services       GET  /api/systemd/service?unit=   GET /api/logs/sources
 GET  /api/systemd/logs?unit=     POST /api/systemd/action {action,unit}
 GET  /api/commands               POST /api/commands/exec {key}
-GET  /api/actions                POST /api/actions {key}
+GET  /api/actions                POST /api/actions {key}    (inclui volume-up/down/mute)
+GET  /api/kernel                 GET/POST /api/settings {fontScale}
+GET  /api/device                 POST /api/screenshot       -> /root/screenshots/*.png
 ```
 
 **Modelo de segurança:** o agente roda em `127.0.0.1` e **não expõe execução de shell

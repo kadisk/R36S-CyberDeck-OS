@@ -39,6 +39,17 @@
     var klog = document.getElementById("kt-log");
     if (klog) { ktLog.unshift(new Date().toLocaleTimeString() + "  " + e.key + " (" + e.code + ")"); ktLog = ktLog.slice(0, 12); klog.textContent = ktLog.join("\n"); }
 
+    // teclas globais (mídia/atalhos) — valem em qualquer estado
+    switch (e.key) {
+      case "AudioVolumeUp": CD.volume("volume-up"); e.preventDefault(); return;
+      case "AudioVolumeDown": CD.volume("volume-down"); e.preventDefault(); return;
+      case "AudioVolumeMute": CD.volume("volume-mute"); e.preventDefault(); return;
+      case "F12": case "PrintScreen": CD.screenshot(); e.preventDefault(); return;
+      case "+": case "=": CD.setFontScale(+0.1); e.preventDefault(); return;
+      case "-": case "_": CD.setFontScale(-0.1); e.preventDefault(); return;
+      default: break;
+    }
+
     if (confirmOpen()) {
       if (e.key === "Enter" || e.key === " ") { CD.ui.resolveConfirm(true); e.preventDefault(); }
       else if (e.key === "Escape" || e.key === "Backspace") { CD.ui.resolveConfirm(false); e.preventDefault(); }
@@ -88,6 +99,7 @@
   var GP_STD = { A: 0, B: 1, X: 2, Y: 3, L1: 4, R1: 5, UP: 12, DOWN: 13, LEFT: 14, RIGHT: 15 };
   function mapFor(gp) { return gp.mapping === "standard" ? GP_STD : GP_RAW; }
   var prev = [];
+  var comboShot = false;
   function edge(gp, idx, fn) {
     if (idx == null) return;
     var p = gp.buttons[idx] && gp.buttons[idx].pressed;
@@ -107,6 +119,12 @@
     if (gp) {
       if (document.getElementById("view-keys")) dump(gp);
       var M = mapFor(gp);
+
+      // combo L1+R1 = screenshot (dispara uma vez por aperto, sem conflito com botões soltos)
+      var l1 = gp.buttons[M.L1] && gp.buttons[M.L1].pressed;
+      var r1 = gp.buttons[M.R1] && gp.buttons[M.R1].pressed;
+      if (l1 && r1) { if (!comboShot) { comboShot = true; CD.screenshot(); } } else { comboShot = false; }
+
       // A: se o ponteiro real foi movido há pouco, clica nele (como um mouse);
       // senão, ativa o item focado (navegação por D-pad).
       edge(gp, M.A, function () { if (confirmOpen()) CD.ui.resolveConfirm(true); else if (pointerActive()) clickAtPointer(); else activate(); });
