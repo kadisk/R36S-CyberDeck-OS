@@ -4,6 +4,16 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Changed — 2026-06-16 — LOGS detalhe por linha + NET checklist (relatório UX V3, parte 3 — fim)
+- **LOGS**: cada linha agora é **focável** e abre um **detalhe** (A) — badge de severidade,
+  origem, timestamp extraído (QUANDO) e mensagem em box; **B** volta à lista. Lista reduzida
+  p/ 150 linhas (perf) e refresh pausado enquanto no detalhe.
+- **NET**: vira **checklist de diagnóstico** compacto — estado ONLINE/OFF + IP/gateway/DNS +
+  `[x]/[!]` para interface detectada / link ativo / IP / gateway / DNS (filtra `lo` e DNS
+  stub `127.*`). Mantém o botão de conexões (`ss`).
+- Conclui o relatório V3 (mínimo scroll): partes 1 (subpáginas) + 2 (paginação) + 3 (detalhe/checklist).
+- Validado por render headless (NET checklist OFF, LOGS detalhe da linha de erro). Não testado no R36S físico.
+
 ### Changed — 2026-06-16 — Paginação de listas + CMD por categoria (relatório UX V3, parte 2)
 - **Paginação** (componente `CD.ui.pager` + barra `‹ ant · pág X/Y · próx ›` focável) em
   **FS** (9/pág), **PROCS** (7/pág) e **SVC** (8/pág) — listas longas deixam de rolar; a

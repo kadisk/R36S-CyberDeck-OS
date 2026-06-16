@@ -16,7 +16,7 @@
     fs: { path: "/", mode: "list", page: 0 },          // list | view
     systemd: { mode: "list", unit: null, filter: "all", page: 0 },
     procs: { mode: "list", pid: null, filter: "ativos", sort: "cpu", page: 0 },
-    logs: { source: "dmesg", severity: "all" },
+    logs: { source: "dmesg", severity: "all", mode: "list", line: "", lineSev: "info" },
     cmd: { mode: "list", cat: null },                  // list(categorias) | cat | out
   };
 

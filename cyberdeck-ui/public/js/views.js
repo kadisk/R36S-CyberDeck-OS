@@ -554,22 +554,38 @@
       var self = this;
       asyncRender(this.body, function () { return api.get("/api/network/summary"); }, function (d) {
         var b = self.body;
-        (d.interfaces || []).forEach(function (i) {
-          b.appendChild(h("div", { cls: "sub", text: i.name + (i.wireless ? " (wifi)" : "") }));
-          var st = i.operstate === "up" ? "ok" : "off"; var k = UI.kv("ESTADO", ""); k.lastChild.appendChild(UI.badge(i.operstate, st)); b.appendChild(k);
-          (i.addrs || []).forEach(function (a) { b.appendChild(UI.kv(a.family, a.address)); });
-          b.appendChild(UI.kv("MAC", i.mac));
-          b.appendChild(UI.kv("RX/TX", UI.fmt.bytes(i.rx_bytes) + " / " + UI.fmt.bytes(i.tx_bytes)));
-          if (i.speed_mbps > 0) b.appendChild(UI.kv("VELOC.", i.speed_mbps + " Mbps"));
-        });
-        b.appendChild(h("div", { cls: "sub", text: "ROTA / DNS" }));
-        b.appendChild(UI.kv("GATEWAY", d.gateway));
-        b.appendChild(UI.kv("IFACE PADRÃO", d.default_iface));
-        b.appendChild(UI.kv("DNS", (d.dns || []).join(", ")));
-        b.appendChild(UI.kv("SSID", d.ssid || "(n/a)"));
-        if (d.signal_dbm > -100 && d.signal_dbm !== -1) b.appendChild(UI.kv("SINAL", d.signal_dbm + " dBm"));
-        var connBtn = h("button", { cls: "chip", focus: true, text: "VER CONEXÕES (ss)", on: { click: function () { self.conns(); } } });
-        b.appendChild(h("div", { cls: "toolbar" }, connBtn));
+        // interface externa "real" (ignora lo)
+        var ext = (d.interfaces || []).filter(function (i) { return i.name !== "lo"; });
+        var up = ext.filter(function (i) { return i.operstate === "up" || i.carrier; });
+        var ipIf = ext.filter(function (i) { return (i.addrs || []).some(function (a) { return a.family === "v4" && !/^127\./.test(a.address); }); });
+        var ip = ipIf.length ? (ipIf[0].addrs.filter(function (a) { return a.family === "v4"; })[0] || {}).address : null;
+        var dns = (d.dns || []).filter(function (x) { return x && !/^127\./.test(x); });
+        var online = !!(d.gateway && ip);
+
+        // cabeçalho de estado
+        var hk = UI.kv("REDE", ""); hk.lastChild.appendChild(UI.badge(online ? "ONLINE" : "OFF", online ? "ok" : "warn")); b.appendChild(hk);
+        b.appendChild(UI.kv("INTERFACE", ext.length ? ext.map(function (i) { return i.name; }).join(", ") : "—"));
+        b.appendChild(UI.kv("IP", ip || "—"));
+        b.appendChild(UI.kv("GATEWAY", d.gateway || "—"));
+        b.appendChild(UI.kv("DNS", dns.join(", ") || "—"));
+        b.appendChild(UI.kv("SSID", d.ssid || "(n/a)" + (d.signal_dbm > -100 && d.signal_dbm !== -1 ? " · " + d.signal_dbm + " dBm" : "")));
+
+        // checklist de diagnóstico
+        b.appendChild(h("div", { cls: "sub", text: "DIAGNÓSTICO" }));
+        var check = function (ok, label, warnIfNo) {
+          var mark = ok ? "[x]" : (warnIfNo ? "[!]" : "[ ]");
+          b.appendChild(h("div", { cls: "chkline " + (ok ? "ok" : warnIfNo ? "warn" : "off"), text: mark + " " + label }));
+        };
+        check(ext.length > 0, "interface externa detectada (dongle USB)", true);
+        check(up.length > 0, "link ativo", true);
+        check(!!ip, "IP recebido", true);
+        check(!!d.gateway, "gateway configurado", true);
+        check(dns.length > 0, "DNS configurado", false);
+
+        // ações
+        var bar = h("div", { cls: "toolbar" });
+        bar.appendChild(h("button", { cls: "chip", focus: true, text: "conexões (ss)", on: { click: function () { self.conns(); } } }));
+        b.appendChild(bar);
         self.connHost = h("div"); b.appendChild(self.connHost);
       });
     },
@@ -588,8 +604,8 @@
   reg({
     id: "logs", live: true,
     build: function () { var el = h("div", { cls: "view", id: "view-logs" }); this.el = el; this.paused = false; return el; },
-    show: function () { this.render(); },
-    refresh: function () { if (!this.paused) this.load(true); },
+    show: function () { if (S.logs.mode === "detail") this.renderDetail(); else this.render(); },
+    refresh: function () { if (S.logs.mode === "list" && !this.paused) this.load(true); },
     render: function () {
       var self = this, el = UI.clear(this.el);
       el.appendChild(title("LOGS"));
@@ -600,34 +616,49 @@
       LOG_SEV.forEach(function (s) { tb2.appendChild(h("button", { cls: "chip" + (S.logs.severity === s ? " on" : ""), focus: true, text: s, on: { click: function () { S.logs.severity = s; self.load(); } } })); });
       tb2.appendChild(h("button", { cls: "chip", focus: true, text: "|| pausar", on: { click: function (ev) { self.paused = !self.paused; ev.target.textContent = self.paused ? "|> retomar" : "|| pausar"; } } }));
       el.appendChild(tb2);
-      this.out = h("pre", { cls: "box full", focus: true, text: "(carregando…)" }); el.appendChild(this.out);
+      el.appendChild(h("div", { cls: "hint", text: "A abre a linha em detalhe · B volta" }));
+      this.out = h("div", { cls: "box full", id: "logs-out" }); this.out.textContent = "(carregando…)"; el.appendChild(this.out);
       this.load();
     },
     load: function (silent) {
       var self = this; if (!this.out) return;
       var sev = S.logs.severity === "all" ? "" : "&severity=" + S.logs.severity;
       if (!silent) this.out.textContent = "(carregando…)";
-      api.get("/api/logs?source=" + S.logs.source + sev + "&lines=300").then(function (d) {
+      api.get("/api/logs?source=" + S.logs.source + sev + "&lines=150").then(function (d) {
         var atBottom = self.out.scrollTop + self.out.clientHeight >= self.out.scrollHeight - 20;
         self.renderLines(d.lines || "(sem saída)");
         if (atBottom || !silent) self.out.scrollTop = self.out.scrollHeight;
         CD.setAgent(true);
       }).catch(function (e) { if (!silent) self.out.textContent = e.business ? e.message : "(agente offline)"; });
     },
-    // colore cada linha por severidade (heurística): erro=vermelho, aviso=âmbar, resto=apagado
-    renderLines: function (text) {
-      var out = UI.clear(this.out);
-      var lines = String(text).split("\n");
-      // limita nós no DOM (perf): mantém as últimas ~300
-      if (lines.length > 320) lines = lines.slice(lines.length - 300);
-      for (var i = 0; i < lines.length; i++) {
-        var l = lines[i];
-        var sev = /\b(fail|failed|failure|error|err|exit-code|cannot|denied|panic|oops|segfault)\b/i.test(l) ? "err"
-          : /\b(warn|warning)\b/i.test(l) ? "warn" : "info";
-        out.appendChild(h("div", { cls: "logline " + sev, text: l || " " }));
-      }
+    sevOf: function (l) {
+      return /\b(fail|failed|failure|error|err|exit-code|cannot|denied|panic|oops|segfault)\b/i.test(l) ? "err"
+        : /\b(warn|warning)\b/i.test(l) ? "warn" : "info";
     },
-    back: function () { return false; },
+    // cada linha é colorida por severidade e FOCÁVEL — A abre o detalhe.
+    renderLines: function (text) {
+      var self = this, out = UI.clear(this.out);
+      var lines = String(text).split("\n");
+      if (lines.length > 160) lines = lines.slice(lines.length - 150);
+      lines.forEach(function (l) {
+        var sev = self.sevOf(l);
+        out.appendChild(h("div", { cls: "logline " + sev, focus: true, on: { click: (function (line, s) { return function () { S.logs.mode = "detail"; S.logs.line = line; S.logs.lineSev = s; self.renderDetail(); }; })(l, sev) } }, l || " "));
+      });
+    },
+    renderDetail: function () {
+      var self = this, el = UI.clear(this.el), line = S.logs.line || "", sev = S.logs.lineSev || "info";
+      el.appendChild(title("LOG · detalhe"));
+      var head = h("div", { cls: "out-head" });
+      head.appendChild(h("span", { cls: "badge " + (sev === "err" ? "crit" : sev === "warn" ? "warn" : "off"), text: sev.toUpperCase() }));
+      UI.append(head, "  " + S.logs.source);
+      el.appendChild(head);
+      // tenta separar timestamp do resto p/ leitura
+      var m = line.match(/^(\[[^\]]+\]|\S+T\S+)\s+([\s\S]*)$/);
+      if (m) { el.appendChild(UI.kv("QUANDO", m[1].replace(/^\[|\]$/g, ""))); }
+      el.appendChild(h("div", { cls: "sub", text: "MENSAGEM" }));
+      el.appendChild(h("pre", { cls: "box full", focus: true, text: m ? m[2] : line }));
+    },
+    back: function () { if (S.logs.mode === "detail") { S.logs.mode = "list"; this.render(); return true; } return false; },
   });
 
   /* ============================ CMD (allowlist) ============================ */
