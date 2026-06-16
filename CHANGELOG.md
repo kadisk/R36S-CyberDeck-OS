@@ -4,6 +4,51 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Changed — 2026-06-15 — UI com fontes maiores + ponteiro mais suave
+- **Fontes aumentadas** em toda a CyberDeck UI p/ leitura no aparelho (base 13→15px;
+  abas/cards/listas/kv/boxes proporcionalmente). Alturas das barras fixas ajustadas
+  (topbar 24→28, tabs 26→30, footer 22→26) e `#content` recalculado (404→393px). O
+  layout 640×480 não quebra — conteúdo extra rola. Validado por screenshot headless.
+- **Ponteiro mais suave/fácil de controlar:** `60-joystick.conf` agora usa `deadzone`
+  grande (12000) + `ConstantDeceleration 3` + `AccelerationProfile -1` (linear). Ajuste
+  fino ao vivo via `xinput --set-prop … "Device Accel Constant Deceleration"` (sem reflashar).
+
+### Changed — 2026-06-15 — Ponteiro REAL do X movido pelo analógico esquerdo (fim do cursor virtual)
+- O **analógico esquerdo passa a mover o ponteiro real do X**, não mais um cursor
+  desenhado pela UI. Mecanismo nativo do X: driver `xserver-xorg-input-joystick` +
+  `/etc/X11/xorg.conf.d/60-joystick.conf` (eixos 1/2 → motion relativo). É **aditivo** e
+  não faz `EVIOCGRAB`, então a Gamepad API (D-pad/A/B) continua funcionando.
+- Xorg sobe **sem `-nocursor`** (ponteiro visível); CSS deixa de esconder o cursor.
+- UI removeu o `#vcursor` e a lógica de cursor virtual; agora **rastreia o ponteiro real**
+  (`mousemove`) e **A clica** onde ele está (senão ativa o item focado; Start sempre ativa).
+- ⚠️ Índices de eixo/deadzone podem precisar de ajuste no aparelho (`evtest`/`xinput`).
+  **Não testado no R36S físico.**
+
+### Changed — 2026-06-15 — CyberDeck UI vira mini-ambiente operacional + backend modular
+- **Backend modularizado** (`cyberdeck-agent/agent.js` roteador + `lib/*.js` por
+  domínio: http, exec, status, device, fsbrowse, systemd, processes, network, logs,
+  commands, actions). Sem deps. Contrato JSON consistente `{ok,data}` / `{ok,error}`.
+- **Segurança:** `/api/exec` com comando livre **removido**. Comandos (`CMD`) e ações
+  (`TOOLS`/`SVC`) agora são **allowlist** validadas no backend; tudo via `execFile`
+  (sem shell). Navegação FS é **read-only** com path saneado (sem `../` p/ fora da raiz),
+  limites de tamanho/entradas e detecção de binário. Unit/sinal validados.
+- **Novos endpoints:** `fs/{list,read,bookmarks}`, `systemd/{summary,services,service,
+  logs,action}`, `processes` + `:pid` + `signal`, `network/{summary,connections}`,
+  `logs` (fontes + severidade + busca), `commands`/`actions` (listas + exec).
+- **UI reestruturada** (`cyberdeck-ui/public/js/*`: state, api, ui, views, gamepad) —
+  scripts globais (`window.CD`), sem ES modules (compatível com `file://`).
+- **Tela HOME com cards** (grid navegável por gamepad) como entrada.
+- **DEVICE expandida** (identity/hardware/freq por core/temps/kernel/tela/input USB+joypad).
+- **Novas abas:** **FS** (navegar rootfs read-only + viewer), **SVC** (systemd
+  resumo→lista→detalhe→logs→ações), **PROCS** (processos via `/proc`, ordenação/filtro→
+  detalhe→sinais), **CMD** (allowlist por categoria), **NET**/**LOGS** enriquecidas.
+- **Mestre→detalhe** com B voltando um nível; **modal de confirmação** em tela cheia
+  para ações perigosas; estados OK/warn/crit/loading/error e **erro amigável** quando o
+  agente está offline. Scripts de deploy (`build-x11-rootfs.sh`, `sd-update-ui.sh`)
+  atualizados para copiar `lib/`.
+- **Validado no host** (Ubuntu): `node --check` em todo o backend; smoke test headless
+  (Chrome) das 11 telas sem exceções + cenário agente OFF. **Ainda não testado no R36S físico.**
+
 ### Added — 2026-06-15 — Logo de boot CyberDeck (welcome) no lugar do logo.bmp do ArkOS
 - **`welcome.png` vira o logo inicial de boot.** Convertido p/ o formato que o U-Boot
   do R36S espera (BMP 640×480, 24-bit, sem compressão — idêntico ao `logo.bmp` original,

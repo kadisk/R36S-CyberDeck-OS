@@ -31,7 +31,7 @@ A versão que funciona combina **três decisões** descobertas na prática (ver
 | **Tela** | **Xorg** com driver **fbdev** em `/dev/fb0` (render por software) | evita Wayland/GBM do blob Mali (antigo demais) |
 | **UI** | **Chromium `--kiosk`** abrindo `file://…/cyberdeck-ui` | navegador padrão, software rendering basta p/ UI leve |
 | **Input** | **Gamepad API** do Chromium (joypad direto) | dispensa uinput/teclado virtual |
-| **Dados** | **`cyberdeck-agent`** (backend **Node.js**, sem deps) servindo JSON de `/proc`+`/sys`+comandos | alimenta TODAS as abas (hardware, SO, rede, logs, terminal, ações) |
+| **Dados** | **`cyberdeck-agent`** (backend **Node.js** modular, sem deps) servindo JSON de `/proc`+`/sys`+comandos allowlist | alimenta TODAS as abas (hardware, SO, FS, systemd, processos, rede, logs, ações) |
 
 Pipeline de construção ([`scripts/build-x11-rootfs.sh`](scripts/build-x11-rootfs.sh)):
 
@@ -98,36 +98,95 @@ do sistema, e nunca toca no cartão do ArkOS.
 |---|---|
 | **D-pad ← →** | trocar de aba |
 | **D-pad ↑ ↓** | mover foco no menu |
-| **A** / **Start** | confirmar (ou **clicar** onde o cursor aponta) |
-| **B** / **Select** | voltar (na aba TERMINAL, volta da saída p/ os comandos) |
-| **Analógico esq.** | move o **cursor virtual** |
-| **Analógico dir.** | **scroll** (↑↓ vertical · ←→ horizontal) |
+| **A** | **clica** onde o ponteiro aponta (se você o moveu há pouco) — senão, ativa o item focado |
+| **Start** | ativar o item focado (sem precisar apontar) |
+| **B** / **Select** | voltar um nível |
+| **Analógico esq.** | move o **ponteiro REAL do X** |
+| **Analógico dir.** | **scroll** vertical |
 
-> L1/R1 não trocam de aba. O clique do analógico não existe neste joypad, então
-> **A clica** enquanto você está movendo o cursor.
+> O **analógico esquerdo move o ponteiro de verdade do X** (não um cursor desenhado):
+> isso é feito pelo driver `xserver-xorg-input-joystick` (`/etc/X11/xorg.conf.d/60-joystick.conf`),
+> fora do navegador. O ponteiro do X fica **visível**. O clique do analógico não existe
+> neste joypad, então **A clica** onde o ponteiro está. L1/R1 não trocam de aba.
+>
+> ⚠️ Índices de eixo/deadzone do `60-joystick.conf` podem precisar de ajuste no aparelho
+> (use `evtest`/`xinput`) — **ainda não validado no R36S físico**.
+>
+> **Sensibilidade do ponteiro (suavidade):** o `60-joystick.conf` já vem com `deadzone`
+> grande + `ConstantDeceleration` p/ um ponteiro lento e fácil de controlar. Para ajustar
+> **ao vivo, sem reflashar** (via SSH/serial, com `DISPLAY=:0`):
+> ```bash
+> xinput --list                                   # achar o nome do joypad
+> # maior = mais lento/suave:
+> DISPLAY=:0 xinput --set-prop "<joypad>" "Device Accel Constant Deceleration" 4.0
+> ```
+> Para deixar permanente, mude `ConstantDeceleration` no `60-joystick.conf` (e/ou aumente
+> `deadzone`) e rebuild/flash.
 
-A aba **TECLAS** mostra um dump ao vivo de botões/eixos (diagnóstico de input).
+Padrão **mestre→detalhe** nas abas FS, SVC e PROCS: **A** abre o detalhe/arquivo,
+**B** volta um nível (detalhe→lista, arquivo→diretório, subdir→pai). Ações perigosas
+(restart/stop de serviço, kill de processo, reboot/poweroff) abrem uma **tela de
+confirmação** — só executam com **A**; **B** cancela.
+
+A aba **KEYS** mostra um dump ao vivo de botões/eixos (diagnóstico de input).
 
 ## Abas da UI (alimentadas pelo `cyberdeck-agent`)
 
+A tela inicial é a **HOME**, um grid de **cards** (um por seção) navegável pelo gamepad.
+
 | Aba | Mostra |
 |---|---|
+| **HOME** | painel inicial com cards de todas as seções + resumo (host, uptime, cores) |
 | **STATUS** | CPU, RAM, brilho, load, uptime, temperatura, bateria — ao vivo (2 s) |
-| **DEVICE** | hardware + SO: modelo, SoC, CPU/clock, GPU, RAM, tela, PMIC, armazenamento, kernel, distro |
-| **REDE** | interface, IP, MAC, gateway, SSID, DNS, tabela de rotas |
-| **LOGS** | últimos eventos (`dmesg`/journal), rola p/ o fim e atualiza sozinho |
-| **TERMINAL** | comandos prontos (sem teclado); saída em **tela cheia**, B volta aos comandos |
-| **FERRAMENTAS** | ações: brilho ±, recarregar UI, reiniciar, desligar |
-| **SERVIÇOS** | systemd: estado, tempo de boot, serviços rodando e falhos |
-| **TECLAS** | diagnóstico de input (teclas/botões/eixos ao vivo) |
+| **DEVICE** | identidade, hardware (freq/core, temps, mem/zram), kernel/boot, tela/backlight, input (joypad/USB) |
+| **FS** | navegação **read-only** do rootfs: lista, permissões, tamanho, symlinks; viewer de texto; atalhos |
+| **SVC** | systemd: resumo + lista filtrável → detalhe (status, unit file, logs) + ações (start/stop/restart) |
+| **PROCS** | processos via `/proc`: resumo, ordenação/filtro, → detalhe por PID + sinais (SIGTERM/SIGKILL) |
+| **NET** | interfaces (estado, IPs, MAC, RX/TX), gateway, DNS, SSID/sinal, conexões (`ss`) |
+| **LOGS** | dmesg / journal / unidades (agent, kiosk, ui) com filtro de severidade, busca e pausa |
+| **CMD** | comandos prontos por categoria (**allowlist**); saída em tela cheia, B volta |
+| **TOOLS** | ações: brilho ±, recarregar UI, reiniciar agente/kiosk, reboot, poweroff (com confirmação) |
+| **KEYS** | diagnóstico de input (teclas/botões/eixos ao vivo) — acessível por card na HOME |
+
+### Endpoints do agente (`127.0.0.1:8080`, JSON `{ok,data}` / `{ok,error}`)
+
+```
+GET  /api/status                 GET  /api/fs/list?path=     GET  /api/processes
+GET  /api/device                 GET  /api/fs/read?path=     GET  /api/processes/:pid
+GET  /api/network/summary        GET  /api/fs/bookmarks      POST /api/processes/:pid/signal {signal}
+GET  /api/network/connections    GET  /api/systemd/summary   GET  /api/logs?source=&severity=&q=
+GET  /api/systemd/services       GET  /api/systemd/service?unit=   GET /api/logs/sources
+GET  /api/systemd/logs?unit=     POST /api/systemd/action {action,unit}
+GET  /api/commands               POST /api/commands/exec {key}
+GET  /api/actions                POST /api/actions {key}
+```
+
+**Modelo de segurança:** o agente roda em `127.0.0.1` e **não expõe execução de shell
+arbitrária**. Comandos (`CMD`) e ações (`TOOLS`, `SVC`) são **allowlist** validadas no
+backend; tudo via `execFile` (sem shell). FS é **read-only** com path saneado (sem
+`../` para fora da raiz), limites de tamanho/entradas e detecção de binário. Nomes de
+unit e sinais são validados por regex/allowlist. Detalhes em [`docs/STACK.md`](docs/STACK.md).
+
+### Validação local (host)
+
+```bash
+find cyberdeck-agent -name '*.js' -exec node --check {} \;   # sintaxe do backend
+node cyberdeck-agent/agent.js 8080 &                          # sobe o agente
+( cd cyberdeck-ui/public && python3 -m http.server 8090 )     # serve a UI
+# abra http://localhost:8090  (640x480) — ou index.html#procs p/ ir direto numa aba
+```
+
+> Sem o agente, a UI mostra **agente: OFF** no rodapé e uma tela de erro amigável por
+> aba (não trava). `dmesg`/journal completos dependem de rodar como root (no R36S o
+> `cyberdeck-agent` roda como root via systemd).
 
 ---
 
 ## Estrutura do repositório
 
 ```
-cyberdeck-ui/    UI web (HTML/CSS/JS) — a cara do CyberDeck (abas STATUS/DEVICE/REDE/…)
-cyberdeck-agent/ backend Node.js (agent.js) — JSON de hardware/SO/rede/logs/terminal/ações
+cyberdeck-ui/    UI web (HTML/CSS/JS, public/js/*) — a cara do CyberDeck (HOME + abas)
+cyberdeck-agent/ backend Node.js modular (agent.js + lib/*.js) — JSON de hw/SO/FS/systemd/procs/rede/logs
 cyberdeck-fb/    UI nativa alternativa (renderizador 2D em C no framebuffer)
 scripts/         build-x11-rootfs.sh + inspeção do ArkOS + kit de SD (sdcard/)
 runtime/         serviços systemd + scripts de inicialização (Xorg/kiosk/agent)

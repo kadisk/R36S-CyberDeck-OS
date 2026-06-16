@@ -27,6 +27,7 @@ RF="$BUILD_DIR/x11-rootfs"
 P2_MIB="${P2_MIB:-4096}"
 OUT="$OUT_DIR/r36s-cyberdeck-x11.img"
 PKGS="xserver-xorg-core xserver-xorg-video-fbdev xserver-xorg-input-evdev \
+      xserver-xorg-input-joystick \
       xinit x11-xserver-utils chromium fonts-dejavu-core ca-certificates zram-tools \
       nodejs iproute2 wireless-tools"
 
@@ -56,8 +57,10 @@ cp -a "$REPO_DIR/cyberdeck-ui/public" "$RF/usr/share/cyberdeck-ui/"
 install -D -m0755 "$REPO_DIR/runtime/scripts/start-cyberdeck-x.sh" "$RF/usr/local/bin/start-cyberdeck-x.sh"
 install -D -m0755 "$REPO_DIR/runtime/scripts/cyberdeck-kiosk.sh"   "$RF/usr/local/bin/cyberdeck-kiosk.sh"
 install -D -m0644 "$REPO_DIR/runtime/services/cyberdeck-x.service" "$RF/etc/systemd/system/cyberdeck-x.service"
-# agente de dados (Node.js) — alimenta a UI com hardware/SO/rede/logs/terminal/ações
-install -D -m0644 "$REPO_DIR/cyberdeck-agent/agent.js" "$RF/usr/local/lib/cyberdeck-agent/agent.js"
+# agente de dados (Node.js) — alimenta a UI com hardware/SO/rede/logs/comandos/ações.
+# Agora é modular: agent.js + lib/*.js (sem deps externas). Copia o pacote inteiro.
+install -d "$RF/usr/local/lib/cyberdeck-agent"
+cp -a "$REPO_DIR/cyberdeck-agent/agent.js" "$REPO_DIR/cyberdeck-agent/lib" "$RF/usr/local/lib/cyberdeck-agent/"
 install -D -m0644 "$REPO_DIR/runtime/services/cyberdeck-agent.service" "$RF/etc/systemd/system/cyberdeck-agent.service"
 mkdir -p "$RF/etc/X11/xorg.conf.d"
 cat > "$RF/etc/X11/xorg.conf.d/99-fbdev.conf" <<'EOF'
@@ -69,6 +72,33 @@ EndSection
 Section "Screen"
     Identifier "Screen0"
     Device     "FBDEV"
+EndSection
+EOF
+# Analógico ESQUERDO move o ponteiro REAL do X (driver joystick do Xorg).
+# Não faz EVIOCGRAB -> a Gamepad API do Chromium continua vendo o joypad p/ D-pad/A/B.
+# StartKeysEnabled=false: o driver NÃO emite setas (quem navega abas é a Gamepad API).
+# Eixos 1/2 = stick esquerdo (ABS_X/ABS_Y). Ajuste deadzone/axis no aparelho com evtest.
+#
+# SUAVIDADE/SENSIBILIDADE do ponteiro (mais fácil de controlar):
+#  - deadzone grande (12000): ignora micro-movimentos/tremor perto do centro;
+#  - AmplifyAxis / ConstantDeceleration desaceleram o ponteiro (servidor X aplica
+#    a desaceleração ao movimento relativo). Maior ConstantDeceleration = mais lento.
+#  - AccelerationProfile -1 = linear/previsível (sem aceleração que "dispara").
+# Ajuste fino SEM reflashar, ao vivo:  veja docs (xinput set-prop).
+cat > "$RF/etc/X11/xorg.conf.d/60-joystick.conf" <<'EOF'
+Section "InputClass"
+    Identifier      "cyberdeck joystick pointer"
+    MatchIsJoystick "on"
+    Driver          "joystick"
+    Option          "StartKeysEnabled" "false"
+    Option          "StartMouseEnabled" "true"
+    Option          "MapAxis1" "mode=relative axis=+1x deadzone=12000"
+    Option          "MapAxis2" "mode=relative axis=+1y deadzone=12000"
+    # desacelera e lineariza o ponteiro (servidor X) -> movimento suave e controlável
+    Option          "AccelerationProfile" "-1"
+    Option          "ConstantDeceleration" "3"
+    Option          "AccelerationNumerator" "1"
+    Option          "AccelerationDenominator" "1"
 EndSection
 EOF
 printf 'LABEL=ARCHR_ROOT  /  ext4  defaults,noatime  0 1\n' > "$RF/etc/fstab"

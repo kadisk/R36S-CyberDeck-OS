@@ -32,11 +32,14 @@ rm -rf "$DST/public.bak" 2>/dev/null || true
 [ -d "$DST/public" ] && mv "$DST/public" "$DST/public.bak"
 cp -a "$SRC" "$DST/public"
 
-# também sincroniza o agente Node (se já existir no cartão — não instala nodejs)
-AGENT_SRC="$REPO/cyberdeck-agent/agent.js"
-AGENT_DST="$MNT/usr/local/lib/cyberdeck-agent/agent.js"
-if [ -f "$AGENT_SRC" ] && [ -d "$MNT/usr/local/lib/cyberdeck-agent" ]; then
-    cp -a "$AGENT_SRC" "$AGENT_DST"; say "agente Node sincronizado (agent.js)."
+# também sincroniza o agente Node (se já existir no cartão — não instala nodejs).
+# O agente agora é modular: agent.js + lib/*.js. Sincroniza ambos.
+AGENT_SRC="$REPO/cyberdeck-agent"
+AGENT_DST="$MNT/usr/local/lib/cyberdeck-agent"
+if [ -f "$AGENT_SRC/agent.js" ] && [ -d "$AGENT_DST" ]; then
+    cp -a "$AGENT_SRC/agent.js" "$AGENT_DST/agent.js"
+    rm -rf "$AGENT_DST/lib"; cp -a "$AGENT_SRC/lib" "$AGENT_DST/lib"
+    say "agente Node sincronizado (agent.js + lib/)."
 fi
 sync
 ok "UI atualizada em '$SD_NAME' ($P2): $(find "$SRC" -type f | wc -l) arquivos."

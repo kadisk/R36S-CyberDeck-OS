@@ -60,34 +60,64 @@ Serviços do projeto (em `runtime/services/`):
 
 ## 3. Camada 2 — Backend Node.js (o "agente local")
 
-Um **servidor HTTP minúsculo em Node.js, sem dependências** (`cyberdeck-agent/agent.js`),
-escutando em `127.0.0.1:8080`. Roda como root → lê tudo do SO e executa ações.
+Um **servidor HTTP em Node.js, sem dependências**, escutando em `127.0.0.1:8080`.
+Roda como root → lê tudo do SO e executa ações. É **modular**: um roteador fino
+(`cyberdeck-agent/agent.js`) + um módulo por domínio em `cyberdeck-agent/lib/`:
+
+```
+agent.js          roteador HTTP (GET/POST → handlers) + tradução de erro p/ {ok,error}
+lib/http.js       cors, ok(), fail(code), readBody — formato de resposta consistente
+lib/exec.js       execFile seguro (sem shell) com timeout/maxBuffer; nunca rejeita
+lib/util.js       rd/rdInt de /proc /sys, cache curto por TTL
+lib/status.js     polling leve (CPU%, RAM, temp, bateria, brilho)
+lib/device.js     inspeção completa (identity/hardware/kernel/display/input)
+lib/fsbrowse.js   navegação READ-ONLY do rootfs (path saneado, limites, sem binário)
+lib/systemd.js    summary/services/service/logs/action (unit validada, ações allowlist)
+lib/processes.js  lista/detalhe via /proc, CPU% por delta, sinais (allowlist)
+lib/network.js    interfaces/rotas/conexões (sysfs + ip/ss)
+lib/logs.js       dmesg/journal/unidades com limite e filtro de severidade
+lib/commands.js   ALLOWLIST de comandos prontos (substitui exec arbitrário)
+lib/actions.js    ALLOWLIST de ações administrativas (brilho/reboot/restart…)
+```
 
 **Princípios (transferíveis para o Meta Platform):**
 1. **Só módulos nativos** (`http`, `os`, `fs`, `child_process`) → zero `node_modules`,
-   build trivial, deploy = copiar um arquivo.
-2. **Bind só em `localhost`** → superfície de ataque mínima; a UI e o agente vivem no
-   mesmo aparelho.
-3. **CORS liberado** (`Access-Control-Allow-Origin: *`) porque a UI roda em `file://`
-   (origem `null`).
-4. **Contrato JSON estável** — o front-end só conhece o formato, não a fonte.
-5. **Três tipos de endpoint:**
-   - **polling** (estado que muda sempre): `GET /api/status`
-   - **lazy** (dados sob demanda ao abrir uma tela): `GET /api/device`, `/api/network`,
-     `/api/systemd`, `/api/logs`
-   - **ações** (efeitos colaterais): `POST /api/exec`, `POST /api/action`
+   deploy = copiar `agent.js` + `lib/`.
+2. **Bind só em `localhost`** → superfície de ataque mínima.
+3. **CORS liberado** (`Access-Control-Allow-Origin: *`) porque a UI roda em `file://`.
+4. **Contrato JSON estável** — sucesso `{"ok":true,"data":{…}}`, erro
+   `{"ok":false,"error":{"code","message","details"}}`. O front só conhece o formato.
+5. **Três tipos de endpoint:** **polling** (`/api/status`), **lazy** (device, fs,
+   systemd, processes, network, logs) e **ações** (`POST` commands/actions/signal).
+6. **Sem shell arbitrário.** Toda execução é `execFile(file, args[])` (sem `exec` de
+   string) e os comandos/ações são **allowlist** validadas no backend.
 
 ### Contrato de API (modelo)
 
 | Método | Rota | Devolve / faz |
 |--------|------|---------------|
 | GET | `/api/status` | CPU, RAM, load, uptime, temp, bateria, brilho, rede (poll 2 s) |
-| GET | `/api/device` | hardware + SO (modelo, SoC, CPU, GPU, RAM, kernel, distro…) |
-| GET | `/api/network` | interfaces, IP, MAC, gateway, SSID, DNS, rotas |
-| GET | `/api/systemd` | estado, tempo de boot, serviços rodando/falhos |
-| GET | `/api/logs` | `dmesg` / `journalctl` |
-| POST | `/api/exec` | `{cmd}` → roda e devolve a saída (terminal) |
-| POST | `/api/action` | `{action}` → brilho±, reload, reboot, poweroff |
+| GET | `/api/device` | identity + hardware + kernel + display + input |
+| GET | `/api/fs/list?path=` · `/api/fs/read?path=` | navegação read-only do rootfs |
+| GET | `/api/systemd/{summary,services,service,logs}` | systemd (resumo→lista→detalhe→logs) |
+| GET | `/api/processes` · `/api/processes/:pid` | lista e detalhe por PID (via `/proc`) |
+| GET | `/api/network/{summary,connections}` | interfaces, rotas, DNS, conexões |
+| GET | `/api/logs?source=&severity=&q=` | dmesg/journal/unidades, filtrado/limitado |
+| GET | `/api/commands` · `/api/actions` | listas (allowlist) p/ a UI montar |
+| POST | `/api/commands/exec` `{key}` | executa um comando **conhecido** (allowlist) |
+| POST | `/api/actions` `{key}` | brilho±, reload-ui, restart-agent/kiosk, reboot, poweroff |
+| POST | `/api/systemd/action` `{action,unit}` | start/stop/restart de unit validada |
+| POST | `/api/processes/:pid/signal` `{signal}` | SIGTERM/SIGKILL/SIGHUP/SIGINT |
+
+### Modelo de segurança (o backend **não** é um shell remoto)
+
+- **Allowlist em vez de `exec` livre:** a UI manda só uma **chave** (`key`/`action`),
+  nunca uma linha de comando. O mapa chave→`(file,args)` mora no backend.
+- **FS read-only e saneado:** `path.resolve("/", p)` impede `../` escapar da raiz;
+  `lstat` não segue symlink cego (reporta o alvo); limites de entradas (600) e de
+  leitura (256 KiB); binário é detectado e recusado.
+- **Validação estrita:** nome de unit por regex; sinais e ações por `Set`; PID inteiro.
+- **Confirmação na UI** para ações perigosas (a camada de segurança real é a allowlist).
 
 **Como a fonte de dados é obtida** (padrão que se repete para qualquer métrica):
 - leitura direta de **sysfs/procfs** (`/sys/class/power_supply`, `/proc/stat`, …);
@@ -103,20 +133,32 @@ escutando em `127.0.0.1:8080`. Roda como root → lê tudo do SO e executa açõ
 
 ## 4. Camada 3 — Front-end (HTML/CSS/JS)
 
-UI **vanilla, sem framework, sem build** (`cyberdeck-ui/public/`): `index.html` +
-`app.js` + `style.css`. Cabe em qualquer navegador embarcado e itera sem toolchain.
+UI **vanilla, sem framework, sem build** (`cyberdeck-ui/public/`), organizada em
+módulos por `<script>` global (`window.CD`) — **sem ES modules**, porque carrega por
+`file://` (o Chromium bloqueia `import` nesse esquema):
+
+```
+index.html  casca (top bar, abas, #content, modal de confirmação, cursor virtual)
+app.js      router (go/back/nextTab/focusFirst) + polling de status + relógio
+js/state.js estado central (aba ativa, modos por-view)   js/api.js  cliente {ok,data}
+js/ui.js    helpers de DOM + confirm()/toast            js/views.js  todas as telas
+js/gamepad.js  input (teclado + Gamepad API + cursor virtual + scroll)
+```
 
 **Padrões (transferíveis):**
-- **Abas = seções** declaradas no HTML; um array `SECTIONS` no JS dirige a navegação.
-- **Dados ao vivo** por `fetch` periódico (`/api/status` a cada 2 s) + **lazy load**
-  ao abrir cada aba (busca só o que aquela tela precisa).
-- **Ações** = `POST` para o agente; a UI nunca toca no SO direto.
-- **Degradação graciosa:** a UI roda por `file://` e **sempre renderiza**; se o agente
-  cair, os campos só param de atualizar (indicador "agente: ON/OFF").
-- **Camada de input abstraída** — o mesmo app responde a **teclado** e a **Gamepad
-  API** (joypad). Como não há mouse, a UI desenha o **próprio cursor virtual** movido
-  pelo analógico (o ponteiro do SO fica escondido). Para o Meta Platform: a entrada é
-  um detalhe plugável; a navegação (trocar seção, focar item, confirmar) é a abstração.
+- **HOME com cards** como entrada; um array `META` declara as seções e dirige abas+cards.
+- **Views como objetos** `{build, show, refresh, onStatus, back}` registrados num mapa;
+  o router só monta/troca e chama `show()`. Telas pesadas (FS/SVC/PROCS) usam
+  **mestre→detalhe** com `back()` tratando o nível interno.
+- **Dados ao vivo** por `fetch` periódico (`/api/status` 2 s) + **lazy load** ao abrir
+  cada aba; listas grandes são **paginadas/limitadas** no servidor para não travar.
+- **Ações** = `POST` para o agente; ações perigosas passam por um **modal de
+  confirmação** resolvido pela camada de input (A confirma, B cancela).
+- **Degradação graciosa:** roda por `file://` e **sempre renderiza**; se o agente cair,
+  o rodapé marca **agente: OFF** e cada aba mostra uma **tela de erro amigável**.
+- **Camada de input abstraída** — o mesmo app responde a **teclado** e **Gamepad API**.
+  Sem mouse, a UI desenha o **próprio cursor virtual** movido pelo analógico. A
+  navegação (trocar seção, mover foco em `[data-focus]`, confirmar, voltar) é a abstração.
 
 ---
 
@@ -154,8 +196,8 @@ UI **vanilla, sem framework, sem build** (`cyberdeck-ui/public/`): `index.html` 
 | Camada | Onde, no R36S CyberDeck OS |
 |--------|---------------------------|
 | Base Linux / boot | `scripts/build-x11-rootfs.sh`, `board/r36s/boot/`, `runtime/services/` |
-| Backend Node | `cyberdeck-agent/agent.js` |
-| Front-end | `cyberdeck-ui/public/` (`index.html`, `app.js`, `style.css`) |
+| Backend Node | `cyberdeck-agent/agent.js` (roteador) + `cyberdeck-agent/lib/*.js` (domínios) |
+| Front-end | `cyberdeck-ui/public/` (`index.html`, `app.js`, `style.css`, `js/*.js`) |
 | Empacotar/gravar | `scripts/sdcard/` (gravação segura por nome de cartão) |
 | Histórico/decisões | `docs/JORNADA.md` |
 

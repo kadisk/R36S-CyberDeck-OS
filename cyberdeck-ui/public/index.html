@@ -7,149 +7,49 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <!-- 640x480, kiosk. Navegação: D-pad (abas/foco) + analógico esq = cursor,
-       analógico dir = scroll. Dados via cyberdeck-agent (Node). -->
+  <!-- 640x480, kiosk. Conteúdo das abas é montado por JS (js/views.js).
+       Navegação: D-pad (abas ←→ / foco ↑↓), A = ok, B = voltar.
+       Analógico ESQ = cursor virtual, DIR = scroll. Dados via cyberdeck-agent. -->
+
   <header id="topbar">
-    <span class="brand">R36S // CYBERDECK</span>
+    <span class="brand">R36S//CYBERDECK</span>
+    <span class="tb" id="tb-host">host —</span>
+    <span class="tb" id="tb-ip">ip —</span>
     <span class="spacer"></span>
-    <span id="clock" class="metric">--:--:--</span>
-    <span id="cpu-top" class="metric">CPU --%</span>
-    <span id="temp-top" class="metric">-- °C</span>
-    <span id="battery" class="metric">BAT --%</span>
+    <span class="tb" id="tb-load">load —</span>
+    <span class="tb" id="tb-temp">—°C</span>
+    <span class="tb" id="tb-bat">BAT —</span>
+    <span class="tb" id="tb-clock">--:--:--</span>
   </header>
 
-  <nav id="tabs" aria-label="Seções">
-    <button class="tab" data-section="status">STATUS</button>
-    <button class="tab" data-section="device">DEVICE</button>
-    <button class="tab" data-section="network">REDE</button>
-    <button class="tab" data-section="logs">LOGS</button>
-    <button class="tab" data-section="terminal">TERMINAL</button>
-    <button class="tab" data-section="tools">FERRAMENTAS</button>
-    <button class="tab" data-section="systemd">SERVIÇOS</button>
-    <button class="tab" data-section="keys">TECLAS</button>
-  </nav>
+  <nav id="tabs" aria-label="Seções"><!-- abas montadas por JS --></nav>
 
-  <main id="content">
-    <section id="status" class="panel">
-      <h2>STATUS DO SISTEMA</h2>
-      <div class="gauge"><label>CPU</label><div class="bar"><i id="cpu-bar"></i></div><span id="cpu-val">--%</span></div>
-      <div class="gauge"><label>RAM</label><div class="bar"><i id="ram-bar"></i></div><span id="ram-val">--%</span></div>
-      <div class="gauge"><label>LUZ</label><div class="bar"><i id="bright-bar"></i></div><span id="bright-val">--%</span></div>
-      <div class="kv"><span>MEM</span><b id="mem-val">--</b></div>
-      <div class="kv"><span>LOAD</span><b id="load-val">--</b></div>
-      <div class="kv"><span>UPTIME</span><b id="uptime-val">--</b></div>
-      <div class="kv"><span>TEMP</span><b id="temp-val">--</b></div>
-      <div class="kv"><span>BATERIA</span><b id="bat-val">--</b></div>
-      <div class="kv"><span>BAT (tensão)</span><b id="bat-volt">--</b></div>
-    </section>
-
-    <section id="device" class="panel" hidden>
-      <h2>DISPOSITIVO &amp; SISTEMA</h2>
-      <div class="kv"><span>MODELO</span><b id="d-model">--</b></div>
-      <div class="kv"><span>SoC</span><b id="d-soc">--</b></div>
-      <div class="kv"><span>CPU</span><b id="d-cpu">--</b></div>
-      <div class="kv"><span>CLOCK</span><b id="d-clock">--</b></div>
-      <div class="kv"><span>GPU</span><b id="d-gpu">--</b></div>
-      <div class="kv"><span>RAM</span><b id="d-ram">--</b></div>
-      <div class="kv"><span>TELA</span><b id="d-panel">--</b></div>
-      <div class="kv"><span>PMIC</span><b id="d-pmic">--</b></div>
-      <div class="kv"><span>ARMAZ.</span><b id="d-storage">--</b></div>
-      <div class="kv"><span>KERNEL</span><b id="d-kernel">--</b></div>
-      <div class="kv"><span>SO</span><b id="d-os">--</b></div>
-      <div class="kv"><span>HOST</span><b id="d-host">--</b></div>
-    </section>
-
-    <section id="network" class="panel" hidden>
-      <h2>REDE</h2>
-      <p class="hint">Sem rede interna — use dongle Wi-Fi/Ethernet USB.</p>
-      <div class="kv"><span>IFACE</span><b id="net-iface">--</b></div>
-      <div class="kv"><span>IP</span><b id="net-ip">--</b></div>
-      <div class="kv"><span>MAC</span><b id="net-mac">--</b></div>
-      <div class="kv"><span>GATEWAY</span><b id="net-gw">--</b></div>
-      <div class="kv"><span>SSID</span><b id="net-ssid">--</b></div>
-      <div class="kv"><span>DNS</span><b id="net-dns">--</b></div>
-      <pre id="net-routes" class="box">(rotas…)</pre>
-    </section>
-
-    <section id="logs" class="panel" hidden>
-      <h2>LOGS — últimos eventos (atualiza sozinho)</h2>
-      <pre id="logs-output" class="box logfull">(carregando…)</pre>
-    </section>
-
-    <section id="terminal" class="panel" hidden>
-      <h2>TERMINAL</h2>
-      <div id="term-list-wrap">
-        <p class="hint">Selecione (↑↓) e A executa. A saída abre em tela cheia; B volta aqui.</p>
-        <ul id="term-list" class="menu">
-          <li tabindex="0" data-cmd="uname -a">uname -a</li>
-          <li tabindex="0" data-cmd="uptime">uptime</li>
-          <li tabindex="0" data-cmd="free -h">free -h</li>
-          <li tabindex="0" data-cmd="df -h">df -h</li>
-          <li tabindex="0" data-cmd="lsblk">lsblk</li>
-          <li tabindex="0" data-cmd="ip -br addr">ip -br addr</li>
-          <li tabindex="0" data-cmd="ps aux --sort=-%cpu | head -n 12">processos (top CPU)</li>
-          <li tabindex="0" data-cmd="lsusb">lsusb</li>
-          <li tabindex="0" data-cmd="dmesg | tail -n 40">dmesg (tail)</li>
-        </ul>
-      </div>
-      <div id="term-out-wrap" hidden>
-        <div class="term-head"><b id="term-cmd">$</b><span class="hint">B = voltar aos comandos</span></div>
-        <pre id="term-output" class="box termfull">…</pre>
-      </div>
-    </section>
-
-    <section id="tools" class="panel" hidden>
-      <h2>FERRAMENTAS</h2>
-      <ul id="tools-list" class="menu">
-        <li tabindex="0" data-action="bright-up">Brilho +</li>
-        <li tabindex="0" data-action="bright-down">Brilho −</li>
-        <li tabindex="0" data-action="reload-ui">Recarregar UI</li>
-        <li tabindex="0" data-action="reboot">Reiniciar</li>
-        <li tabindex="0" data-action="poweroff">Desligar</li>
-      </ul>
-      <div class="kv"><span>RESULTADO</span><b id="tools-msg">--</b></div>
-    </section>
-
-    <section id="systemd" class="panel" hidden>
-      <h2>SERVIÇOS (systemd)</h2>
-      <div class="kv"><span>ESTADO</span><b id="sd-state">--</b></div>
-      <div class="kv"><span>SERVIÇOS</span><b id="sd-count">--</b></div>
-      <div class="kv"><span>BOOT</span><b id="sd-boot">--</b></div>
-      <h3 class="sub">FALHOS</h3>
-      <pre id="sd-failed" class="box">--</pre>
-      <h3 class="sub">RODANDO</h3>
-      <pre id="sd-running" class="box">--</pre>
-    </section>
-
-    <section id="keys" class="panel" hidden>
-      <h2>TESTE DE TECLAS / JOYPAD</h2>
-      <p class="hint">Aperte botões e mexa nos analógicos (veja os eixos abaixo).</p>
-      <div class="kt-last">ÚLTIMA TECLA: <b id="kt-key">—</b>
-        <span id="kt-detail" class="hint">code=— keyCode=—</span></div>
-      <div id="kt-grid" class="kt-grid">
-        <span data-k="ArrowUp">↑</span>
-        <span data-k="ArrowDown">↓</span>
-        <span data-k="ArrowLeft">←</span>
-        <span data-k="ArrowRight">→</span>
-        <span data-k="Enter">A·Enter</span>
-        <span data-k="Escape">B·Esc</span>
-      </div>
-      <div class="kv"><span>GAMEPAD API</span><b id="kt-gp">não detectado</b></div>
-      <div id="kt-buttons" class="kt-btns"></div>
-      <div id="kt-axes" class="hint">axes —</div>
-      <pre id="kt-log" class="kt-log">(aguardando teclas…)</pre>
-    </section>
-  </main>
+  <main id="content"><!-- views montadas por JS --></main>
 
   <footer id="hints">
-    <span>D-pad ←→: abas</span><span>↑↓: foco</span><span>A: ok/clique</span><span>B: voltar</span>
-    <span>analóg. esq: cursor · dir: scroll</span>
+    <span id="hint-keys">A: ok · B: voltar · ←→: abas · ↑↓: foco</span>
     <span class="spacer"></span>
-    <span id="agent-state" class="metric">agente: …</span>
-    <span id="lastkey" class="metric">tecla: —</span>
+    <span class="tb" id="agent-state">agente: …</span>
+    <span class="tb" id="lastkey">tecla: —</span>
   </footer>
 
-  <div id="vcursor" aria-hidden="true"></div>
+  <!-- modal de confirmação (ações perigosas) -->
+  <div id="confirm" class="overlay" hidden>
+    <div class="confirm-box">
+      <h3>CONFIRMAR AÇÃO</h3>
+      <p id="confirm-msg">—</p>
+      <div class="confirm-keys"><b>A</b> confirmar &nbsp;·&nbsp; <b>B</b> cancelar</div>
+    </div>
+  </div>
+
+  <!-- toast -->
+  <div id="toast" class="toast" hidden></div>
+
+  <script src="js/state.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/views.js"></script>
+  <script src="js/gamepad.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
