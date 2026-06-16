@@ -282,13 +282,18 @@
       asyncRender(listHost, function () { return api.get("/api/systemd/services"); }, function (d) {
         var list = h("div", { cls: "list" });
         var f = S.systemd.filter;
-        (d.services || []).filter(function (s) {
+        var isFailed = function (s) { return s.active === "failed" || s.sub === "failed"; };
+        var items = (d.services || []).filter(function (s) {
           if (f === "running") return s.sub === "running";
-          if (f === "failed") return s.active === "failed" || s.sub === "failed";
+          if (f === "failed") return isFailed(s);
           if (f === "cyberdeck") return /cyberdeck/.test(s.unit);
           return true;
-        }).forEach(function (s) {
-          var stcls = s.sub === "running" ? "st-run" : (s.active === "failed" || s.sub === "failed") ? "st-crit" : "st-dim";
+        });
+        // falhas SEMPRE no topo (depois rodando, depois o resto) — visibilidade do problema
+        var rank = function (s) { return isFailed(s) ? 0 : s.sub === "running" ? 1 : 2; };
+        items.sort(function (a, b) { var r = rank(a) - rank(b); return r !== 0 ? r : a.unit.localeCompare(b.unit); });
+        items.forEach(function (s) {
+          var stcls = s.sub === "running" ? "st-run" : isFailed(s) ? "st-crit" : "st-dim";
           list.appendChild(row([
             { t: s.unit.replace(/\.service$/, ""), grow: true },
             { t: s.sub, cls: "r " + stcls },
@@ -345,7 +350,7 @@
 
   /* ============================ PROCS ============================ */
   var PROC_SORTS = ["cpu", "mem", "pid", "name"];
-  var PROC_FILTERS = ["all", "node", "chromium", "cyberdeck", "running", "zombie"];
+  var PROC_FILTERS = ["ativos", "all", "node", "chromium", "cyberdeck", "running", "zombie"];
   reg({
     id: "procs", live: true,
     build: function () { var el = h("div", { cls: "view", id: "view-procs" }); this.el = el; return el; },
@@ -371,12 +376,15 @@
       if (!silent) { UI.clear(self.listHost); self.listHost.appendChild(UI.loading()); }
       api.get("/api/processes").then(function (d) {
         // resumo
+        var cores = (CD.lastStatus && CD.lastStatus.cores) || (d.summary && d.summary.cores) || 1;
         if (self.sumHost) { var s = d.summary || {}; UI.clear(self.sumHost);
           self.sumHost.appendChild(UI.kv("TOTAL", s.total + " · run " + s.running + " · sleep " + s.sleeping + " · zumbi " + s.zombie));
           self.sumHost.appendChild(UI.kv("CPU/MEM", "~" + (s.cpu_total || 0) + "% · " + (s.mem_total_pct || 0) + "%"));
           if (s.top_cpu) self.sumHost.appendChild(UI.kv("TOP CPU", s.top_cpu.comm + " (" + s.top_cpu.cpu + "%)"));
+          self.sumHost.appendChild(h("div", { cls: "hint", text: "CPU% é por núcleo — o total pode passar de 100% (" + cores + " cores)" }));
         }
         var f = S.procs.filter, rows = (d.processes || []).filter(function (p) {
+          if (f === "ativos") return p.cpu > 0 || p.state === "R";
           if (f === "node") return /node/i.test(p.comm);
           if (f === "chromium") return /chrom/i.test(p.comm);
           if (f === "cyberdeck") return /cyberdeck/i.test(p.cmd);
@@ -393,14 +401,20 @@
         });
         var list = h("div", { cls: "list" });
         list.appendChild(h("div", { cls: "row list-head" }, [
-          h("span", { cls: "c", html: "PID" }), h("span", { cls: "grow", text: "CMD" }),
-          h("span", { cls: "c r", text: "CPU" }), h("span", { cls: "c r", text: "RSS" }),
+          h("span", { cls: "c", text: "PID" }), h("span", { cls: "grow", text: "CMD" }),
+          h("span", { cls: "pbar-h", text: "CPU" }), h("span", { cls: "c r", text: "%" }), h("span", { cls: "c r", text: "RSS" }),
         ]));
+        if (!rows.length) list.appendChild(h("div", { cls: "hint", text: "(nenhum processo neste filtro)" }));
         rows.slice(0, 200).forEach(function (p) {
-          list.appendChild(row([
-            { t: p.pid, cls: "" }, { t: p.comm, grow: true },
-            { t: p.cpu + "%", cls: "r" }, { t: p.rss_mb + "M", cls: "r" },
-          ], function () { S.procs.pid = p.pid; S.procs.mode = "detail"; self.render(); }, true));
+          var bar = h("span", { cls: "pbar" }); var bi = h("i", { cls: p.cpu >= 90 ? "crit" : p.cpu >= 50 ? "warn" : "" });
+          bi.style.width = Math.max(0, Math.min(100, p.cpu)) + "%"; bar.appendChild(bi);
+          list.appendChild(h("div", { cls: "row", focus: true, on: { click: (function (pp) { return function () { S.procs.pid = pp.pid; S.procs.mode = "detail"; self.render(); }; })(p) } }, [
+            h("span", { cls: "c", text: p.pid }),
+            h("span", { cls: "grow", text: p.comm }),
+            bar,
+            h("span", { cls: "c r", text: p.cpu + "%" }),
+            h("span", { cls: "c r", text: p.rss_mb + "M" }),
+          ]));
         });
         UI.clear(self.listHost); self.listHost.appendChild(list);
         if (!silent) refocus(self.el);
@@ -508,10 +522,23 @@
       if (!silent) this.out.textContent = "(carregando…)";
       api.get("/api/logs?source=" + S.logs.source + sev + "&lines=300").then(function (d) {
         var atBottom = self.out.scrollTop + self.out.clientHeight >= self.out.scrollHeight - 20;
-        self.out.textContent = d.lines || "(sem saída)";
+        self.renderLines(d.lines || "(sem saída)");
         if (atBottom || !silent) self.out.scrollTop = self.out.scrollHeight;
         CD.setAgent(true);
       }).catch(function (e) { if (!silent) self.out.textContent = e.business ? e.message : "(agente offline)"; });
+    },
+    // colore cada linha por severidade (heurística): erro=vermelho, aviso=âmbar, resto=apagado
+    renderLines: function (text) {
+      var out = UI.clear(this.out);
+      var lines = String(text).split("\n");
+      // limita nós no DOM (perf): mantém as últimas ~300
+      if (lines.length > 320) lines = lines.slice(lines.length - 300);
+      for (var i = 0; i < lines.length; i++) {
+        var l = lines[i];
+        var sev = /\b(fail|failed|failure|error|err|exit-code|cannot|denied|panic|oops|segfault)\b/i.test(l) ? "err"
+          : /\b(warn|warning)\b/i.test(l) ? "warn" : "info";
+        out.appendChild(h("div", { cls: "logline " + sev, text: l || " " }));
+      }
     },
     back: function () { return false; },
   });

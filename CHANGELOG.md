@@ -4,6 +4,16 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Changed — 2026-06-16 — Telas operacionais: LOGS/PROCS/SVC (relatório UX, fase 3)
+- **LOGS** colore cada linha por **severidade** (heurística): erro/exit-code/failed em
+  vermelho, warning em âmbar, resto apagado — falhas saltam à vista.
+- **PROCS**: barras de CPU inline por processo (verde/âmbar/vermelho), filtro **"ativos"**
+  como padrão (esconde kworker/threads em 0%) e legenda "CPU% é por núcleo (N cores)".
+- **SVC**: serviços com **falha sempre no topo** da lista (depois rodando, depois o resto),
+  para o problema não passar despercebido.
+- Validado por render headless (PROCS com barras+ativos, LOGS colorido, SVC failed-first).
+  Não testado no R36S físico.
+
 ### Added — 2026-06-16 — Histórico/sparklines + correção do ponteiro no boot (relatório UX, fase 2)
 - **Ponteiro do X começa ESCONDIDO** e só aparece ao mover o analógico (antes aparecia no
   boot). Agora é por CSS (`cursor:none` padrão; classe `.pointer-on` ao mover), sem depender

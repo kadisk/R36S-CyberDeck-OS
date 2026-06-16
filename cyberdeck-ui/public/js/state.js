@@ -14,7 +14,7 @@
     // por-view:
     fs: { path: "/", mode: "list" },          // list | view
     systemd: { mode: "list", unit: null, filter: "all" },
-    procs: { mode: "list", pid: null, filter: "all", sort: "cpu" },
+    procs: { mode: "list", pid: null, filter: "ativos", sort: "cpu" },
     logs: { source: "dmesg", severity: "all" },
     cmd: { mode: "list" },
   };
