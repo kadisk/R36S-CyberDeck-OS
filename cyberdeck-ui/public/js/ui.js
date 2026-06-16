@@ -51,11 +51,12 @@
   };
 
   /* mensagens de estado (loading / vazio / erro) */
-  UI.loading = function (txt) { return UI.h("div", { cls: "state-msg loading" }, [UI.h("span", { cls: "icon", text: "⟳" }), txt || "carregando…"]); };
-  UI.empty = function (txt) { return UI.h("div", { cls: "state-msg" }, [UI.h("span", { cls: "icon", text: "∅" }), txt || "sem dados"]); };
+  // Ícones em ASCII: a fonte do fbdev (DejaVu Mono) não tem emoji/símbolos raros.
+  UI.loading = function (txt) { return UI.h("div", { cls: "state-msg loading" }, [UI.h("span", { cls: "icon", text: "..." }), txt || "carregando…"]); };
+  UI.empty = function (txt) { return UI.h("div", { cls: "state-msg" }, [UI.h("span", { cls: "icon", text: "[ ]" }), txt || "sem dados"]); };
   UI.errBox = function (e) {
     var msg = e && e.business ? (e.message + " [" + (e.code || "ERR") + "]") : "agente offline — verifique o cyberdeck-agent";
-    return UI.h("div", { cls: "state-msg err" }, [UI.h("span", { cls: "icon", text: "⚠" }), msg]);
+    return UI.h("div", { cls: "state-msg err" }, [UI.h("span", { cls: "icon", text: "/!\\" }), msg]);
   };
 
   /* formatação */

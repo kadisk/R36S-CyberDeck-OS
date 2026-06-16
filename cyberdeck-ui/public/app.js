@@ -77,8 +77,10 @@
     if (temp) { temp.textContent = d.temp >= 0 ? d.temp + "°C" : "—°C"; temp.className = "tb" + (d.temp >= 75 ? " crit" : d.temp >= 65 ? " warn" : ""); }
     var bat = document.getElementById("tb-bat"), b = d.battery || {};
     if (bat) {
-      var pct = b.pct >= 0 ? b.pct : b.est;
-      bat.textContent = "BAT " + (pct >= 0 ? pct + "%" : "—") + (b.ac === 1 ? "⚡" : "");
+      // quando o capacity do rk817 é duvidoso, usa a estimativa OCV (prefixo ~)
+      var useEst = (b.capacity_trust === "low" && b.est >= 0);
+      var pct = useEst ? b.est : (b.pct >= 0 ? b.pct : b.est);
+      bat.textContent = "BAT " + (pct >= 0 ? (useEst ? "~" : "") + pct + "%" : "—") + (b.ac === 1 ? " AC" : "");
       bat.className = "tb" + (b.ac !== 1 && pct >= 0 && pct < 10 ? " crit" : b.ac !== 1 && pct >= 0 && pct < 25 ? " warn" : "");
     }
   }
@@ -118,12 +120,16 @@
   var shotBusy = false;
   CD.screenshot = function () {
     if (shotBusy) return; shotBusy = true;
-    UI.toast("capturando tela…");
-    CD.api.post("/api/screenshot", {}, { timeout: 12000 }).then(function (d) {
-      UI.toast("salvo: " + (d.file || "ok"));
-    }).catch(function (e) {
-      UI.toast(e.business ? e.message : "falha no screenshot (agente offline)", true);
-    }).then(function () { shotBusy = false; }, function () { shotBusy = false; });
+    // esconde QUALQUER toast antes de capturar — senão ele sai na própria foto.
+    var t = document.getElementById("toast"); if (t) t.hidden = true;
+    // espera o framebuffer repintar (RK3326 = render por software) antes do agente capturar.
+    setTimeout(function () {
+      CD.api.post("/api/screenshot", {}, { timeout: 12000 }).then(function (d) {
+        UI.toast("salvo: " + (d.file ? d.file.replace(/^.*\//, "") : "ok")); // só o nome do arquivo
+      }).catch(function (e) {
+        UI.toast(e.business ? e.message : "falha no screenshot (agente offline)", true);
+      }).then(function () { shotBusy = false; }, function () { shotBusy = false; });
+    }, 250);
   };
 
   /* ---- volume (teclas de volume -> amixer no agente) ---- */

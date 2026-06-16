@@ -4,6 +4,32 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Changed — 2026-06-16 — UX a partir dos prints reais: navegação 2D, modos de input, bateria, menu
+- **Navegação espacial 2D**: o D-pad/setas agora movem o foco para o vizinho mais próximo
+  em qualquer direção (grid da HOME, toolbars, listas); ←→ na borda troca de aba. Antes só
+  navegava em sequência. (correção do "menu inicial só acessa em sequência").
+- **Dois modos de input**: usar o **D-pad esconde o ponteiro** e o **A ativa o item
+  selecionado** (não depende mais do mouse); mexer no **analógico** mostra o ponteiro +
+  *hover-select*; ocioso, o ponteiro some. (correção do "A só funciona com o mouse em cima").
+- **Bug do screenshot**: o toast "capturando tela…" saía na própria captura — agora é
+  escondido antes de capturar; espera o framebuffer repintar.
+- **Menu reorganizado** por semântica (HOME + abas): **MONITOR** (STATUS/PROCS/NET/LOGS),
+  **SISTEMA** (DEVICE/KERNEL/FS/SVC), **AÇÕES** (CMD/TOOLS), **DIAGNÓSTICO** (KEYS).
+- **Bateria mais confiável** (rk817 tem fuel-gauge instável — pesquisa: capacity "gruda",
+  vai a 100% ao carregar): estimativa por **tabela OCV** (1S LiPo, não-linear) + compensação
+  **I·R** + suavização (EMA); expõe `ocv` e `capacity_trust`; a UI prioriza a estimativa
+  quando o `capacity` é duvidoso. Solução "definitiva" (DT com ocv-table + ciclo de
+  calibração) fica como nota; não mexemos no kernel/DTB.
+- **Glyphs**: emoji/símbolos sem cobertura na fonte do fbdev (📷 ⟳ ∅ ⚠ ⏸ ▶ ★ ⚡) trocados
+  por ASCII (o "📷" aparecia como quadrado). Estados de serviço (running/failed/dead) agora
+  têm **cor** na lista SVC.
+- `sd-get-screenshots.sh`: corrige `SD_NAME` não-associado (chama `sd_describe`) e passa a
+  salvar **fora do repo** (`~/cyberdeck-screenshots/`, não em `artifacts/`).
+- **Validado no host** (node --check + smoke headless: navegação 2D entre grupos, HOME
+  agrupada, sem exceções). Screenshot/fbgrab e navegação **confirmados no R36S físico**
+  (os prints foram gerados no aparelho). Bateria OCV e modos de input ainda **não testados
+  no R36S físico**.
+
 ### Added — 2026-06-16 — Escala de fonte, screenshot, volume e aba KERNEL/DTB
 - **Escala de fonte** configurável (TOOLS → DISPLAY/UI, ou teclas +/−): aumenta/diminui
   mantendo a proporção (zoom do `#content`). Persistida pelo agente em

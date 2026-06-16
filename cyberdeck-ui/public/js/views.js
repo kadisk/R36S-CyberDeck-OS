@@ -5,22 +5,26 @@
   "use strict";
   var h = CD.ui.h, UI = CD.ui, api = CD.api, S = CD.state;
 
-  /* metadados/ordem das seções. tab=true aparece na barra superior. */
+  /* metadados/ordem das seções, agrupadas por SEMÂNTICA (informação x função):
+   *   MONITOR     = informação ao vivo       SISTEMA = inspeção do SO
+   *   AÇÕES       = executar/alterar          DIAGNÓSTICO = depuração
+   * A ordem aqui dita tanto a barra de abas (tab=true) quanto os cards da HOME. */
   var META = [
-    { id: "welcome", title: "HOME",    icon: "⌂", desc: "Painel inicial",        tab: true },
-    { id: "status",  title: "STATUS",  icon: "%", desc: "CPU, RAM, temp, energia", tab: true },
-    { id: "device",  title: "DEVICE",  icon: "#", desc: "Hardware e SO",          tab: true },
-    { id: "fs",      title: "FS",      icon: "/", desc: "Navegar o rootfs",       tab: true },
-    { id: "systemd", title: "SVC",     icon: "*", desc: "Serviços systemd",       tab: true },
-    { id: "procs",   title: "PROCS",   icon: "=", desc: "Processos em tempo real", tab: true },
-    { id: "network", title: "NET",     icon: "~", desc: "Rede e conexões",        tab: true },
-    { id: "logs",    title: "LOGS",    icon: "!", desc: "dmesg / journal",        tab: true },
-    { id: "cmd",     title: "CMD",     icon: ">", desc: "Comandos prontos",       tab: true },
-    { id: "tools",   title: "TOOLS",   icon: "+", desc: "Ações do sistema",       tab: true },
-    { id: "kernel",  title: "KERNEL",  icon: "K", desc: "Kernel & Device Tree",   tab: false },
-    { id: "keys",    title: "KEYS",    icon: "@", desc: "Teste de gamepad",       tab: false },
+    { id: "welcome", title: "HOME",    icon: "⌂", desc: "Painel inicial",          group: "",            tab: true },
+    { id: "status",  title: "STATUS",  icon: "%", desc: "CPU, RAM, temp, energia",  group: "MONITOR",     tab: true },
+    { id: "procs",   title: "PROCS",   icon: "=", desc: "Processos em tempo real",  group: "MONITOR",     tab: true },
+    { id: "network", title: "NET",     icon: "~", desc: "Rede e conexões",          group: "MONITOR",     tab: true },
+    { id: "logs",    title: "LOGS",    icon: "!", desc: "dmesg / journal",          group: "MONITOR",     tab: true },
+    { id: "device",  title: "DEVICE",  icon: "#", desc: "Hardware e SO",            group: "SISTEMA",     tab: true },
+    { id: "kernel",  title: "KERNEL",  icon: "K", desc: "Kernel & Device Tree",     group: "SISTEMA",     tab: false },
+    { id: "fs",      title: "FS",      icon: "/", desc: "Navegar o rootfs",         group: "SISTEMA",     tab: true },
+    { id: "systemd", title: "SVC",     icon: "*", desc: "Serviços systemd",         group: "SISTEMA",     tab: true },
+    { id: "cmd",     title: "CMD",     icon: ">", desc: "Comandos prontos",         group: "AÇÕES",       tab: true },
+    { id: "tools",   title: "TOOLS",   icon: "+", desc: "Ações e display",          group: "AÇÕES",       tab: true },
+    { id: "keys",    title: "KEYS",    icon: "@", desc: "Teste de gamepad",         group: "DIAGNÓSTICO", tab: false },
   ];
   CD.META = META;
+  var GROUPS = ["MONITOR", "SISTEMA", "AÇÕES", "DIAGNÓSTICO"];
 
   var V = {};
   function reg(impl) { V[impl.id] = impl; }
@@ -53,15 +57,21 @@
         h("div", { cls: "big", text: "R36S CYBERDECK" }),
         h("div", { cls: "sm", id: "wel-sub", text: "painel técnico portátil" }),
       ]));
-      var cards = h("div", { cls: "cards" });
-      META.filter(function (m) { return m.id !== "welcome"; }).forEach(function (m) {
-        cards.appendChild(h("div", { cls: "card", focus: true, on: { click: function () { CD.go(m.id); } } }, [
-          h("span", { cls: "ic", text: m.icon }),
-          h("span", { cls: "ti", text: m.title }),
-          h("span", { cls: "de", text: m.desc }),
-        ]));
+      // cards agrupados por categoria semântica (cada grupo com seu cabeçalho)
+      GROUPS.forEach(function (g) {
+        var items = META.filter(function (m) { return m.group === g; });
+        if (!items.length) return;
+        el.appendChild(h("div", { cls: "sub", text: g }));
+        var cards = h("div", { cls: "cards" });
+        items.forEach(function (m) {
+          cards.appendChild(h("div", { cls: "card", focus: true, on: { click: function () { CD.go(m.id); } } }, [
+            h("span", { cls: "ic", text: m.icon }),
+            h("span", { cls: "ti", text: m.title }),
+            h("span", { cls: "de", text: m.desc }),
+          ]));
+        });
+        el.appendChild(cards);
       });
-      el.appendChild(cards);
       this.el = el; return el;
     },
     show: function () { refocus(this.el); },
@@ -93,8 +103,10 @@
       b.appendChild(UI.kv("UPTIME", UI.fmt.uptime(d.uptime)));
       b.appendChild(UI.kv("TEMP", d.temp >= 0 ? d.temp + " °C" : "—"));
       var bt = d.battery || {};
-      b.appendChild(UI.kv("BATERIA", (bt.pct >= 0 ? bt.pct + "%" : "—") + (bt.status ? " " + bt.status : "") + (bt.ac === 1 ? " ⚡" : "")));
-      b.appendChild(UI.kv("BAT (tensão)", (bt.volt > 0 ? bt.volt + " V" : "—") + (bt.curr !== -1 && bt.curr != null ? " · " + bt.curr + " mA" : "") + (bt.est >= 0 ? " · ~" + bt.est + "%" : "")));
+      var lowTrust = bt.capacity_trust === "low";
+      b.appendChild(UI.kv("BATERIA", (bt.pct >= 0 ? bt.pct + "%" : "—") + (bt.status ? " " + bt.status : "") + (bt.ac === 1 ? " [AC]" : "") + (lowTrust ? "  (instável)" : "")));
+      b.appendChild(UI.kv("ESTIMADO ~", (bt.est >= 0 ? bt.est + "%" : "—") + (bt.ocv > 0 ? " · OCV " + bt.ocv + " V" : "")));
+      b.appendChild(UI.kv("TENSÃO/CORR.", (bt.volt > 0 ? bt.volt + " V" : "—") + (bt.curr !== -1 && bt.curr != null ? " · " + bt.curr + " mA" : "")));
       var n = (d.net && d.net[0]) || {};
       b.appendChild(UI.kv("REDE", n.iface ? (n.iface + " " + n.ip) : "(sem rede)"));
     },
@@ -127,7 +139,7 @@
         kvGroup(b, "KERNEL/BOOT", [["VERSION", k.version], ["MÓDULOS", k.modules_count], ["CMDLINE", k.cmdline]]);
         if (k.dmesg_hw) { b.appendChild(h("div", { cls: "sub", text: "DMESG (hw)" })); b.appendChild(h("pre", { cls: "box", text: k.dmesg_hw })); }
         b.appendChild(h("div", { cls: "sub", text: "INPUT" }));
-        (ip.devices || []).forEach(function (dv) { b.appendChild(UI.kv((dv.joypad ? "★ " : "") + (dv.event || "?"), dv.name)); });
+        (ip.devices || []).forEach(function (dv) { b.appendChild(UI.kv((dv.joypad ? "* " : "") + (dv.event || "?"), dv.name)); });
         b.appendChild(h("div", { cls: "sub", text: "USB" }));
         (ip.usb || []).forEach(function (u) { b.appendChild(UI.kv(u.id || "?", u.name || u.raw || "")); });
       });
@@ -233,10 +245,10 @@
           if (f === "cyberdeck") return /cyberdeck/.test(s.unit);
           return true;
         }).forEach(function (s) {
-          var kind = s.sub === "running" ? "run" : s.active === "failed" ? "crit" : "off";
+          var stcls = s.sub === "running" ? "st-run" : (s.active === "failed" || s.sub === "failed") ? "st-crit" : "st-dim";
           list.appendChild(row([
             { t: s.unit.replace(/\.service$/, ""), grow: true },
-            { t: s.sub, cls: "r " + (kind === "crit" ? "" : ""), },
+            { t: s.sub, cls: "r " + stcls },
           ], function () { S.systemd.unit = s.unit; S.systemd.mode = "detail"; self.render(); }, true));
         });
         listHost.appendChild(list);
@@ -442,7 +454,7 @@
       el.appendChild(tb);
       var tb2 = h("div", { cls: "toolbar" });
       LOG_SEV.forEach(function (s) { tb2.appendChild(h("button", { cls: "chip" + (S.logs.severity === s ? " on" : ""), focus: true, text: s, on: { click: function () { S.logs.severity = s; self.load(); } } })); });
-      tb2.appendChild(h("button", { cls: "chip", focus: true, text: "⏸ pausar", on: { click: function (ev) { self.paused = !self.paused; ev.target.textContent = self.paused ? "▶ retomar" : "⏸ pausar"; } } }));
+      tb2.appendChild(h("button", { cls: "chip", focus: true, text: "|| pausar", on: { click: function (ev) { self.paused = !self.paused; ev.target.textContent = self.paused ? "|> retomar" : "|| pausar"; } } }));
       el.appendChild(tb2);
       this.out = h("pre", { cls: "box full", focus: true, text: "(carregando…)" }); el.appendChild(this.out);
       this.load();
@@ -514,7 +526,7 @@
       ui.appendChild(row([{ t: "Fonte −", grow: true }, { t: "menor", cls: "r" }], function () { CD.setFontScale(-0.1); }, true));
       ui.appendChild(row([{ t: "Fonte +", grow: true }, { t: "maior", cls: "r" }], function () { CD.setFontScale(+0.1); }, true));
       ui.appendChild(row([{ t: "Fonte 100%", grow: true }, { t: "reset", cls: "r" }], function () { CD.resetFontScale(); }, true));
-      ui.appendChild(row([{ t: "📷 Screenshot", grow: true }, { t: "L1+R1", cls: "r" }], function () { CD.screenshot(); }, true));
+      ui.appendChild(row([{ t: "Screenshot", grow: true }, { t: "L1+R1", cls: "r" }], function () { CD.screenshot(); }, true));
       el.appendChild(ui);
 
       // ---- ações do sistema (do agente) ----
@@ -523,7 +535,7 @@
       asyncRender(host, function () { return api.get("/api/actions"); }, function (d) {
         var list = h("div", { cls: "list" });
         (d.actions || []).forEach(function (a) {
-          list.appendChild(row([{ t: (a.dangerous ? "⚠ " : "") + a.label, grow: true }, { t: a.dangerous ? "confirma" : "", cls: "r" }],
+          list.appendChild(row([{ t: (a.dangerous ? "! " : "") + a.label, grow: true }, { t: a.dangerous ? "confirma" : "", cls: "r" }],
             function () { self.run(a); }, true));
         });
         host.appendChild(list);

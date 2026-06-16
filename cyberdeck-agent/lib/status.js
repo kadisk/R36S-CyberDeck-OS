@@ -32,9 +32,36 @@ function backlight() {
 }
 
 /* Bateria rk817 — capacity costuma travar; expõe tensão e estimativa por tensão. */
+/* ---- estimativa de bateria por tensão (OCV) ----------------------------------
+ * O fuel-gauge do rk817 é notoriamente NÃO-confiável no RK3326 (capacity "gruda",
+ * vai a 100% ao carregar). Em vez do mapa linear 3.3–4.2V, usamos uma TABELA OCV
+ * (curva real do 1S LiPo, bem não-linear) e compensamos a queda/elevação de tensão
+ * sob corrente: OCV ≈ V + I·R (descarregando) ou V − I·R (carregando). O resultado
+ * é suavizado (EMA). É ESTIMATIVA — exibida ao lado do dado bruto, nunca no lugar.
+ * Curva refinável com medições do próprio aparelho (ver docs/hardware). */
+const OCV_1S = [
+  [4.20, 100], [4.15, 95], [4.11, 90], [4.08, 85], [4.02, 80], [3.98, 75], [3.95, 70],
+  [3.91, 65], [3.87, 60], [3.85, 55], [3.84, 50], [3.82, 45], [3.80, 40], [3.79, 35],
+  [3.77, 30], [3.75, 25], [3.73, 20], [3.71, 16], [3.69, 13], [3.61, 10], [3.50, 5], [3.30, 0],
+];
+const BATT_R_OHM = 0.25; // resistência interna+cabo aprox. (estimativa p/ compensar I·R)
+let _emaEst = -1;
+function estFromOcv(ocv) {
+  if (ocv >= OCV_1S[0][0]) return 100;
+  if (ocv <= OCV_1S[OCV_1S.length - 1][0]) return 0;
+  for (let i = 0; i < OCV_1S.length - 1; i++) {
+    const a = OCV_1S[i], b = OCV_1S[i + 1];
+    if (ocv <= a[0] && ocv >= b[0]) {
+      const t = (ocv - b[0]) / (a[0] - b[0]);
+      return Math.round(b[1] + t * (a[1] - b[1]));
+    }
+  }
+  return -1;
+}
+
 function battery() {
   const base = "/sys/class/power_supply";
-  const out = { pct: -1, status: "", ac: -1, supply: "", volt: -1, curr: -1, level: "", est: -1 };
+  const out = { pct: -1, status: "", ac: -1, supply: "", volt: -1, curr: -1, level: "", est: -1, ocv: -1, capacity_trust: "ok" };
   let names = [];
   try { names = fs.readdirSync(base); } catch (e) { return out; }
   for (const n of names) {
@@ -46,11 +73,27 @@ function battery() {
       out.level = rd(`${base}/${n}/capacity_level`).trim();
       const uv = rdInt(`${base}/${n}/voltage_now`); if (uv > 0) out.volt = +(uv / 1e6).toFixed(2);
       const ua = rdInt(`${base}/${n}/current_now`); if (ua !== -1) out.curr = Math.round(ua / 1000);
-      if (out.volt > 0) out.est = clamp(Math.round(((out.volt - 3.3) / (4.2 - 3.3)) * 100), 0, 100);
+      if (out.volt > 0) {
+        // compensa I·R p/ aproximar a tensão de circuito aberto (OCV)
+        const iA = out.curr !== -1 ? Math.abs(out.curr) / 1000 : 0;
+        let ocv = out.volt;
+        if (/Discharging/i.test(out.status)) ocv = out.volt + iA * BATT_R_OHM;   // sob carga: V cai
+        else if (/Charging/i.test(out.status)) ocv = out.volt - iA * BATT_R_OHM; // carregando: V sobe
+        out.ocv = +ocv.toFixed(2);
+        let e = estFromOcv(ocv);
+        // suaviza (EMA) p/ não pular; reinicia se saltar muito (troca de estado)
+        if (e >= 0) { _emaEst = (_emaEst < 0 || Math.abs(e - _emaEst) > 25) ? e : Math.round(_emaEst * 0.8 + e * 0.2); e = _emaEst; }
+        out.est = clamp(e, 0, 100);
+      }
     } else {
       const on = rdInt(`${base}/${n}/online`);
       if (on === 1) out.ac = 1; else if (on === 0 && out.ac < 0) out.ac = 0;
     }
+  }
+  // capacity "gruda" em 100% sem estar Full, ou diverge muito da estimativa OCV -> baixa confiança
+  if ((out.pct === 100 && out.status && !/Full/i.test(out.status)) ||
+      (out.pct >= 0 && out.est >= 0 && Math.abs(out.pct - out.est) > 25)) {
+    out.capacity_trust = "low";
   }
   return out;
 }

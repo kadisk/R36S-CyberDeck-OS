@@ -28,6 +28,8 @@ html, body {
   /* ponteiro REAL do X visível, movido pelo analógico esquerdo (driver joystick) */
   cursor: default;
 }
+/* modo D-pad: esconde o ponteiro (volta a aparecer quando o analógico é usado) */
+body.nocursor, body.nocursor * { cursor: none !important; }
 
 /* ---------- TOP BAR ---------- */
 #topbar {
@@ -98,6 +100,7 @@ html, body {
 .row .c { overflow: hidden; text-overflow: ellipsis; }
 .row .grow { flex: 1; overflow: hidden; text-overflow: ellipsis; }
 .row .r { text-align: right; }
+.row .st-run { color: var(--accent); } .row .st-crit { color: var(--crit); } .row .st-dim { color: var(--fg-dim); }
 .list-head { color: var(--accent); font-weight: bold; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--bg); }
 
 /* foco visível (gamepad/teclado) */

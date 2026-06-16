@@ -18,6 +18,39 @@
     items[i].focus();
     try { items[i].scrollIntoView({ block: "nearest" }); } catch (e) {}
   }
+
+  /* Navegação ESPACIAL (2D) por geometria: move o foco p/ o vizinho mais próximo
+   * na direção dada (up/down/left/right). Funciona em grids (HOME), toolbars e listas.
+   * Sem vizinho horizontal -> troca de aba (borda). Sem vizinho vertical -> fica. */
+  function focusInto(el) { if (!el) return; try { el.focus(); el.scrollIntoView({ block: "nearest" }); } catch (e) {} }
+  function move(dir) {
+    if (confirmOpen()) return;
+    hidePointer();                       // usar D-pad/setas -> modo FOCO (ponteiro some)
+    var items = focusables();
+    if (!items.length) { if (dir === "left") CD.nextTab(-1); else if (dir === "right") CD.nextTab(1); return; }
+    var cur = document.activeElement;
+    if (items.indexOf(cur) < 0) { focusInto(items[0]); return; }
+    var cr = cur.getBoundingClientRect();
+    var ccx = cr.left + cr.width / 2, ccy = cr.top + cr.height / 2;
+    var best = null, bestScore = Infinity;
+    for (var k = 0; k < items.length; k++) {
+      var el = items[k]; if (el === cur) continue;
+      var r = el.getBoundingClientRect();
+      var dx = (r.left + r.width / 2) - ccx, dy = (r.top + r.height / 2) - ccy;
+      var ok, primary, cross;
+      if (dir === "left")  { ok = dx < -1; primary = -dx; cross = Math.abs(dy); }
+      else if (dir === "right") { ok = dx > 1; primary = dx; cross = Math.abs(dy); }
+      else if (dir === "up")    { ok = dy < -1; primary = -dy; cross = Math.abs(dx); }
+      else  /* down */          { ok = dy > 1; primary = dy; cross = Math.abs(dx); }
+      if (!ok) continue;
+      var score = cross * 3 + primary;   // prioriza alinhamento no eixo cruzado
+      if (score < bestScore) { bestScore = score; best = el; }
+    }
+    if (best) focusInto(best);
+    else if (dir === "left") CD.nextTab(-1);
+    else if (dir === "right") CD.nextTab(1);
+    // up/down na borda: não faz nada
+  }
   function activate() {
     var el = document.activeElement;
     if (el && el !== document.body && el.click) el.click();
@@ -56,10 +89,11 @@
       return;
     }
     switch (e.key) {
-      case "ArrowRight": CD.nextTab(1); break;
-      case "ArrowLeft": CD.nextTab(-1); break;
-      case "ArrowDown": case "Tab": moveFocus(1); break;
-      case "ArrowUp": moveFocus(-1); break;
+      case "ArrowRight": move("right"); break;
+      case "ArrowLeft": move("left"); break;
+      case "ArrowDown": move("down"); break;
+      case "ArrowUp": move("up"); break;
+      case "Tab": moveFocus(e.shiftKey ? -1 : 1); break;
       case "Enter": activate(); break;
       case "Escape": case "Backspace": CD.back(); break;
       case "PageDown": scrollContent(120); break;
@@ -71,12 +105,38 @@
 
   function scrollContent(dy) { var c = document.getElementById("content"); if (c) c.scrollTop += dy; }
 
-  /* ---- ponteiro REAL do X + scroll ----
-   * O analógico ESQUERDO move o ponteiro real do X (driver joystick do Xorg, fora do
-   * browser). A UI só RASTREIA esse ponteiro via mousemove p/ o A clicar onde ele está. */
-  var px = window.innerWidth / 2, py = window.innerHeight / 2, lastMove = 0;
-  document.addEventListener("mousemove", function (e) { px = e.clientX; py = e.clientY; lastMove = Date.now(); });
-  function pointerActive() { return Date.now() - lastMove < 2500; }
+  /* ---- DOIS modos de input: FOCO (D-pad) e PONTEIRO (analógico) ----
+   * - D-pad/setas  -> modo FOCO: ponteiro some; A ativa o item SELECIONADO.
+   * - analógico esq -> modo PONTEIRO: ponteiro reaparece, faz hover-select; A clica nele.
+   * - sem mexer no analógico por um tempo -> ponteiro some (volta ao modo foco).
+   * O ponteiro é o REAL do X (driver joystick); aqui só o mostramos/escondemos (CSS)
+   * e rastreamos via mousemove. */
+  var px = window.innerWidth / 2, py = window.innerHeight / 2;
+  var pointerVisible = false, hideTimer = null;
+  var HIDE_MS = 2800;
+  document.body.classList.add("nocursor");   // começa em modo FOCO (ponteiro escondido)
+  function setPointer(on) {
+    if (pointerVisible === on) return;
+    pointerVisible = on;
+    document.body.classList.toggle("nocursor", !on);
+  }
+  function showPointer() {
+    setPointer(true);
+    if (hideTimer) clearTimeout(hideTimer);
+    hideTimer = setTimeout(function () { setPointer(false); }, HIDE_MS);
+  }
+  function hidePointer() { if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; } setPointer(false); }
+  function focusableUnder(x, y) {
+    var el = document.elementFromPoint(x, y);
+    while (el && el !== document.body) { if (el.getAttribute && el.getAttribute("data-focus")) return el; el = el.parentElement; }
+    return null;
+  }
+  document.addEventListener("mousemove", function (e) {
+    px = e.clientX; py = e.clientY;
+    showPointer();                                  // analógico/mouse -> modo ponteiro
+    var f = focusableUnder(px, py);                 // hover-select: foca o que está sob o ponteiro
+    if (f && f !== document.activeElement) { try { f.focus(); } catch (e2) {} }
+  });
   function clickAtPointer() {
     var el = document.elementFromPoint(px, py); if (!el) return false;
     try { if (el.focus) el.focus(); } catch (e) {}
@@ -127,14 +187,14 @@
 
       // A: se o ponteiro real foi movido há pouco, clica nele (como um mouse);
       // senão, ativa o item focado (navegação por D-pad).
-      edge(gp, M.A, function () { if (confirmOpen()) CD.ui.resolveConfirm(true); else if (pointerActive()) clickAtPointer(); else activate(); });
+      edge(gp, M.A, function () { if (confirmOpen()) CD.ui.resolveConfirm(true); else if (pointerVisible) { if (!clickAtPointer()) activate(); } else activate(); });
       edge(gp, M.B, function () { if (confirmOpen()) CD.ui.resolveConfirm(false); else CD.back(); });
       edge(gp, M.START, function () { if (!confirmOpen()) activate(); });
       edge(gp, M.SELECT, function () { if (confirmOpen()) CD.ui.resolveConfirm(false); else CD.back(); });
-      edge(gp, M.RIGHT, function () { if (!confirmOpen()) CD.nextTab(1); });
-      edge(gp, M.LEFT, function () { if (!confirmOpen()) CD.nextTab(-1); });
-      edge(gp, M.DOWN, function () { if (!confirmOpen()) moveFocus(1); });
-      edge(gp, M.UP, function () { if (!confirmOpen()) moveFocus(-1); });
+      edge(gp, M.RIGHT, function () { move("right"); });
+      edge(gp, M.LEFT, function () { move("left"); });
+      edge(gp, M.DOWN, function () { move("down"); });
+      edge(gp, M.UP, function () { move("up"); });
 
       // O analógico ESQUERDO NÃO é lido aqui — quem move o ponteiro é o driver do X.
       // Só o analógico direito faz scroll na UI.
@@ -146,5 +206,5 @@
   }
   if (navigator.getGamepads) requestAnimationFrame(poll);
 
-  CD.input = { moveFocus: moveFocus, activate: activate };
+  CD.input = { moveFocus: moveFocus, move: move, activate: activate };
 })();

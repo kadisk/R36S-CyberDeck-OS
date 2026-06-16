@@ -97,10 +97,9 @@ do sistema, e nunca toca no cartão do ArkOS.
 
 | Controle | Ação |
 |---|---|
-| **D-pad ← →** | trocar de aba |
-| **D-pad ↑ ↓** | mover foco no menu |
-| **A** | **clica** onde o ponteiro aponta (se você o moveu há pouco) — senão, ativa o item focado |
-| **Start** | ativar o item focado (sem precisar apontar) |
+| **D-pad ↑↓←→** | navegação **espacial 2D** do foco (grid/listas); nas bordas horizontais, troca de aba |
+| **A** | ativa o item **selecionado** (modo D-pad) ou clica no ponteiro (modo analógico) |
+| **Start** | ativar o item focado |
 | **B** / **Select** | voltar um nível |
 | **Analógico esq.** | move o **ponteiro REAL do X** |
 | **Analógico dir.** | **scroll** vertical |
@@ -111,6 +110,10 @@ Atalhos de teclado (dev/USB): **+ / −** mudam o tamanho da fonte · **F12** ou
 **PrintScreen** tiram screenshot · **AudioVolumeUp/Down/Mute** controlam o volume.
 O tamanho da fonte também tem botões em **TOOLS → DISPLAY/UI** (persistido no agente).
 
+> **Dois modos de input:** ao usar o **D-pad**, o ponteiro **some** e o **A ativa o item
+> selecionado** (não depende do mouse); ao mexer no **analógico**, o ponteiro **reaparece**,
+> faz *hover-select* e o A clica nele; sem uso por alguns segundos, o ponteiro some de novo.
+>
 > O **analógico esquerdo move o ponteiro de verdade do X** (não um cursor desenhado):
 > isso é feito pelo driver `xserver-xorg-input-joystick` (`/etc/X11/xorg.conf.d/60-joystick.conf`),
 > fora do navegador. O ponteiro do X fica **visível**. O clique do analógico não existe
@@ -139,12 +142,14 @@ A aba **KEYS** mostra um dump ao vivo de botões/eixos (diagnóstico de input).
 
 ## Abas da UI (alimentadas pelo `cyberdeck-agent`)
 
-A tela inicial é a **HOME**, um grid de **cards** (um por seção) navegável pelo gamepad.
+A tela inicial é a **HOME**, com **cards agrupados por semântica**: **MONITOR** (ao vivo:
+STATUS/PROCS/NET/LOGS), **SISTEMA** (inspeção: DEVICE/KERNEL/FS/SVC), **AÇÕES** (CMD/TOOLS)
+e **DIAGNÓSTICO** (KEYS). A barra de abas segue a mesma ordem.
 
 | Aba | Mostra |
 |---|---|
 | **HOME** | painel inicial com cards de todas as seções + resumo (host, uptime, cores) |
-| **STATUS** | CPU, RAM, brilho, load, uptime, temperatura, bateria — ao vivo (2 s) |
+| **STATUS** | CPU, RAM, brilho, load, uptime, temp, bateria — ao vivo (2 s). Bateria: % bruto do rk817 **+ estimativa por OCV** (tabela 1S LiPo, compensada por I·R) — o `capacity` do rk817 é instável e é marcado quando duvidoso |
 | **DEVICE** | identidade, hardware (freq/core, temps, mem/zram), kernel/boot, tela/backlight, input (joypad/USB) |
 | **FS** | navegação **read-only** do rootfs: lista, permissões, tamanho, symlinks; viewer de texto; atalhos |
 | **SVC** | systemd: resumo + lista filtrável → detalhe (status, unit file, logs) + ações (start/stop/restart) |
