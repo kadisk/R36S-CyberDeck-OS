@@ -51,6 +51,13 @@
     }
   };
 
+  /* paginação simples p/ listas longas (evita scroll). */
+  UI.pager = {
+    count: function (n, size) { return Math.max(1, Math.ceil((n || 0) / size)); },
+    slice: function (items, page, size) { return (items || []).slice(page * size, page * size + size); },
+    clamp: function (page, total) { return Math.max(0, Math.min(page, total - 1)); },
+  };
+
   /* sparkline textual (sem libs): mapeia uma série p/ blocos ▁▂▃▄▅▆▇█. */
   var SPARK = "▁▂▃▄▅▆▇█";
   UI.sparkline = function (arr, opts) {

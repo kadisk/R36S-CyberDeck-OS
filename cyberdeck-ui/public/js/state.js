@@ -13,11 +13,11 @@
     fullscreen: false,
     sub: {},                // índice da subpágina por seção (L1/R1) — ex.: { device: 0 }
     // por-view:
-    fs: { path: "/", mode: "list" },          // list | view
-    systemd: { mode: "list", unit: null, filter: "all" },
-    procs: { mode: "list", pid: null, filter: "ativos", sort: "cpu" },
+    fs: { path: "/", mode: "list", page: 0 },          // list | view
+    systemd: { mode: "list", unit: null, filter: "all", page: 0 },
+    procs: { mode: "list", pid: null, filter: "ativos", sort: "cpu", page: 0 },
     logs: { source: "dmesg", severity: "all" },
-    cmd: { mode: "list" },
+    cmd: { mode: "list", cat: null },                  // list(categorias) | cat | out
   };
 
   // confirmação pendente (resolvida pela camada de input — A/B)

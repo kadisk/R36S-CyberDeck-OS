@@ -76,6 +76,15 @@
     return "FILE";
   }
 
+  /* barra de paginação (focável): ‹ ant · pág X/Y · próx › */
+  function pagerBar(page, total, onGo) {
+    var bar = h("div", { cls: "toolbar pager" });
+    bar.appendChild(h("button", { cls: "chip" + (page <= 0 ? " off" : ""), focus: true, text: "‹ ant", on: { click: function () { if (page > 0) onGo(page - 1); } } }));
+    bar.appendChild(h("span", { cls: "chip pageinfo", text: "pág " + (page + 1) + "/" + total }));
+    bar.appendChild(h("button", { cls: "chip" + (page >= total - 1 ? " off" : ""), focus: true, text: "próx ›", on: { click: function () { if (page < total - 1) onGo(page + 1); } } }));
+    return bar;
+  }
+
   /* row helper: cols = array de {t, cls, grow} */
   function row(cols, onClick, focus) {
     var attrs = { cls: "row" };
@@ -274,9 +283,13 @@
       el.appendChild(tb);
       var listHost = h("div"); el.appendChild(listHost);
       asyncRender(listHost, function () { return api.get("/api/fs/list?path=" + encodeURIComponent(S.fs.path)); }, function (d) {
+        var entries = d.entries || [], SIZE = 9;
+        var total = UI.pager.count(entries.length, SIZE);
+        S.fs.page = UI.pager.clamp(S.fs.page, total);
+        if (total > 1) listHost.appendChild(pagerBar(S.fs.page, total, function (p) { S.fs.page = p; self.render(); }));
         var list = h("div", { cls: "list" });
         if (d.parent != null) list.appendChild(row([{ t: "UP", cls: "fstype" }, { t: "..", grow: true }], function () { self.nav(d.parent); }, true));
-        (d.entries || []).forEach(function (e) {
+        UI.pager.slice(entries, S.fs.page, SIZE).forEach(function (e) {
           var name = e.name + (e.type === "symlink" ? " → " + (e.target || "") : "");
           list.appendChild(row([
             { t: fsTypeLabel(e), cls: "fstype t-" + e.type },
@@ -304,7 +317,7 @@
         refocus(self.el);
       });
     },
-    nav: function (p) { S.fs.path = p; S.fs.mode = "list"; this.render(); },
+    nav: function (p) { S.fs.path = p; S.fs.mode = "list"; S.fs.page = 0; this.render(); },
     open: function (e) {
       var full = (S.fs.path === "/" ? "" : S.fs.path) + "/" + e.name;
       if (e.type === "dir" || e.type === "symlink") this.nav(full);
@@ -341,7 +354,7 @@
       var tb = h("div", { cls: "toolbar" });
       SD_FILTERS.forEach(function (f) {
         tb.appendChild(h("button", { cls: "chip" + (S.systemd.filter === f ? " on" : ""), focus: true, text: f,
-          on: { click: function () { S.systemd.filter = f; self.render(); } } }));
+          on: { click: function () { S.systemd.filter = f; S.systemd.page = 0; self.render(); } } }));
       });
       el.appendChild(tb);
       var listHost = h("div"); el.appendChild(listHost);
@@ -358,13 +371,17 @@
         // falhas SEMPRE no topo (depois rodando, depois o resto) — visibilidade do problema
         var rank = function (s) { return isFailed(s) ? 0 : s.sub === "running" ? 1 : 2; };
         items.sort(function (a, b) { var r = rank(a) - rank(b); return r !== 0 ? r : a.unit.localeCompare(b.unit); });
-        items.forEach(function (s) {
+        var SIZE = 8, total = UI.pager.count(items.length, SIZE);
+        S.systemd.page = UI.pager.clamp(S.systemd.page, total);
+        if (total > 1) listHost.appendChild(pagerBar(S.systemd.page, total, function (p) { S.systemd.page = p; self.render(); }));
+        UI.pager.slice(items, S.systemd.page, SIZE).forEach(function (s) {
           var stcls = s.sub === "running" ? "st-run" : isFailed(s) ? "st-crit" : "st-dim";
           list.appendChild(row([
             { t: s.unit.replace(/\.service$/, ""), grow: true },
             { t: s.sub, cls: "r " + stcls },
           ], function () { S.systemd.unit = s.unit; S.systemd.mode = "detail"; self.render(); }, true));
         });
+        if (!items.length) list.appendChild(h("div", { cls: "hint", text: "(nenhum serviço neste filtro)" }));
         listHost.appendChild(list);
         refocus(self.el);
       });
@@ -428,10 +445,10 @@
       el.appendChild(title("PROCESSOS"));
       this.sumHost = h("div"); el.appendChild(this.sumHost);
       var tb = h("div", { cls: "toolbar" });
-      PROC_SORTS.forEach(function (s) { tb.appendChild(h("button", { cls: "chip" + (S.procs.sort === s ? " on" : ""), focus: true, text: "↓" + s, on: { click: function () { S.procs.sort = s; self.renderList(); } } })); });
+      PROC_SORTS.forEach(function (s) { tb.appendChild(h("button", { cls: "chip" + (S.procs.sort === s ? " on" : ""), focus: true, text: "↓" + s, on: { click: function () { S.procs.sort = s; S.procs.page = 0; self.renderList(); } } })); });
       el.appendChild(tb);
       var tb2 = h("div", { cls: "toolbar" });
-      PROC_FILTERS.forEach(function (f) { tb2.appendChild(h("button", { cls: "chip" + (S.procs.filter === f ? " on" : ""), focus: true, text: f, on: { click: function () { S.procs.filter = f; self.renderList(); } } })); });
+      PROC_FILTERS.forEach(function (f) { tb2.appendChild(h("button", { cls: "chip" + (S.procs.filter === f ? " on" : ""), focus: true, text: f, on: { click: function () { S.procs.filter = f; S.procs.page = 0; self.renderList(); } } })); });
       el.appendChild(tb2);
       this.listHost = h("div"); el.appendChild(this.listHost);
       this.renderList();
@@ -465,13 +482,17 @@
           if (so === "name") return a.comm.localeCompare(b.comm);
           return b.cpu - a.cpu;
         });
+        var SIZE = 7, total = UI.pager.count(rows.length, SIZE);
+        S.procs.page = UI.pager.clamp(S.procs.page, total);
+        UI.clear(self.listHost);
+        if (total > 1) self.listHost.appendChild(pagerBar(S.procs.page, total, function (p) { S.procs.page = p; self.renderList(); }));
         var list = h("div", { cls: "list" });
         list.appendChild(h("div", { cls: "row list-head" }, [
           h("span", { cls: "c", text: "PID" }), h("span", { cls: "grow", text: "CMD" }),
           h("span", { cls: "pbar-h", text: "CPU" }), h("span", { cls: "c r", text: "%" }), h("span", { cls: "c r", text: "RSS" }),
         ]));
         if (!rows.length) list.appendChild(h("div", { cls: "hint", text: "(nenhum processo neste filtro)" }));
-        rows.slice(0, 200).forEach(function (p) {
+        UI.pager.slice(rows, S.procs.page, SIZE).forEach(function (p) {
           var bar = h("span", { cls: "pbar" }); var bi = h("i", { cls: p.cpu >= 90 ? "crit" : p.cpu >= 50 ? "warn" : "" });
           bi.style.width = Math.max(0, Math.min(100, p.cpu)) + "%"; bar.appendChild(bi);
           list.appendChild(h("div", { cls: "row", focus: true, on: { click: (function (pp) { return function () { S.procs.pid = pp.pid; S.procs.mode = "detail"; self.render(); }; })(p) } }, [
@@ -482,7 +503,7 @@
             h("span", { cls: "c r", text: p.rss_mb + "M" }),
           ]));
         });
-        UI.clear(self.listHost); self.listHost.appendChild(list);
+        self.listHost.appendChild(list);
         if (!silent) refocus(self.el);
       }).catch(function (e) { UI.clear(self.listHost); self.listHost.appendChild(UI.errBox(e)); });
     },
@@ -616,25 +637,42 @@
     show: function () { if (S.cmd.mode === "out") this.renderOut(); else this.renderList(); },
     renderList: function () {
       var self = this, el = UI.clear(this.el);
-      el.appendChild(title("COMANDOS (allowlist)"));
-      el.appendChild(h("div", { cls: "hint", text: "A executa · saída em tela cheia · B volta" }));
-      var host = h("div"); el.appendChild(host);
-      asyncRender(host, function () { return api.get("/api/commands"); }, function (d) {
+      var host = h("div");
+      var build = function (d) {
+        self.cmds = d.commands || [];
         var cats = {};
-        (d.commands || []).forEach(function (c) { (cats[c.cat] = cats[c.cat] || []).push(c); });
-        Object.keys(cats).forEach(function (cat) {
-          host.appendChild(h("div", { cls: "sub", text: cat.toUpperCase() }));
+        self.cmds.forEach(function (c) { (cats[c.cat] = cats[c.cat] || []).push(c); });
+        UI.clear(el);
+        if (!S.cmd.cat) {
+          // nível 1: CATEGORIAS (cabe em uma tela)
+          el.appendChild(title("COMANDOS"));
+          el.appendChild(h("div", { cls: "hint", text: "Escolha a categoria · A abre · B volta" }));
+          var grid = h("div", { cls: "cards" });
+          Object.keys(cats).forEach(function (cat) {
+            grid.appendChild(h("div", { cls: "card", focus: true, on: { click: (function (c) { return function () { S.cmd.cat = c; self.renderList(); }; })(cat) } }, [
+              h("span", { cls: "ti", text: cat.toUpperCase() }),
+              h("span", { cls: "de", text: cats[cat].length + " comandos" }),
+            ]));
+          });
+          el.appendChild(grid);
+        } else {
+          // nível 2: comandos da categoria
+          el.appendChild(title("CMD · " + S.cmd.cat.toUpperCase()));
+          el.appendChild(h("div", { cls: "hint", text: "A executa · B volta às categorias" }));
           var list = h("div", { cls: "list" });
-          cats[cat].forEach(function (c) {
+          (cats[S.cmd.cat] || []).forEach(function (c) {
             list.appendChild(row([
               { t: "[" + (c.risk === "diag" ? "DIAG" : "SAFE") + "]", cls: "tag-" + (c.risk || "safe") },
               { t: c.desc, grow: true }, { t: c.cmd, cls: "r" },
-            ], function () { self.run(c.key); }, true));
+            ], (function (cc) { return function () { self.run(cc.key); }; })(c), true));
           });
-          host.appendChild(list);
-        });
+          el.appendChild(list);
+        }
         refocus(self.el);
-      });
+      };
+      if (self.cmds) { build({ commands: self.cmds }); }
+      else { el.appendChild(title("COMANDOS")); el.appendChild(host); host.appendChild(UI.loading());
+        api.get("/api/commands").then(build).catch(function (e) { UI.clear(el); el.appendChild(title("COMANDOS")); el.appendChild(UI.errBox(e)); }); }
     },
     run: function (key) {
       var self = this; S.cmd.mode = "out"; S.cmd.key = key;
@@ -652,7 +690,11 @@
       }).catch(function (e) { UI.clear(self.head); self.out.textContent = e.business ? e.message : "(agente offline)"; });
     },
     renderOut: function () { this.run(S.cmd.key); },
-    back: function () { if (S.cmd.mode === "out") { S.cmd.mode = "list"; this.renderList(); return true; } return false; },
+    back: function () {
+      if (S.cmd.mode === "out") { S.cmd.mode = "list"; this.renderList(); return true; }   // saída -> comandos
+      if (S.cmd.cat) { S.cmd.cat = null; this.renderList(); return true; }                  // comandos -> categorias
+      return false;
+    },
   });
 
   /* ============================ TOOLS (DISPLAY/AUDIO/SYSTEM/DANGER) ============================ */

@@ -4,6 +4,16 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Changed — 2026-06-16 — Paginação de listas + CMD por categoria (relatório UX V3, parte 2)
+- **Paginação** (componente `CD.ui.pager` + barra `‹ ant · pág X/Y · próx ›` focável) em
+  **FS** (9/pág), **PROCS** (7/pág) e **SVC** (8/pág) — listas longas deixam de rolar; a
+  página reseta ao navegar/trocar filtro e é mantida no refresh ao vivo.
+- **CMD por categoria** (drill-down): nível 1 mostra cards de categoria; A entra e lista os
+  comandos da categoria; B volta às categorias (e da saída volta aos comandos).
+- **Fonte padrão um pouco maior** (base 15→16; títulos/linhas/boxes +1) p/ leitura.
+- Pendente (V3 parte 3): LOGS com detalhe por linha e NET como checklist de diagnóstico.
+- Validado por render headless (FS pág 1/3, PROCS pág 1/2, CMD categorias). Não testado no R36S físico.
+
 ### Changed — 2026-06-16 — Subpáginas (L1/R1) p/ reduzir scroll (relatório UX V3, parte 1)
 - **Subpáginas por seção** navegáveis com **L1/R1** (combo L1+R1 segue = screenshot; teclas
   `[` `]` no dev): cada tela densa vira seções que cabem em 640×480 sem rolar. Barra de
