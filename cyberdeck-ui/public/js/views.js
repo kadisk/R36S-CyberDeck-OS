@@ -758,7 +758,7 @@
         ui.appendChild(row([{ t: "Fonte +", grow: true }, { t: fs + "%", cls: "r" }], function () { CD.setFontScale(+0.1); }, true));
         ui.appendChild(row([{ t: "Fonte −", grow: true }], function () { CD.setFontScale(-0.1); }, true));
         ui.appendChild(row([{ t: "Fonte reset", grow: true }], function () { CD.resetFontScale(); }, true));
-        ui.appendChild(row([{ t: "Screenshot", grow: true }, { t: "L1+R1", cls: "r" }], function () { CD.screenshot(); }, true));
+        ui.appendChild(row([{ t: "Screenshot", grow: true }, { t: "L2+R2", cls: "r" }], function () { CD.screenshot(); }, true));
         inBucket("DISPLAY").forEach(function (a) { ui.appendChild(row([{ t: a.label, grow: true }], function () { self.run(a); }, true)); });
         b.appendChild(ui);
         var bri = (CD.lastStatus && CD.lastStatus.brightness && CD.lastStatus.brightness.pct >= 0) ? CD.lastStatus.brightness.pct : -1;

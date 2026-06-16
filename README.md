@@ -103,7 +103,8 @@ do sistema, e nunca toca no cartão do ArkOS.
 | **B** / **Select** | voltar um nível |
 | **Analógico esq.** | move o **ponteiro REAL do X** |
 | **Analógico dir.** | **scroll** vertical |
-| **L1 + R1** (combo) | **screenshot** (salvo em `/root/screenshots/`) |
+| **L1 / R1** | trocar **subpágina** da seção (STATUS/DEVICE/TOOLS…) |
+| **L2 + R2** (combo) | **screenshot** (salvo em `/root/screenshots/`) |
 | **Volume + / −** | volume do sistema (via `amixer`) |
 
 Atalhos de teclado (dev/USB): **+ / −** mudam o tamanho da fonte · **F12** ou

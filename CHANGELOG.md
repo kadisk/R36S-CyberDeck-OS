@@ -4,6 +4,11 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Fixed — 2026-06-16 — Screenshot move p/ L2+R2 (não conflita com subpáginas L1/R1)
+- Como **L1/R1** passaram a trocar subpágina, o combo de screenshot **L1+R1** trocava a
+  subpágina ao tirar o print. Movido para **L2+R2** (combo). L1/R1 ficam só p/ subpáginas.
+  Mapas RAW/STD ganham L2/R2; dica em TOOLS e README atualizadas.
+
 ### Changed — 2026-06-16 — LOGS detalhe por linha + NET checklist (relatório UX V3, parte 3 — fim)
 - **LOGS**: cada linha agora é **focável** e abre um **detalhe** (A) — badge de severidade,
   origem, timestamp extraído (QUANDO) e mensagem em box; **B** volta à lista. Lista reduzida

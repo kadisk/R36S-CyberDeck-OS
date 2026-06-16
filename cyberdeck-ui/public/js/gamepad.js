@@ -163,8 +163,8 @@
 
   /* ---- Gamepad API (R36S: odroidgo3-joypad) ---- */
   // RAW (confirmado no R36S): B=0,A=1,X=2,Y=3,L1=4,R1=5,↑=8,↓=9,←=10,→=11,Select=12,Start=13,Fn=16
-  var GP_RAW = { B: 0, A: 1, X: 2, Y: 3, L1: 4, R1: 5, UP: 8, DOWN: 9, LEFT: 10, RIGHT: 11, SELECT: 12, START: 13 };
-  var GP_STD = { A: 0, B: 1, X: 2, Y: 3, L1: 4, R1: 5, UP: 12, DOWN: 13, LEFT: 14, RIGHT: 15 };
+  var GP_RAW = { B: 0, A: 1, X: 2, Y: 3, L1: 4, R1: 5, R2: 6, L2: 7, UP: 8, DOWN: 9, LEFT: 10, RIGHT: 11, SELECT: 12, START: 13 };
+  var GP_STD = { A: 0, B: 1, X: 2, Y: 3, L1: 4, R1: 5, L2: 6, R2: 7, UP: 12, DOWN: 13, LEFT: 14, RIGHT: 15 };
   function mapFor(gp) { return gp.mapping === "standard" ? GP_STD : GP_RAW; }
   var prev = [];
   var comboShot = false;
@@ -188,13 +188,13 @@
       if (document.getElementById("view-keys")) dump(gp);
       var M = mapFor(gp);
 
-      // combo L1+R1 = screenshot (dispara uma vez por aperto, sem conflito com botões soltos)
-      var l1 = gp.buttons[M.L1] && gp.buttons[M.L1].pressed;
-      var r1 = gp.buttons[M.R1] && gp.buttons[M.R1].pressed;
-      if (l1 && r1) { if (!comboShot) { comboShot = true; CD.screenshot(); } } else { comboShot = false; }
-      // L1/R1 isolados = trocar subpágina da seção ativa (não dispara durante o combo)
-      edge(gp, M.L1, function () { if (!r1 && !confirmOpen()) CD.subCycle(-1); });
-      edge(gp, M.R1, function () { if (!l1 && !confirmOpen()) CD.subCycle(1); });
+      // combo L2+R2 = screenshot (L1/R1 ficam livres p/ trocar subpágina, sem conflito)
+      var l2 = gp.buttons[M.L2] && gp.buttons[M.L2].pressed;
+      var r2 = gp.buttons[M.R2] && gp.buttons[M.R2].pressed;
+      if (l2 && r2) { if (!comboShot) { comboShot = true; CD.screenshot(); } } else { comboShot = false; }
+      // L1/R1 = trocar subpágina da seção ativa
+      edge(gp, M.L1, function () { if (!confirmOpen()) CD.subCycle(-1); });
+      edge(gp, M.R1, function () { if (!confirmOpen()) CD.subCycle(1); });
 
       // A: se o ponteiro real foi movido há pouco, clica nele (como um mouse);
       // senão, ativa o item focado (navegação por D-pad).
