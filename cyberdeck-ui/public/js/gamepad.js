@@ -75,17 +75,17 @@
   function confirmOpen() { return !!CD.pendingConfirm; }
 
   /* ---- teclado (USB / desenvolvimento no PC) ---- */
-  var ktLog = [];
+  // mapa tecla -> botão exibido na view KEYS (para acender a célula no teste pelo teclado)
+  var KB2BTN = { ArrowUp: "↑", ArrowDown: "↓", ArrowLeft: "←", ArrowRight: "→", Enter: "A", Escape: "B" };
   document.addEventListener("keydown", function (e) {
     // diagnóstico (rodapé + view KEYS, se presente)
     var lk = document.getElementById("lastkey");
     if (lk) { lk.textContent = "tecla: " + e.key; lk.classList.add("hit"); setTimeout(function () { lk.classList.remove("hit"); }, 300); }
     var kk = document.getElementById("kt-key"); if (kk) kk.textContent = e.key;
     var kd = document.getElementById("kt-detail"); if (kd) kd.textContent = "code=" + e.code + " keyCode=" + e.keyCode;
-    var cell = document.querySelector('#view-keys [data-k="' + e.key + '"]');
+    var nm = KB2BTN[e.key];
+    var cell = nm && document.querySelector('#view-keys [data-btn="' + nm + '"]');
     if (cell) { cell.classList.add("hit"); setTimeout(function () { cell.classList.remove("hit"); }, 300); }
-    var klog = document.getElementById("kt-log");
-    if (klog) { ktLog.unshift(new Date().toLocaleTimeString() + "  " + e.key + " (" + e.code + ")"); ktLog = ktLog.slice(0, 12); klog.textContent = ktLog.join("\n"); }
 
     // teclas globais (mídia/atalhos) — valem em qualquer estado
     switch (e.key) {
@@ -194,25 +194,50 @@
   function mapFor(gp) { return gp.mapping === "standard" ? GP_STD : GP_RAW; }
   var prev = [];
   var comboShot = false;
+  var ktExit = false;   // debounce do combo Start+Select p/ sair do teste de botões
   function edge(gp, idx, fn) {
     if (idx == null) return;
     var p = gp.buttons[idx] && gp.buttons[idx].pressed;
     if (p && !prev[idx]) fn();
     prev[idx] = p;
   }
+  // nome exibido na tela KEYS -> chave do mapa de índices (GP_RAW/GP_STD)
+  var KT_NAME2KEY = { "A": "A", "B": "B", "X": "X", "Y": "Y", "L1": "L1", "R1": "R1", "L2": "L2", "R2": "R2",
+    "Select": "SELECT", "Start": "START", "FN": "FN", "↑": "UP", "↓": "DOWN", "←": "LEFT", "→": "RIGHT" };
   function dump(gp) {
-    var g = document.getElementById("kt-gp"); if (g) g.textContent = '"' + gp.id + '" map=' + (gp.mapping || "raw");
-    var bc = document.getElementById("kt-buttons");
-    if (bc) { var s = ""; for (var b = 0; b < gp.buttons.length; b++) s += '<span class="' + (gp.buttons[b].pressed ? "hit" : "") + '">' + b + "</span>"; bc.innerHTML = s; }
+    var g = document.getElementById("kt-gp"); if (g) g.textContent = '"' + gp.id + '" · map=' + (gp.mapping || "raw") + " · " + gp.buttons.length + " botões";
+    var M = mapFor(gp);
+    for (var name in KT_NAME2KEY) {
+      var cell = document.querySelector('#view-keys [data-btn="' + name + '"]');
+      if (!cell) continue;
+      var idx = M[KT_NAME2KEY[name]];
+      cell.classList.toggle("hit", idx != null && !!(gp.buttons[idx] && gp.buttons[idx].pressed));
+    }
+    var f = function (v) { return (v >= 0 ? "+" : "") + v.toFixed(2); };
+    var ls = document.getElementById("kt-lstick"); if (ls && gp.axes.length >= 2) ls.textContent = "x " + f(gp.axes[0]) + " · y " + f(gp.axes[1]);
+    var rs = document.getElementById("kt-rstick"); if (rs && gp.axes.length >= 4) rs.textContent = "x " + f(gp.axes[2]) + " · y " + f(gp.axes[3]);
     var ax = document.getElementById("kt-axes");
-    if (ax) { var a = []; for (var j = 0; j < gp.axes.length; j++) a.push(j + ":" + gp.axes[j].toFixed(2)); ax.textContent = "axes " + a.join(" "); }
+    if (ax) {
+      var a = []; for (var j = 0; j < gp.axes.length; j++) a.push(j + ":" + gp.axes[j].toFixed(2));
+      var pressed = []; for (var b = 0; b < gp.buttons.length; b++) if (gp.buttons[b].pressed) pressed.push(b);
+      ax.textContent = "axes " + a.join("  ") + "\nbotões idx: " + (pressed.join(", ") || "—");
+    }
   }
   function poll() {
     var pads = navigator.getGamepads ? navigator.getGamepads() : [];
     var gp = pads && pads[0];
     if (gp) {
-      if (document.getElementById("view-keys")) dump(gp);
       var M = mapFor(gp);
+      // tela de teste de botões: captura TODOS os botões (só acende as células).
+      // Nenhuma ação de navegação dispara; sai com Start+Select juntos.
+      if (document.getElementById("view-keys")) {
+        dump(gp);
+        var st = gp.buttons[M.START] && gp.buttons[M.START].pressed;
+        var se = gp.buttons[M.SELECT] && gp.buttons[M.SELECT].pressed;
+        if (st && se) { if (!ktExit) { ktExit = true; CD.back(); } } else { ktExit = false; }
+        prev = []; // evita que soltar os botões dispare edges ao sair
+        return;
+      }
 
       // combo L2+R2 = screenshot (L1/R1 ficam livres p/ trocar subpágina, sem conflito)
       var l2 = gp.buttons[M.L2] && gp.buttons[M.L2].pressed;

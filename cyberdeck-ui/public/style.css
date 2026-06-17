@@ -288,12 +288,9 @@ pre, .box { background: #04150b; border: 1px solid var(--line); padding: 7px; ov
 ::-webkit-scrollbar-track { background: #04150b; }
 ::-webkit-scrollbar-thumb { background: var(--line); border: 1px solid var(--accent-dim); }
 
-/* key-test grid */
-.kt-grid { display: flex; flex-wrap: wrap; gap: 5px; margin: 8px 0; }
-.kt-grid span { min-width: 56px; text-align: center; padding: 7px 6px; border: 1px solid var(--line);
-  color: var(--fg-dim); background: #04150b; font-size: 13px; }
-.kt-grid span.hit { color: var(--bg); background: var(--fg); font-weight: bold; }
-.kt-btns { display: flex; flex-wrap: wrap; gap: 3px; margin: 5px 0; }
-.kt-btns span { min-width: 24px; text-align: center; padding: 4px; border: 1px solid var(--line);
-  color: var(--fg-dim); background: #04150b; font-size: 12px; }
-.kt-btns span.hit { color: var(--bg); background: var(--accent); font-weight: bold; }
+/* teste de botões: painel de células nomeadas (cores = régua do rodapé) */
+.kt-pad { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+.ktn { min-width: 54px; text-align: center; padding: 9px 8px; border: 1px solid var(--line);
+  background: var(--bg2); font-size: 15px; }
+.ktn.hit { color: var(--bg) !important; background: var(--accent); border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent); }

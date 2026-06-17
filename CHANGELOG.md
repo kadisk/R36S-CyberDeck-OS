@@ -4,6 +4,15 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added — 2026-06-16 — Tela de teste de botões (FN › Testar botões)
+- Nova **TESTE DE BOTÕES** (view `keys`, acessível pelo menu **FN**): painel com TODOS os
+  botões nomeados (L1/L2/R1/R2/Select/FN/Start/↑↓←→/A/B/X/Y) que **acendem ao pressionar**,
+  + valores dos **analógicos** esq/dir e índices crus dos botões.
+- Cores dos rótulos **padronizadas como o rodapé** (A vermelho, B amarelo, X azul, Y verde;
+  demais branco). A tela **captura todos os botões** (nenhuma navegação dispara);
+  sai com **Start+Select** juntos.
+- Corrigida referência crua "A abre no FS" no DEVICE (agora colorida via `btnize`).
+
 ### Added — 2026-06-16 — Áudio: controle de volume + teste de saída (0.8.0)
 - **lib/volume.js**: descobre o controle de volume do rk817 (`amixer scontrols`,
   cacheia), lê o nível atual (`GET /api/volume` → `{pct, muted, control}`), ajusta

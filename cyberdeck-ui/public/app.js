@@ -90,6 +90,7 @@
       var sec = function (t) { fnList.appendChild(UI.h("div", { cls: "fn-sec", text: t })); };
 
       item("=", "Ajustes", "display/áudio", function () { CD.fn.close(); CD.go("tools"); });
+      item("*", "Testar botões", "gamepad", function () { CD.fn.close(); CD.go("keys"); });
       item("@", "Auto screenshot", S.autoShot ? "ON" : "OFF", function () { CD.toggleAutoShot(); CD.fn.render(); var f = fnList.querySelector("[data-focus]"); if (f) f.focus(); });
       item("#", "Screenshot agora", "L2+R2", function () { CD.fn.close(); CD.screenshot(); });
 

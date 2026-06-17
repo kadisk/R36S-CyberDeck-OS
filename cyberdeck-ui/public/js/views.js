@@ -873,7 +873,7 @@
 
         // nós de topo do device-tree
         if (dt.nodes && dt.nodes.length) {
-          b.appendChild(h("div", { cls: "sub", text: "NÓS (" + dt.nodes.length + ") — A abre no FS" }));
+          var nh = h("div", { cls: "sub" }); nh.innerHTML = "NÓS (" + dt.nodes.length + ") — " + UI.btnize("A") + " abre no FS"; b.appendChild(nh);
           var nl = h("div", { cls: "list" });
           dt.nodes.forEach(function (n) {
             nl.appendChild(row([{ t: n.name, grow: true }, { t: n.compatible, cls: "r" }], function () {
@@ -896,23 +896,27 @@
     back: function () { return false; },
   });
 
-  /* ============================ KEYS (debug gamepad) ============================ */
+  /* ============================ KEYS (teste de botões) ============================ */
+  // classe de cor por botão — mesma régua do rodapé (A vermelho/B amarelo/X azul/Y verde; resto branco)
+  function btnClass(n) { return { A: "btn-a", B: "btn-b", X: "btn-x", Y: "btn-y" }[n] || "btn-o"; }
+  // ordem do painel imitando o layout físico (ombros, centro, d-pad, face)
+  var KT_BTNS = ["L2", "L1", "R1", "R2", "Select", "FN", "Start", "↑", "↓", "←", "→", "Y", "X", "A", "B"];
   reg({
     id: "keys", live: false,
     build: function () {
       var el = h("div", { cls: "view", id: "view-keys" });
-      el.appendChild(title("TESTE DE GAMEPAD / TECLAS"));
-      el.appendChild(h("div", { cls: "hint", text: "Aperte botões e mexa nos analógicos." }));
-      el.appendChild(h("div", { html: 'ÚLTIMA: <b id="kt-key">—</b> <span class="tb" id="kt-detail">code=—</span>' }));
-      var grid = h("div", { cls: "kt-grid" });
-      [["ArrowUp", "↑"], ["ArrowDown", "↓"], ["ArrowLeft", "←"], ["ArrowRight", "→"], ["Enter", "A"], ["Escape", "B"]].forEach(function (k) {
-        grid.appendChild(h("span", { data: { k: k[0] }, text: k[1] }));
-      });
-      el.appendChild(grid);
+      el.appendChild(title("TESTE DE BOTÕES"));
+      el.appendChild(hintB("Aperte cada controle — a célula acende quando pressionado."));
       el.appendChild(h("div", { cls: "kv" }, [h("span", { text: "GAMEPAD" }), h("b", { id: "kt-gp", text: "não detectado" })]));
-      el.appendChild(h("div", { cls: "kt-btns", id: "kt-buttons" }));
-      el.appendChild(h("div", { cls: "tb", id: "kt-axes", text: "axes —" }));
-      el.appendChild(h("pre", { cls: "box", id: "kt-log", text: "(aguardando…)" }));
+      var pad = h("div", { cls: "kt-pad" });
+      KT_BTNS.forEach(function (name) {
+        pad.appendChild(h("span", { cls: "ktn btn " + btnClass(name), data: { btn: name }, text: name }));
+      });
+      el.appendChild(pad);
+      el.appendChild(h("div", { cls: "kv" }, [h("span", { text: "ANALÓGICO ESQ" }), h("b", { id: "kt-lstick", text: "x +0.00 · y +0.00" })]));
+      el.appendChild(h("div", { cls: "kv" }, [h("span", { text: "ANALÓGICO DIR" }), h("b", { id: "kt-rstick", text: "x +0.00 · y +0.00" })]));
+      var kk = h("div", { cls: "hint" }); kk.innerHTML = 'teclado: <b id="kt-key">—</b> <span class="tb" id="kt-detail">code=—</span>'; el.appendChild(kk);
+      el.appendChild(h("pre", { cls: "box", id: "kt-axes", text: "(aguardando gamepad…)" }));
       this.el = el; return el;
     },
     show: function () { refocus(this.el); },
