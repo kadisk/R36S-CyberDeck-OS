@@ -4,6 +4,13 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Changed — 2026-06-16 — Cores fixas p/ referências de botão + bump 0.7.0
+- Referências a botões agora têm **cor fixa e negrito**: **A** vermelho, **B** amarelo,
+  **X** azul, **Y** verde; demais (L1/R1/L2/R2/FN/Start/Select) **negrito branco**.
+  Helper `CD.ui.btnize` aplicado no rodapé, modal de confirmação, menu FN e hints.
+- **Versão → 0.7.0** (ui+agente): agrupa tudo desde a 0.6.0 (que está no aparelho) —
+  os próximos screenshots caem em `v0.7.0/`.
+
 ### Changed — 2026-06-16 — Menu FN com POWER inline + ícones
 - As ações de energia (Recarregar UI, Reiniciar agente/kiosk/sistema, Desligar) agora
   ficam **inline no próprio menu FN** (não navegam mais para uma tela POWER). Reiniciar

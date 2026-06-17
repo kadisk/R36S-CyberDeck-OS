@@ -75,8 +75,9 @@
     render: function () {
       UI.clear(fnList);
       var item = function (icon, label, sub, fn, danger) {
+        var subEl = UI.h("span", { cls: "r" }); subEl.innerHTML = UI.btnize(sub || "");   // L2+R2 etc. em negrito branco
         fnList.appendChild(UI.h("div", { cls: "row" + (danger ? " fn-danger" : ""), focus: true, on: { click: fn } },
-          [UI.h("span", { cls: "fn-ic", text: icon }), UI.h("span", { cls: "grow", text: label }), UI.h("span", { cls: "r", text: sub || "" })]));
+          [UI.h("span", { cls: "fn-ic", text: icon }), UI.h("span", { cls: "grow", text: label }), subEl]));
       };
       // dispara uma ação do agente (allowlist); perigosas pedem confirmação
       var act = function (key, label, danger) {
@@ -124,10 +125,11 @@
       fs: "A: abrir · B: voltar dir · L1/R1: página",
       systemd: "A: detalhe/ação · L1/R1: página · B: voltar",
     };
-    h.textContent = map[id] || "A: ok · B: voltar · ←→: abas · ↑↓: foco";
+    var txt = map[id] || "A: ok · B: voltar · ←→: abas · ↑↓: foco";
     // sufixo L1/R1 quando a view tiver subpáginas/paginação e o hint não mencionar
     var v = views[id];
-    if (v && (v.lr || (v.subs && v.subs.length)) && h.textContent.indexOf("L1/R1") < 0) h.textContent += " · L1/R1: página";
+    if (v && (v.lr || (v.subs && v.subs.length)) && txt.indexOf("L1/R1") < 0) txt += " · L1/R1: página";
+    h.innerHTML = UI.btnize(txt);   // A/B/X/Y coloridos; L1/R1/FN… negrito branco
   }
 
   /* ---- topbar + status polling ---- */

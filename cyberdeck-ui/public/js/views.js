@@ -30,6 +30,7 @@
   function reg(impl) { V[impl.id] = impl; }
   function title(t) { return h("div", { cls: "vtitle", text: t }); }
   function refocus(el) { if (CD.focusFirst) CD.focusFirst(el); }
+  function hintB(t) { var d = h("div", { cls: "hint" }); d.innerHTML = UI.btnize(t); return d; }  // hint c/ botões coloridos
 
   /* ---- subpáginas (L1/R1) — evitam scroll dividindo a tela em seções ---- */
   function subIndex(id) { var v = V[id]; var n = (v && v.subs) ? v.subs.length : 0; var i = CD.state.sub[id] || 0; return n ? ((i % n) + n) % n : 0; }
@@ -688,7 +689,7 @@
         if (!S.cmd.cat) {
           // nível 1: CATEGORIAS (cabe em uma tela)
           el.appendChild(title("COMANDOS"));
-          el.appendChild(h("div", { cls: "hint", text: "Escolha a categoria · A abre · B volta" }));
+          el.appendChild(hintB("A abrir · B voltar"));
           var grid = h("div", { cls: "cards" });
           Object.keys(cats).forEach(function (cat) {
             grid.appendChild(h("div", { cls: "card", focus: true, on: { click: (function (c) { return function () { S.cmd.cat = c; self.renderList(); }; })(cat) } }, [
@@ -700,7 +701,7 @@
         } else {
           // nível 2: comandos da categoria
           el.appendChild(title("CMD · " + S.cmd.cat.toUpperCase()));
-          el.appendChild(h("div", { cls: "hint", text: "A executa · B volta às categorias" }));
+          el.appendChild(hintB("A executar · B voltar"));
           var list = h("div", { cls: "list" });
           (cats[S.cmd.cat] || []).forEach(function (c) {
             list.appendChild(row([

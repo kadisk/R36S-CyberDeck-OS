@@ -35,6 +35,16 @@
     return UI.h("div", { cls: "kv" }, [UI.h("span", { text: label }), UI.h("b", { text: value == null || value === "" ? "—" : String(value) })]);
   };
 
+  /* estiliza referências a botões num texto: A/B/X/Y coloridos, demais negrito branco.
+     Retorna HTML (escapado). Use com innerHTML. */
+  var BTN_CLS = { A: "btn-a", B: "btn-b", X: "btn-x", Y: "btn-y" };
+  function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+  UI.btnize = function (str) {
+    return esc(str).replace(/\b(L1|R1|L2|R2|FN|Start|Select|A|B|X|Y)\b/g, function (m) {
+      return '<b class="btn ' + (BTN_CLS[m] || "btn-o") + '">' + m + "</b>";
+    });
+  };
+
   /* badge de estado a partir de um "kind": ok|warn|crit|off|run */
   UI.badge = function (text, kind) { return UI.h("span", { cls: "badge " + (kind || "off"), text: text }); };
 

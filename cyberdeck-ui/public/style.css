@@ -21,6 +21,15 @@
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* referência a botões do gamepad: negrito + cor fixa (A vermelho, B amarelo,
+   X azul, Y verde; demais botões — L1/R1/L2/R2/FN/Start/Select — negrito branco) */
+.btn { font-weight: bold; }
+.btn-a { color: #ff5566; }   /* A */
+.btn-b { color: #ffd23d; }   /* B */
+.btn-x { color: #5b8cff; }   /* X */
+.btn-y { color: #4dff9e; }   /* Y */
+.btn-o { color: #ffffff; }   /* outros botões */
+
 html, body {
   width: 640px; height: 480px; overflow: hidden;
   background: var(--bg); color: var(--fg);
