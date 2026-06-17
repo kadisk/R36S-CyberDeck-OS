@@ -31,6 +31,14 @@
   function title(t) { return h("div", { cls: "vtitle", text: t }); }
   function refocus(el) { if (CD.focusFirst) CD.focusFirst(el); }
   function hintB(t) { var d = h("div", { cls: "hint" }); d.innerHTML = UI.btnize(t); return d; }  // hint c/ botões coloridos
+  // metric tile (bloco) com valor + barra ou sub-rótulo
+  function tile(lbl, val, opts) {
+    opts = opts || {};
+    var t = h("div", { cls: "tile " + (opts.lvl || "") }, [h("div", { cls: "tile-lbl", text: lbl }), h("div", { cls: "tile-val", text: val })]);
+    if (opts.bar >= 0) { var bar = h("div", { cls: "tile-bar" }); var i = h("i"); i.style.width = Math.max(0, Math.min(100, opts.bar)) + "%"; bar.appendChild(i); t.appendChild(bar); }
+    else if (opts.sub) t.appendChild(h("div", { cls: "tile-sub", text: opts.sub }));
+    return t;
+  }
 
   /* ---- subpáginas (L1/R1) — evitam scroll dividindo a tela em seções ---- */
   function subIndex(id) { var v = V[id]; var n = (v && v.subs) ? v.subs.length : 0; var i = CD.state.sub[id] || 0; return n ? ((i % n) + n) % n : 0; }
@@ -199,18 +207,24 @@
       if (!d) { b.appendChild(UI.loading()); return; }
       var sub = subKey("status");
       if (sub === "AO VIVO") {
-        b.appendChild(UI.gauge("CPU", d.cpu >= 0 ? d.cpu : 0));
-        if (d.mem) b.appendChild(UI.gauge("RAM", d.mem.pct));
+        var l1 = d.load_arr ? d.load_arr[0] : -1;
+        var tg = h("div", { cls: "tiles" });
+        tg.appendChild(tile("CPU", (d.cpu >= 0 ? Math.round(d.cpu) : 0) + "%", { bar: d.cpu, lvl: UI.level("ram", d.cpu) }));
+        tg.appendChild(tile("RAM", d.mem ? Math.round(d.mem.pct) + "%" : "—", { bar: d.mem ? d.mem.pct : -1, lvl: UI.level("ram", d.mem ? d.mem.pct : 0) }));
+        tg.appendChild(tile("TEMP", d.temp >= 0 ? d.temp + "°" : "—", { sub: UI.level("temp", d.temp) === "ok" ? "ok" : "alto", lvl: UI.level("temp", d.temp) }));
+        tg.appendChild(tile("LOAD", l1 >= 0 ? l1 : "—", { sub: (d.cores || "?") + " cores", lvl: UI.level("loadPerCore", l1, d.cores) }));
+        b.appendChild(tg);
         b.appendChild(UI.kv("MEM", d.mem ? (d.mem.used + " / " + d.mem.total + " MB") : "—"));
-        b.appendChild(UI.kv("LOAD", d.load + "  (" + (d.cores || "?") + " cores)"));
-        b.appendChild(UI.kv("TEMP", d.temp >= 0 ? d.temp + " °C" : "—"));
         b.appendChild(UI.kv("UPTIME", UI.fmt.uptime(d.uptime)));
         var n = (d.net && d.net[0]) || {};
-        b.appendChild(UI.kv("REDE", n.iface ? (n.iface + " " + n.ip) : "(sem rede)"));
+        b.appendChild(UI.kv("REDE", n.iface ? (n.iface + " " + n.ip) : "sem rede"));
       } else if (sub === "ENERGIA") {
         var bt = d.battery || {}, lowTrust = bt.capacity_trust === "low";
-        b.appendChild(UI.kv("BAT ~", (bt.est >= 0 ? bt.est + "%" : "—") + (bt.volt > 0 ? " · " + bt.volt + " V" : "") + (bt.curr !== -1 && bt.curr != null ? " · " + bt.curr + " mA" : "")));
-        b.appendChild(UI.kv("ESTADO", (bt.ac === 1 ? "carregando [AC]" : (bt.status || "—")) + (bt.ocv > 0 ? " · OCV " + bt.ocv + " V" : "")));
+        var mc = h("div", { cls: "minicards" });
+        mc.appendChild(UI.mcard("BAT", bt.est >= 0 ? bt.est + "%" : "—", bt.ac === 1 ? "carregando" : "estimado"));
+        mc.appendChild(UI.mcard("TENSÃO", bt.volt > 0 ? bt.volt + "V" : "—", (bt.curr !== -1 && bt.curr != null ? bt.curr + " mA" : "")));
+        mc.appendChild(UI.mcard("OCV", bt.ocv > 0 ? bt.ocv + "V" : "—", bt.status || ""));
+        b.appendChild(mc);
         b.appendChild(UI.kv("RAW (rk817)", (bt.pct >= 0 ? bt.pct + "% capacity" : "—") + (lowTrust ? " · instável" : "")));
         if (d.brightness && d.brightness.pct >= 0) b.appendChild(UI.gauge("BRILHO", d.brightness.pct));
         b.appendChild(UI.kv("TEMP", d.temp >= 0 ? d.temp + " °C" : "—"));
@@ -280,7 +294,7 @@
         kvGroup(b, "ARMAZENAMENTO", (hw.storage || []).map(function (s) { return [s.dev, s.gb + " GB" + (s.ro ? " (ro)" : "") + (s.model ? " · " + s.model : "")]; }));
       } else if (sub === "BOOT") {
         kvGroup(b, "", [["VERSION", k.version], ["MODELO DT", k.dtb_model || hw.model], ["MÓDULOS", k.modules_count]]);
-        b.appendChild(h("div", { cls: "hint", text: "cmdline, dmesg e módulos completos na aba KERNEL" }));
+        b.appendChild(h("div", { cls: "hint", text: "detalhes completos em KERNEL" }));
       } else { // INPUT
         (ip.devices || []).forEach(function (dv) { b.appendChild(UI.kv((dv.joypad ? "* " : "") + (dv.event || "?"), dv.name)); });
         b.appendChild(h("div", { cls: "sub", text: "USB" }));
@@ -374,14 +388,16 @@
       if (S.systemd.mode === "detail") return this.renderDetail();
       var self = this, el = UI.clear(this.el);
       this.titleEl = title("SERVIÇOS"); el.appendChild(this.titleEl);
-      // resumo COMPACTO: estado + contagem numa linha (libera espaço p/ a lista)
-      var sumHost = h("div"); el.appendChild(sumHost);
+      // resumo como PAINEL (estado + contagem numa linha) — cara de alerta operacional
+      var sumHost = h("div", { cls: "panel" }); el.appendChild(sumHost);
       api.get("/api/systemd/summary").then(function (s) {
         UI.clear(sumHost);
         var badge = s.state === "running" ? "ok" : s.state === "degraded" ? "warn" : "off";
-        var k = UI.kv("ESTADO", ""); k.lastChild.appendChild(UI.badge(s.state, badge));
-        UI.append(k.lastChild, "  " + s.units_total + " units · " + s.running + " run · " + s.failed + " falhos");
-        sumHost.appendChild(k);
+        sumHost.classList.toggle("panel-emphasis", s.failed > 0);
+        var line = h("div", { cls: "svc-sum" });
+        line.appendChild(UI.badge(s.state, badge));
+        UI.append(line, "  " + s.units_total + " units · " + s.running + " run · " + s.failed + " falhos");
+        sumHost.appendChild(line);
       }).catch(function () {});
       var tb = h("div", { cls: "toolbar" });
       SD_FILTERS.forEach(function (f) {

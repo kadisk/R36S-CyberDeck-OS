@@ -78,7 +78,8 @@ body.pointer-on, body.pointer-on * { cursor: default !important; }
 
 /* ---------- painéis / superfícies (V4) ---------- */
 .panel { background: var(--bg2); border: 1px solid var(--line); padding: 7px; }
-.panel-emphasis { background: #082015; border-color: var(--accent-dim); }
+.panel-emphasis { background: #1a1405; border-color: var(--warn); }
+.svc-sum { font-size: 14px; }
 
 /* mini-cards (DEVICE) + key/value em 2 colunas */
 .minicards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 8px; }
@@ -188,12 +189,13 @@ body.pointer-on, body.pointer-on * { cursor: default !important; }
 
 /* foco REFINADO: barra lateral ciano + fundo sutil (não bloco preenchido).
    Mantém o texto na cor original; realça o principal em ciano. */
+/* foco em 3 camadas: barra lateral ciano + borda ciano fina + fundo sutil */
 [data-focus]:focus, .focusable:focus, .card:focus, .row:focus {
   outline: none;
   background: rgba(0,224,255,.12);
-  box-shadow: inset 3px 0 0 var(--accent);
+  box-shadow: inset 3px 0 0 var(--accent), inset 0 0 0 1px rgba(0,224,255,.28);
 }
-.card:focus { box-shadow: inset 3px 0 0 var(--accent); }
+.card:focus { box-shadow: inset 3px 0 0 var(--accent), inset 0 0 0 1px rgba(0,224,255,.28); }
 .card:focus .ti { color: var(--accent); }
 .row:focus .grow, .row:focus .c { color: var(--fg); }
 /* pre/box (output, arquivo, logs): foco discreto, SEM preencher de ciano */
@@ -207,8 +209,12 @@ pre:focus, .box:focus { outline: none; background: #04150b; box-shadow: inset 0 
   border: 1px solid var(--line); font: inherit; font-size: 11px; letter-spacing: .5px;
   padding: 3px 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.subtab.on { background: var(--accent-dim); color: var(--fg); border-color: var(--accent); }
-.subtab:focus { background: rgba(0,224,255,.14); color: var(--accent); border-color: var(--accent); outline: none; }
+/* subaba ativa: underline ciano + fundo sutil (segment control, não bloco cheio) */
+.subtab.on { background: rgba(0,224,255,.08); color: var(--accent); border-color: var(--line); box-shadow: inset 0 -2px 0 var(--accent); }
+.subtab:focus { background: rgba(0,224,255,.16); color: var(--accent); border-color: var(--accent); outline: none; }
+
+/* microfeedback de foco/estado (100ms) — sem animação contínua (render por software) */
+.row, .card, .chip, .subtab, .tab, .alert { transition: background-color 100ms linear, box-shadow 100ms linear; }
 
 /* ---------- toolbar (filtros/ordenação) ---------- */
 .toolbar { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }

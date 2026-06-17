@@ -4,6 +4,15 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Changed — 2026-06-16 — V4 final: foco 3 camadas, STATUS com blocos, subabas underline
+- **Foco em 3 camadas**: barra lateral ciano + **borda ciano fina** + fundo sutil.
+- **STATUS** preenchido com blocos: AO VIVO usa **metric tiles** (CPU/RAM/TEMP/LOAD);
+  ENERGIA usa **mini-cards** (BAT/TENSÃO/OCV) + brilho — fim da "tela meio vazia".
+- **Subabas** com **underline** ciano (segment control), não bloco preenchido.
+- **SVC**: resumo num **painel** (âmbar quando degradado) — cara de alerta operacional.
+- **Microfeedback** de foco (transição 100ms, sem animação contínua).
+- Microcopy: "detalhes completos em KERNEL".
+
 ### Changed — 2026-06-16 — V4: painéis + DEVICE com mini-cards (CPU/DISPLAY)
 - **DEVICE · CPU**: mini-cards (SoC/RAM/GPU) + frequências por núcleo em **2 colunas** +
   temps/zram/governor — menos lista crua, mais painel.
