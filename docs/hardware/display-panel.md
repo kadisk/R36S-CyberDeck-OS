@@ -25,11 +25,12 @@
 - **Backlight controlável** via `/sys/class/backlight/*/brightness` — a UI pode
   expor um controle de brilho.
 
-## Caminho gráfico planejado
+## Caminho gráfico (versão final)
 
-1. **DRM/KMS direto** sobre a VOP — sem X11. Ver `docs/graphics/drm-kms-plan.md`.
-2. Runtime web desenha via EGL/GLES (Mali) ou software, em fullscreen.
-3. Sem compositor pesado: **Cage** (Wayland kiosk) ou render direto.
+O caminho acelerado (DRM/KMS + EGL/GLES Mali, ou Wayland/Cage) **não vingou** — o blob
+Mali (2020) tem GBM antigo demais. A versão final usa **Xorg com driver `fbdev` em
+`/dev/fb0`** (render por software) + **Chromium `--kiosk`**, sobre o **kernel BSP** (o
+único que acende este painel). Por que cada muro caiu: [`../JORNADA.md`](../JORNADA.md).
 
 ## A confirmar no R36S físico
 

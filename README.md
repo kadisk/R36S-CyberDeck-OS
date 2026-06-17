@@ -8,8 +8,16 @@ não depende de emuladores.
 > ✅ **Funciona no R36S físico:** a UI web renderiza na tela e é **navegável pelo
 > gamepad**, com dados do sistema **ao vivo** (CPU, RAM, bateria, rede).
 
+<p align="center">
+  <img src="docs/photos/device-boot-splash.jpg" alt="R36S físico rodando o CyberDeck OS — splash de boot" width="440">
+</p>
+
+<p align="center"><sub>O <b>R36S físico</b> rodando o CyberDeck OS — da splash de boot à UI web navegável pelo gamepad.<br>Mais fotos do aparelho em <a href="#no-aparelho-real">No aparelho real</a> · capturas de tela na <a href="#galeria">Galeria</a>.</sub></p>
+
 A história de como se chegou aqui — e **as outras tentativas/imagens que não deram
 certo** — está em [`docs/JORNADA.md`](docs/JORNADA.md).
+
+> 🛠️ **Tem um R36S e quer testar?** Pule direto para o [passo a passo de gravação](#testar-no-seu-r36s-passo-a-passo).
 
 ---
 
@@ -18,6 +26,36 @@ certo** — está em [`docs/JORNADA.md`](docs/JORNADA.md).
 - Uma distro Linux enxuta para o R36S, cuja cara é uma **UI web própria** (640×480).
 - Um **CyberDeck**: status do sistema, rede, ferramentas, logs — não um console.
 - A UI ([`cyberdeck-ui/`](cyberdeck-ui/)) é HTML/JS sem dependências, em modo kiosk.
+
+## No aparelho real
+
+Fotos do **R36S físico** (azul translúcido) rodando o CyberDeck OS — não é mockup nem
+emulador: boota no aparelho, acende o painel e navega pelos botões.
+
+| | |
+|---|---|
+| ![HOME no aparelho](docs/photos/device-home.jpg) | ![HOME em paisagem](docs/photos/device-home-landscape.jpg) |
+| **HOME na tela do R36S** — UI web em Chromium kiosk | **A mesma HOME**, tela legível de perto |
+| ![Console de boot](docs/photos/device-boot-console.jpg) | ![Splash de boot](docs/photos/device-boot-splash.jpg) |
+| **Boot** — kernel BSP 4.4 sobe e detecta o joypad | **Splash** — logo do projeto antes da UI |
+
+## Galeria
+
+Capturas de tela **reais do R36S físico** (640×480), tiradas no próprio aparelho (`L2+R2`).
+
+![HOME — cockpit do CyberDeck](docs/screenshots/home.png)
+
+<sub>HOME (cockpit): faixa de alertas, *metric tiles* (CPU/RAM/TEMP/BAT) e cards das seções.</sub>
+
+
+| | | |
+|---|---|---|
+| ![STATUS ao vivo](docs/screenshots/status-live.png) | ![STATUS energia](docs/screenshots/status-energy.png) | ![PROCS](docs/screenshots/procs.png) |
+| **STATUS** — CPU/RAM/temp/load ao vivo | **STATUS · ENERGIA** — bateria por OCV (rk817) | **PROCS** — processos via `/proc` |
+| ![NET](docs/screenshots/net.png) | ![FS](docs/screenshots/fs.png) | ![SVC](docs/screenshots/svc.png) |
+| **NET** — interfaces, rota, DNS, conexões | **FS** — navegação read-only do rootfs | **SVC** — systemd: status, logs, ações |
+| ![LOGS](docs/screenshots/logs.png) | ![CMD](docs/screenshots/cmd.png) | ![DEVICE](docs/screenshots/device.png) |
+| **LOGS** — dmesg / journal / unidades | **CMD** — comandos por categoria (allowlist) | **DEVICE** — hardware, kernel, boot |
 
 ## Base e como ela foi montada
 
@@ -65,22 +103,45 @@ Sem Wi-Fi/Ethernet internos — rede só via **dongle USB**.
 
 ---
 
-## Como construir e gravar
+## Testar no seu R36S (passo a passo)
 
-Pré-requisitos no host: `debootstrap`, `qemu-aarch64-static` (+binfmt),
-`aarch64-linux-gnu-gcc`, `mtools`. As ações que mexem em cartão são **scripts
-`sudo` separados** e seguras (allowlist + fingerprint do cartão).
+Tem um R36S e quer ver rodando? São **~30 min** (a maior parte é o build). Você precisa
+de um **PC Linux**, um **microSD vazio de teste** (≥ 8 GB) e um leitor de cartão.
 
+> ⚠️ **Use um microSD separado** — não o cartão do ArkOS. Confira a letra do device
+> (`/dev/sdX`) antes de gravar: gravar no disco errado apaga dados.
+
+**1. Pré-requisitos no PC** (Debian/Ubuntu):
 ```bash
-# 1) Construir a imagem (usa todos os cores do host)
-sudo scripts/build-x11-rootfs.sh          # gera a .img e registra a imagem 'x11'
-
-# 2) Autorizar seu microSD DE TESTE (uma vez) e gravar por NOME
-sudo scripts/sdcard/sd-allow.sh           # registra o cartão na allowlist
-sudo scripts/sdcard/sd-update.sh <cartao> x11   # grava a imagem 'x11' no cartão
+sudo apt install -y debootstrap qemu-user-static binfmt-support \
+                    gcc-aarch64-linux-gnu mtools
 ```
 
-Iteração rápida (sem regravar 4 GB):
+**2. Imagem de boot do ArkOS** (referência de hardware — usada **somente leitura**):
+> Só o **kernel+DTB BSP do ArkOS acende o painel** deste R36S, então o build clona a
+> região de boot de uma imagem ArkOS. Baixe o ArkOS do seu R36S e coloque o `.img` em
+> `../Backups/ArkOS/` (irmão deste repo). O ArkOS **nunca é modificado**.
+
+**3. Construir a imagem** (usa todos os cores; ~20–30 min):
+```bash
+sudo scripts/build-x11-rootfs.sh
+# → gera artifacts/test-images/r36s-cyberdeck-x11.img
+```
+
+**4. Gravar no microSD.** Jeito mais simples (qualquer SO): abra a `.img` no
+[**balenaEtcher**](https://etcher.balena.io/) e grave. Ou via `dd` no Linux:
+```bash
+lsblk                                    # ache o device do cartão (ex.: /dev/sdb)
+sudo dd if=artifacts/test-images/r36s-cyberdeck-x11.img of=/dev/sdX \
+        bs=4M conv=fsync status=progress
+```
+> Ou use o **kit seguro** do projeto (recusa disco do sistema, grava por nome):
+> `sudo scripts/sdcard/sd-allow.sh /dev/sdX cartao-teste && sudo scripts/sdcard/sd-update.sh cartao-teste x11`
+
+**5. Bootar.** Ponha o microSD no **slot do R36S** (o de baixo, não o do sistema) e
+ligue. Você verá a **splash → HOME**. Navegue pelos botões (veja [Controles](#controles-navegação-pelo-gamepad)).
+
+### Iteração rápida (sem regravar 4 GB)
 
 ```bash
 sudo scripts/sdcard/sd-update-ui.sh <cartao>          # empurra só a UI (HTML/JS) p/ o cartão

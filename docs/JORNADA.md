@@ -2,8 +2,8 @@
 
 Registro honesto de **tudo que foi tentado**, o que funcionou, o que falhou e
 **por quê** — para futuros testes e melhorias, e para entender o caminho. A
-arquitetura final está no [`../README.md`](../README.md). Cada fase tem um doc de
-resultado detalhado em [`testing/results/`](testing/results/).
+arquitetura final está no [`../README.md`](../README.md). A versão final (Fase 5) tem
+doc de resultado em [`testing/results/`](testing/results/).
 
 > **Objetivo do projeto:** transformar o R36S (Rockchip RK3326) num CyberDeck com
 > **UI em HTML/JS** (não é distro de jogos, não é EmulationStation), rodando no
@@ -42,7 +42,7 @@ joypad **`odroidgo3-joypad`** (mapa dos 17 botões). Docs: [`hardware/`](hardwar
   "ROOTFS OK", kernel 4.4.189, shell BusyBox na tela).
 
 **Aprendizado-chave:** **nunca recriar o MBR** — clonar o do ArkOS. Imagem gerada por
-script, sem root, sem gravar em `/dev/sdX`. Detalhe: [`testing/results/phase2-2026-06-15.md`](testing/results/phase2-2026-06-15.md).
+script, sem root, sem gravar em `/dev/sdX`.
 
 ## Fase 3 — Tela e input (✅, caminho nativo)
 Probe no aparelho: tela **640×480 32bpp** (`/dev/fb0`), joypad em **`/dev/input/event1`**
@@ -53,7 +53,6 @@ Probe no aparelho: tela **640×480 32bpp** (`/dev/fb0`), joypad em **`/dev/input
   bateria (RK817) inclusos. É a **UI nativa alternativa** (leve), mantida no repo.
 
 Mas o objetivo do projeto é **UI web (HTML/JS)** — daí as Fases 4/5.
-Detalhe: [`testing/results/phase3-2026-06-15.md`](testing/results/phase3-2026-06-15.md).
 
 ## Fase 4 — Web acelerado por Wayland + blob Mali (⛔ beco sem saída)
 **Plano:** rootfs Debian + `cog`/WPE WebKit renderizando no DRM com EGL/GLES da
@@ -68,8 +67,7 @@ Mali-G31 (blob `libMali.so` do ArkOS).
   resolve.**
 
 **Conclusão:** web acelerada neste hardware exigiria driver Mali **aberto e moderno**.
-Scripts em [`../experiments/`](../experiments/). Detalhe:
-[`testing/results/phase4-2026-06-15.md`](testing/results/phase4-2026-06-15.md).
+Scripts em [`../experiments/`](../experiments/).
 
 ## Fase 5b — Kernel mainline + Panfrost + Mesa (⛔ beco sem saída)
 **Ideia:** trocar BSP 4.4 + blob Mali por **mainline 6.x + Panfrost + Mesa** (GBM/EGL
@@ -82,8 +80,7 @@ modernos), reusando kernel+DTB de distros R36S mainline (Arch-R, ROCKNIX, nixos-
   DTB são **acoplados**.
 
 **Conclusão central de hardware:** **somente o kernel+DTB BSP do ArkOS dirige o painel
-`elida,kd35t133` deste aparelho.** Scripts/plano em [`../experiments/`](../experiments/)
-e [`mainline/phase5-mainline-panfrost-plan.md`](mainline/phase5-mainline-panfrost-plan.md).
+`elida,kd35t133` deste aparelho.** Scripts em [`../experiments/`](../experiments/).
 
 Distros prontas testadas no painel (todas ❌ exceto o caminho BSP): armbian, knulli,
 ROCKNIX, Arch-R original, arkos-r3xs.

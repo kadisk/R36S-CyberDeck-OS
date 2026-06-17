@@ -16,8 +16,9 @@ Mali-G31). **Electron NÃO é a primeira opção** (pesado demais).
 
 ## Recomendação
 
-- **Render:** **WPE WebKit** sob **Cage** (Wayland kiosk) — ver
-  `docs/graphics/fullscreen-kiosk-stack.md`.
+- **Render:** **WPE WebKit** sob **Cage** (Wayland kiosk) — *não vingou neste hardware
+  (GBM antigo do blob Mali); a versão final usa Chromium kiosk sobre Xorg fbdev. Ver
+  [`../JORNADA.md`](../JORNADA.md).*
 - **Dados do sistema:** um **agente local leve** (shell ou Node mínimo) expõe
   CPU/RAM/rede/bateria via arquivo JSON ou WebSocket; a UI consome.
 - **Terminal:** pty exposto por WebSocket (ex.: `ttyd`/`xterm.js`) ou um terminal

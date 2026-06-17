@@ -12,6 +12,8 @@
 # Imagens de SD / kernels / dtbs soltos
 *.img
 *.img.gz
+*.img.xz
+*.xz
 *.dtb
 Image
 zImage

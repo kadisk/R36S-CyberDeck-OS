@@ -5,6 +5,11 @@
 UI única, fullscreen, **640×480**, navegável só por botões do R36S. Visual de
 "cyberdeck/terminal", leve, sem frameworks pesados na v1.
 
+![HOME no R36S físico](../screenshots/home.png)
+
+<sub>HOME (cockpit) no R36S físico — faixa de alertas, *metric tiles* e cards das
+seções. Mais telas na [Galeria do README](../../README.md#galeria).</sub>
+
 ## Camadas
 
 ```
@@ -55,7 +60,11 @@ UI única, fullscreen, **640×480**, navegável só por botões do R36S. Visual 
 
 Implementação: ouvir **Gamepad API** quando disponível; senão, um agente lê
 `/dev/input/js0` e injeta `keydown` (setas/Enter/Esc). Ver
-`docs/hardware/input-buttons.md`.
+[`../hardware/input-buttons.md`](../hardware/input-buttons.md).
+
+Exemplo do padrão **mestre→detalhe** (lista → item com ações), aqui em PROCS:
+
+![PROCS — detalhe do processo](../screenshots/procs-detail.png)
 
 ## Evolução
 

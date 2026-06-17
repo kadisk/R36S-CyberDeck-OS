@@ -19,8 +19,7 @@ Abordagem em fases. Cada fase tem um critério de "feito" verificável.
       (`console=tty1`) e `root=UUID` da nossa rootfs.
 - [x] Rootfs mínimo próprio (BusyBox aarch64) com init/inittab/rcS/banner.
 - [x] Geração da imagem `.img` por script, sem root e sem gravar em `/dev/sdX`.
-- [x] **Boot confirmado no R36S físico** (2026-06-15) — ver
-      `docs/testing/results/phase2-2026-06-15.md`.
+- [x] **Boot confirmado no R36S físico** (2026-06-15) — ver [`JORNADA.md`](JORNADA.md) (Fase 2).
 - [x] Coleta automática de hardware no boot (grava na BOOT) para alimentar a Fase 3.
 - **Aprendizado-chave:** NÃO recriar o MBR (sfdisk não bootou — tela apagada);
   **clonar o MBR+bootloader+FAT do ArkOS** e trocar só `boot.ini`+rootfs.
@@ -36,8 +35,7 @@ Abordagem em fases. Cada fase tem um critério de "feito" verificável.
 - **Confirmado:** UI na tela navegável pelos botões do R36S (2026-06-15).
 
 ## Fase 4 — Runtime web (WPE) com blob Mali  ◄ **BLOQUEADA (achado documentado)**
-Plano: `docs/web-ui/phase4-wpe-plan.md`. Resultado em
-`docs/testing/results/phase4-2026-06-15.md`.
+Narrativa e causa-raiz: [`JORNADA.md`](JORNADA.md) (Fase 4).
 - [x] **4a** — rootfs **Debian arm64 bootou** no R36S.
 - [x] **4b** — Mali EGL/GLES wired; cog DRM **inicializa e a `index.html` CARREGA**.
 - [~] **4c** — bloqueado: cog DRM **segfaulta no swap de buffer**; `cage`/wlroots nem
@@ -49,7 +47,7 @@ Plano: `docs/web-ui/phase4-wpe-plan.md`. Resultado em
 ## Fase 5 — Runtime web NA TELA  ◄ **✅ VENCIDA (via BSP + X11 + Chromium)**
 A UI HTML/JS renderiza no R36S! Caminho vencedor: **kernel BSP** (painel acende) +
 **Xorg fbdev** + **Chromium kiosk** com a `cyberdeck-ui` (`scripts/build-x11-rootfs.sh`,
-imagem `x11`). Detalhes/lições: `docs/testing/results/phase5-x11-2026-06-15.md`.
+imagem `x11`). Detalhes/lições: [`testing/results/phase5-x11-2026-06-15.md`](testing/results/phase5-x11-2026-06-15.md).
 - [x] UI web exibindo no aparelho físico.
 - [x] **Navegável pelo gamepad** — o Chromium expõe o joypad pela **Gamepad API**;
       `app.js` faz a navegação direta (L1/R1+D-pad ←→ = abas, ↑↓ = foco, A/Start =
@@ -75,6 +73,6 @@ imagem `x11`). Detalhes/lições: `docs/testing/results/phase5-x11-2026-06-15.md
 - [ ] Terminal real na aba TERMINAL (ponte pty/WebSocket).
 - [ ] Otimizar boot (tempo, serviços) e RAM (zram já ativo).
 - [ ] Ações de FERRAMENTAS (Wi-Fi dongle, reiniciar UI, desligar) ligadas ao agente.
-- [ ] (futuro) Empacotamento reproduzível por Buildroot (`docs/buildroot/strategy.md`).
+- [ ] (futuro) Empacotamento reproduzível por Buildroot.
 - [ ] (futuro, difícil) Rootfs 100% sem depender do boot ArkOS — exige resolver o
       painel fora do kernel BSP (hoje só o BSP acende). Ver [`JORNADA.md`](JORNADA.md).
