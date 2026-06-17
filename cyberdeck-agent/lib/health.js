@@ -34,7 +34,7 @@ async function get() {
   const add = (lvl, label, target) => { items.push({ level: lvl, label: label, target: target }); level = worst(level, lvl); };
 
   // systemd
-  if (sd.failed_count > 0) add("warn", sd.failed_count + " serviço(s) com falha" + (sd.failed_units[0] ? ": " + sd.failed_units[0].replace(/\.service$/, "") : ""), "systemd");
+  if (sd.failed_count > 0) add("warn", sd.failed_count + (sd.failed_count > 1 ? " serviços em falha" : " serviço em falha") + (sd.failed_units[0] ? ": " + sd.failed_units[0].replace(/\.service$/, "") : ""), "systemd");
   else if (sd.state && sd.state !== "running" && sd.state !== "?") add("warn", "systemd " + sd.state, "systemd");
 
   // temperatura

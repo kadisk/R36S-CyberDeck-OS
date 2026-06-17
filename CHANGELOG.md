@@ -4,6 +4,14 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Fixed — 2026-06-16 — Polimento pós-validação no R36S (v0.6.0 no aparelho)
+- **Tag [SAFE]/[DIAG] do CMD não trunca mais** (vista cortada como "[SAF…" no aparelho):
+  coluna mais larga + fonte menor. FS type idem.
+- **Separadores mais leves** (kv/linhas) — menos ruído visual (relatório V4).
+- Microcopy: "N serviços em falha" (singular/plural) no alerta de saúde.
+- Validado no R36S físico (v0.6.0): HOME cockpit, menu FN→POWER, foco refinado, subpáginas
+  L1/R1, CMD drill-down e screenshots versionados/sequenciais funcionando.
+
 ### Changed — 2026-06-16 — Screenshots organizados por versão da UI
 - Os prints agora ficam em **subpasta por versão**: `/root/screenshots/v0.6.0/shot-0001.png`…
   A UI envia `CD.VERSION` no `POST /api/screenshot`; o agente sanitiza (bloqueia path

@@ -68,7 +68,7 @@ body.pointer-on, body.pointer-on * { cursor: default !important; }
 .sub { font-size: 13px; color: var(--accent); letter-spacing: 1px; margin: 8px 0 3px; }
 
 /* ---------- key/value ---------- */
-.kv { display: flex; justify-content: space-between; gap: 8px; padding: 3px 0; border-bottom: 1px dotted var(--line2); }
+.kv { display: flex; justify-content: space-between; gap: 8px; padding: 3px 0; border-bottom: 1px dotted rgba(45,255,150,.10); }
 .kv span { color: var(--fg-dim); white-space: nowrap; }
 .kv b { color: var(--fg); text-align: right; max-width: 70%; overflow-wrap: anywhere; }
 
@@ -118,7 +118,7 @@ body.pointer-on, body.pointer-on * { cursor: default !important; }
 .list { list-style: none; }
 .row {
   display: flex; gap: 6px; align-items: baseline; padding: 4px 6px;
-  border-bottom: 1px solid var(--line2); font-size: 15px; white-space: nowrap;
+  border-bottom: 1px solid rgba(45,255,150,.08); font-size: 15px; white-space: nowrap;
   overflow: hidden;
 }
 .row .c { overflow: hidden; text-overflow: ellipsis; }
@@ -133,12 +133,13 @@ body.pointer-on, body.pointer-on * { cursor: default !important; }
 .pbar-h { width: 46px; flex: none; text-align: center; color: var(--accent); }
 .row:focus .pbar { border-color: var(--accent); }
 
-/* tags de risco (CMD) */
-.row .tag-safe { color: var(--fg-dim); flex: none; width: 48px; }
-.row .tag-diag { color: var(--warn); flex: none; width: 48px; }
+/* tags de risco (CMD) — fonte menor + largura suficiente p/ não truncar "[SAFE]" */
+.row .tag-safe, .row .tag-diag { flex: none; width: 56px; font-size: 12px; }
+.row .tag-safe { color: var(--fg-dim); }
+.row .tag-diag { color: var(--warn); }
 
 /* coluna de tipo (FS) */
-.row .fstype { color: var(--fg-dim); flex: none; width: 42px; }
+.row .fstype { color: var(--fg-dim); flex: none; width: 46px; font-size: 12px; }
 .row .fstype.t-dir { color: var(--accent); }
 .row .fstype.t-symlink { color: var(--warn); }
 
