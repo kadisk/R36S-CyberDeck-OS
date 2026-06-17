@@ -21,7 +21,6 @@
     { id: "systemd", title: "SVC",     icon: "*", desc: "Serviços systemd",         group: "SISTEMA",     tab: true },
     { id: "cmd",     title: "CMD",     icon: ">", desc: "Comandos prontos",         group: "AÇÕES",       tab: true },
     { id: "tools",   title: "AJUSTES", icon: "+", desc: "Display, áudio, fonte",     group: "AÇÕES",       tab: false },
-    { id: "power",   title: "POWER",   icon: "U", desc: "Reiniciar / desligar",      group: "AÇÕES",       tab: false },
     { id: "keys",    title: "KEYS",    icon: "@", desc: "Teste de gamepad",         group: "DIAGNÓSTICO", tab: false },
   ];
   CD.META = META;
@@ -797,32 +796,7 @@
     back: function () { return false; },
   });
 
-  /* ============================ POWER (energia/serviços) ============================ */
-  reg({
-    id: "power", live: false,
-    build: function () { var el = h("div", { cls: "view", id: "view-power" }); this.el = el; return el; },
-    show: function () {
-      var self = this, el = UI.clear(this.el);
-      el.appendChild(title("POWER"));
-      el.appendChild(h("div", { cls: "hint", text: "Todas estas ações pedem confirmação (A)." }));
-      var host = h("div"); el.appendChild(host);
-      asyncRender(host, function () { return api.get("/api/actions"); }, function (d) {
-        var acts = (d.actions || []).filter(function (a) { return toolBucket(a.key) === "SYSTEM" || toolBucket(a.key) === "DANGER"; });
-        var soft = acts.filter(function (a) { return toolBucket(a.key) === "SYSTEM"; });   // recarregar UI, reiniciar agente
-        var hard = acts.filter(function (a) { return toolBucket(a.key) === "DANGER"; });   // restart kiosk, reboot, poweroff
-        host.appendChild(h("div", { cls: "sub", text: "SERVIÇOS" }));
-        var l1 = h("div", { cls: "list" });
-        soft.forEach(function (a) { l1.appendChild(row([{ t: a.label, grow: true }, { t: "confirma", cls: "r" }], function () { runAction(a); }, true)); });
-        host.appendChild(l1);
-        host.appendChild(h("div", { cls: "sub danger-head", text: "! DESLIGAR / REINICIAR" }));
-        var l2 = h("div", { cls: "list danger" });
-        hard.forEach(function (a) { l2.appendChild(row([{ t: a.label, grow: true }, { t: "confirma", cls: "r" }], function () { runAction(a); }, true)); });
-        host.appendChild(l2);
-        refocus(self.el);
-      });
-    },
-    back: function () { return false; },
-  });
+  /* POWER virou inline no menu FUNCTION (FN) — sem view dedicada. */
 
   /* ============================ KERNEL & DTB ============================ */
   reg({

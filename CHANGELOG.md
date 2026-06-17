@@ -4,6 +4,14 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Changed — 2026-06-16 — Menu FN com POWER inline + ícones
+- As ações de energia (Recarregar UI, Reiniciar agente/kiosk/sistema, Desligar) agora
+  ficam **inline no próprio menu FN** (não navegam mais para uma tela POWER). Reiniciar
+  kiosk/sistema e Desligar têm destaque vermelho; todas pedem confirmação.
+- Cada item do menu FN tem **ícone + nome** (`= Ajustes`, `@ Auto screenshot`,
+  `# Screenshot`, `> / !` para energia) e seção **ENERGIA**.
+- A view/aba **POWER foi removida** (redundante).
+
 ### Fixed — 2026-06-16 — Polimento pós-validação no R36S (v0.6.0 no aparelho)
 - **Tag [SAFE]/[DIAG] do CMD não trunca mais** (vista cortada como "[SAF…" no aparelho):
   coluna mais larga + fonte menor. FS type idem.

@@ -241,6 +241,10 @@ pre, .box { background: #04150b; border: 1px solid var(--line); padding: 7px; ov
 .fn-box .row { border-bottom: 1px solid var(--line2); }
 .fn-foot { margin-top: 8px; font-size: 12px; color: var(--fg-dim); }
 .fn-foot b { color: var(--accent); }
+.fn-ic { flex: none; width: 22px; text-align: center; color: var(--accent); font-weight: bold; }
+.fn-sec { font-size: 11px; color: var(--fg-dim); letter-spacing: 1px; margin: 6px 0 2px; }
+.fn-danger { box-shadow: inset 3px 0 0 var(--crit); }
+.fn-danger .fn-ic { color: var(--crit); }
 
 .confirm-box { border: 2px solid var(--crit); background: var(--panel); padding: 20px 24px; text-align: center; max-width: 84%; }
 .confirm-box h3 { color: var(--crit); letter-spacing: 2px; margin-bottom: 10px; font-size: 18px; }

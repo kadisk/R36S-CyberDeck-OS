@@ -74,14 +74,31 @@
     toggle: function () { this.isOpen() ? this.close() : this.open(); },
     render: function () {
       UI.clear(fnList);
-      var item = function (label, sub, fn) {
-        fnList.appendChild(UI.h("div", { cls: "row", focus: true, on: { click: fn } },
-          [UI.h("span", { cls: "grow", text: label }), UI.h("span", { cls: "r", text: sub || "" })]));
+      var item = function (icon, label, sub, fn, danger) {
+        fnList.appendChild(UI.h("div", { cls: "row" + (danger ? " fn-danger" : ""), focus: true, on: { click: fn } },
+          [UI.h("span", { cls: "fn-ic", text: icon }), UI.h("span", { cls: "grow", text: label }), UI.h("span", { cls: "r", text: sub || "" })]));
       };
-      item("AJUSTES", "display/áudio", function () { CD.fn.close(); CD.go("tools"); });
-      item("POWER", "reiniciar/desligar", function () { CD.fn.close(); CD.go("power"); });
-      item("Auto screenshot", S.autoShot ? "ON" : "OFF", function () { CD.toggleAutoShot(); CD.fn.render(); var f = fnList.querySelector("[data-focus]"); if (f) f.focus(); });
-      item("Screenshot agora", "L2+R2", function () { CD.fn.close(); CD.screenshot(); });
+      // dispara uma ação do agente (allowlist); perigosas pedem confirmação
+      var act = function (key, label, danger) {
+        return function () {
+          CD.fn.close();
+          var doIt = function () { CD.api.post("/api/actions", { key: key }).then(function (r) { UI.toast(r.msg || "ok"); }).catch(function (e) { UI.toast(e.message, true); }); };
+          if (danger) UI.confirm(label).then(function (ok) { if (ok) doIt(); }); else doIt();
+        };
+      };
+      var sec = function (t) { fnList.appendChild(UI.h("div", { cls: "fn-sec", text: t })); };
+
+      item("=", "Ajustes", "display/áudio", function () { CD.fn.close(); CD.go("tools"); });
+      item("@", "Auto screenshot", S.autoShot ? "ON" : "OFF", function () { CD.toggleAutoShot(); CD.fn.render(); var f = fnList.querySelector("[data-focus]"); if (f) f.focus(); });
+      item("#", "Screenshot agora", "L2+R2", function () { CD.fn.close(); CD.screenshot(); });
+
+      // ENERGIA — opções inline (pedem confirmação); não navegam p/ outra tela
+      sec("ENERGIA");
+      item(">", "Recarregar UI", "confirma", act("reload-ui", "Recarregar UI", true));
+      item(">", "Reiniciar agente", "confirma", act("restart-agent", "Reiniciar cyberdeck-agent", true));
+      item("!", "Reiniciar kiosk", "confirma", act("restart-kiosk", "Reiniciar kiosk", true), true);
+      item("!", "Reiniciar sistema", "confirma", act("reboot", "Reiniciar sistema", true), true);
+      item("!", "Desligar", "confirma", act("poweroff", "Desligar sistema", true), true);
     },
   };
 
