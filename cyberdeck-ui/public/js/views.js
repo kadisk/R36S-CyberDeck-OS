@@ -777,7 +777,7 @@
   /* ============================ TOOLS (DISPLAY/AUDIO/SYSTEM/DANGER) ============================ */
   function toolBucket(key) {
     if (/^bright-/.test(key)) return "DISPLAY";
-    if (/^volume-/.test(key)) return "AUDIO";
+    if (/^(volume|audio)-/.test(key)) return "AUDIO";
     if (key === "reload-ui" || key === "restart-agent") return "SYSTEM";
     return "DANGER"; // restart-kiosk, reboot, poweroff
   }
@@ -820,10 +820,19 @@
         var bri = (CD.lastStatus && CD.lastStatus.brightness && CD.lastStatus.brightness.pct >= 0) ? CD.lastStatus.brightness.pct : -1;
         if (bri >= 0) b.appendChild(UI.gauge("BRILHO", bri));
       } else { // AUDIO
+        var volHost = h("div"); b.appendChild(volHost);
+        self._refreshVol = function () {
+          api.get("/api/volume").then(function (v) {
+            UI.clear(volHost);
+            if (v.pct >= 0) volHost.appendChild(UI.gauge("VOLUME", v.pct));
+            volHost.appendChild(UI.kv("ESTADO", (v.muted ? "MUDO" : "ativo") + (v.control ? " · " + v.control : " · (sem controle)")));
+          }).catch(function () {});
+        };
+        self._refreshVol();
         var la = h("div", { cls: "list" });
-        var au = inBucket("AUDIO");
-        if (!au.length) la.appendChild(h("div", { cls: "hint", text: "(sem controles de áudio)" }));
-        au.forEach(function (a) { la.appendChild(row([{ t: a.label, grow: true }], function () { runAction(a); }, true)); });
+        inBucket("AUDIO").forEach(function (a) {
+          la.appendChild(row([{ t: a.label, grow: true }], function () { runAction(a); if (/^volume-/.test(a.key)) setTimeout(self._refreshVol, 400); }, true));
+        });
         b.appendChild(la);
       }
       refocus(self.el);

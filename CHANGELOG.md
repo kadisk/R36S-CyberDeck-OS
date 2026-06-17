@@ -4,6 +4,17 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added — 2026-06-16 — Áudio: controle de volume + teste de saída (0.8.0)
+- **lib/volume.js**: descobre o controle de volume do rk817 (`amixer scontrols`,
+  cacheia), lê o nível atual (`GET /api/volume` → `{pct, muted, control}`), ajusta
+  (+/−/mute) e **testa a saída tocando um tom de 440 Hz** (`speaker-test`).
+- **Teste por destino**: `audio-test-spk` (alto-falante embutido) e `audio-test-hp`
+  (fone), roteando via enum "Playback Path" (SPK/HP) quando existir; senão jack-detect.
+- UI **AJUSTES · AUDIO**: barra de **VOLUME** + estado (mudo/controle) + Volume +/−/Mute
+  + "Testar alto-falante" e "Testar fone". Barra atualiza após ajustar.
+- CMD: novo comando `amixer scontrols` (inspecionar controles do mixer no aparelho).
+- Bump **0.8.0** (feature nova).
+
 ### Changed — 2026-06-16 — Bump 0.7.1 + limpeza de código morto
 - Versão **0.7.1** (ui+agente) — fecha o ciclo de polimento V4; próximos screenshots em `v0.7.1/`.
 - Removido código/CSS morto: `GROUPS` (não usado após HOME compacta), `.welcome-head`

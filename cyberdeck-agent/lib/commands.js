@@ -21,6 +21,7 @@ const COMMANDS = {
   free:        { cat: "hardware", desc: "Memória (human)",             cmd: ["free", "-h"] },
   lsusb:       { cat: "hardware", desc: "Dispositivos USB",            cmd: ["lsusb"] },
   sensors:     { cat: "hardware", desc: "Sensores (se houver)",        cmd: ["sensors"] },
+  amixer:      { cat: "hardware", desc: "Controles de áudio (mixer)",  cmd: ["amixer", "scontrols"] },
   // rede
   ip_addr:     { cat: "rede",     desc: "Endereços IP",                cmd: ["ip", "addr"] },
   ip_route:    { cat: "rede",     desc: "Tabela de rotas",             cmd: ["ip", "route"] },

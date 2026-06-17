@@ -27,6 +27,7 @@ const logs = require("./lib/logs");
 const commands = require("./lib/commands");
 const actions = require("./lib/actions");
 const settings = require("./lib/settings");
+const volume = require("./lib/volume");
 const screenshot = require("./lib/screenshot");
 const kernel = require("./lib/kernel");
 const health = require("./lib/health");
@@ -98,6 +99,8 @@ async function handleGet(res, pathname, q) {
       return ok(res, { actions: actions.list() });
     case pathname === "/api/settings":
       return ok(res, settings.read());
+    case pathname === "/api/volume":
+      return ok(res, await volume.get());
 
     default:
       return fail(res, "NOT_FOUND", "rota não encontrada: " + pathname);
