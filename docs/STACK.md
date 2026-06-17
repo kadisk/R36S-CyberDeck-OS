@@ -77,7 +77,12 @@ lib/processes.js  lista/detalhe via /proc, CPU% por delta, sinais (allowlist)
 lib/network.js    interfaces/rotas/conexões (sysfs + ip/ss)
 lib/logs.js       dmesg/journal/unidades com limite e filtro de severidade
 lib/commands.js   ALLOWLIST de comandos prontos (substitui exec arbitrário)
-lib/actions.js    ALLOWLIST de ações administrativas (brilho/reboot/restart…)
+lib/actions.js    ALLOWLIST de ações administrativas (brilho/volume/reboot/restart…)
+lib/volume.js     áudio: descobre o controle do rk817, lê/ajusta volume, testa saída (tom)
+lib/kernel.js     kernel detalhado + Device Tree (DTB)
+lib/settings.js   preferências persistentes (fontScale) em /var/lib/cyberdeck
+lib/screenshot.js captura PNG sequencial por versão da UI (fbgrab→scrot)
+lib/health.js     agrega severidade (nível + alertas) p/ a HOME
 ```
 
 **Princípios (transferíveis para o Meta Platform):**
@@ -105,9 +110,13 @@ lib/actions.js    ALLOWLIST de ações administrativas (brilho/reboot/restart…
 | GET | `/api/logs?source=&severity=&q=` | dmesg/journal/unidades, filtrado/limitado |
 | GET | `/api/commands` · `/api/actions` | listas (allowlist) p/ a UI montar |
 | POST | `/api/commands/exec` `{key}` | executa um comando **conhecido** (allowlist) |
-| POST | `/api/actions` `{key}` | brilho±, reload-ui, restart-agent/kiosk, reboot, poweroff |
+| POST | `/api/actions` `{key}` | brilho±, volume±/mudo, **audio-test-spk/hp**, reload-ui, restart-agent/kiosk, reboot, poweroff |
 | POST | `/api/systemd/action` `{action,unit}` | start/stop/restart de unit validada |
 | POST | `/api/processes/:pid/signal` `{signal}` | SIGTERM/SIGKILL/SIGHUP/SIGINT |
+| GET | `/api/volume` | nível de áudio atual `{pct, muted, control}` (rk817) |
+| GET | `/api/kernel` · `/api/health` · `/api/ping` | kernel+DTB · severidade agregada · versão do agente |
+| GET/POST | `/api/settings` `{fontScale}` | preferências persistentes |
+| POST | `/api/screenshot` `{version}` | PNG sequencial em `/root/screenshots/v<versão>/` |
 
 ### Modelo de segurança (o backend **não** é um shell remoto)
 
@@ -138,11 +147,11 @@ módulos por `<script>` global (`window.CD`) — **sem ES modules**, porque carr
 `file://` (o Chromium bloqueia `import` nesse esquema):
 
 ```
-index.html  casca (top bar, abas, #content, modal de confirmação, cursor virtual)
-app.js      router (go/back/nextTab/focusFirst) + polling de status + relógio
-js/state.js estado central (aba ativa, modos por-view)   js/api.js  cliente {ok,data}
-js/ui.js    helpers de DOM + confirm()/toast            js/views.js  todas as telas
-js/gamepad.js  input (teclado + Gamepad API + cursor virtual + scroll)
+index.html  casca (top bar, abas, #content, modal de confirmação, menu FN, toast)
+app.js      router (go/back/nextTab/focusFirst) + polling + relógio + menu FN + screenshot
+js/state.js estado central (aba/subaba/página, versão)   js/api.js  cliente {ok,data}
+js/ui.js    helpers de DOM + confirm()/toast + btnize     js/views.js  todas as telas
+js/gamepad.js  input (teclado + Gamepad API + ponteiro REAL do X + scroll)
 ```
 
 **Padrões (transferíveis):**
@@ -157,8 +166,10 @@ js/gamepad.js  input (teclado + Gamepad API + cursor virtual + scroll)
 - **Degradação graciosa:** roda por `file://` e **sempre renderiza**; se o agente cair,
   o rodapé marca **agente: OFF** e cada aba mostra uma **tela de erro amigável**.
 - **Camada de input abstraída** — o mesmo app responde a **teclado** e **Gamepad API**.
-  Sem mouse, a UI desenha o **próprio cursor virtual** movido pelo analógico. A
-  navegação (trocar seção, mover foco em `[data-focus]`, confirmar, voltar) é a abstração.
+  O analógico esquerdo move o **ponteiro real do X** (driver `xf86-input-joystick`, fora
+  do navegador); com D-pad o ponteiro some e o foco em `[data-focus]` navega por geometria
+  2D. A navegação (trocar seção, mover foco, confirmar, voltar, subpáginas por L1/R1) é a
+  abstração — independente da fonte de entrada.
 
 ---
 

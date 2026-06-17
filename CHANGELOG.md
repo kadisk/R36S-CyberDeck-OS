@@ -4,6 +4,14 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Changed — 2026-06-17 — Documentação atualizada (README, STACK, CONTEXTO-LLM, UI README)
+- Sincronizada com o estado atual (v0.8.0): endpoints novos (`/api/volume`, `/api/health`,
+  `/api/ping`, settings, screenshot versionado, ações de áudio), libs novas (volume/health/
+  kernel/settings/screenshot), telas (AJUSTES, KERNEL, TESTE DE BOTÕES), **menu FN**,
+  controles (L1/R1 subpáginas, **L2+R2** screenshot, FN), **ponteiro REAL do X** (não mais
+  "cursor virtual"), cores padronizadas dos botões, e o que está validado no R36S (até v0.7.1)
+  vs. o que falta (áudio, teste de botões).
+
 ### Added — 2026-06-16 — Tela de teste de botões (FN › Testar botões)
 - Nova **TESTE DE BOTÕES** (view `keys`, acessível pelo menu **FN**): painel com TODOS os
   botões nomeados (L1/L2/R1/R2/Select/FN/Start/↑↓←→/A/B/X/Y) que **acendem ao pressionar**,

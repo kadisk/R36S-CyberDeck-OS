@@ -103,13 +103,18 @@ do sistema, e nunca toca no cartão do ArkOS.
 | **B** / **Select** | voltar um nível |
 | **Analógico esq.** | move o **ponteiro REAL do X** |
 | **Analógico dir.** | **scroll** vertical |
-| **L1 / R1** | trocar **subpágina** da seção (STATUS/DEVICE/TOOLS…) |
-| **L2 + R2** (combo) | **screenshot** (salvo em `/root/screenshots/`) |
+| **L1 / R1** | trocar **subpágina/página** da seção (STATUS/DEVICE/AJUSTES, FS/SVC/PROCS, origem do LOG…) |
+| **L2 + R2** (combo) | **screenshot** (salvo em `/root/screenshots/v<versão>/shot-NNNN.png`) |
+| **FN** | abre o menu **FUNCTION** (Ajustes · Testar botões · Auto screenshot · Screenshot · recarregar/reiniciar/desligar) |
 | **Volume + / −** | volume do sistema (via `amixer`) |
 
 Atalhos de teclado (dev/USB): **+ / −** mudam o tamanho da fonte · **F12** ou
 **PrintScreen** tiram screenshot · **AudioVolumeUp/Down/Mute** controlam o volume.
-O tamanho da fonte também tem botões em **TOOLS → DISPLAY/UI** (persistido no agente).
+O tamanho da fonte também tem botões em **AJUSTES → DISPLAY** (persistido no agente).
+
+> **Cor das referências de botão:** em toda a UI (rodapé, modal, menu FN, hints, teste de
+> botões) os botões aparecem em **negrito** com cor fixa — **A** vermelho, **B** amarelo,
+> **X** azul, **Y** verde; **L1/R1/L2/R2/FN/Start/Select** e as **setas** em branco.
 
 > **Dois modos de input:** ao usar o **D-pad**, o ponteiro **some** e o **A ativa o item
 > selecionado** (não depende do mouse); ao mexer no **analógico**, o ponteiro **reaparece**,
@@ -139,13 +144,15 @@ Padrão **mestre→detalhe** nas abas FS, SVC e PROCS: **A** abre o detalhe/arqu
 (restart/stop de serviço, kill de processo, reboot/poweroff) abrem uma **tela de
 confirmação** — só executam com **A**; **B** cancela.
 
-A aba **KEYS** mostra um dump ao vivo de botões/eixos (diagnóstico de input).
+A tela **TESTE DE BOTÕES** (menu FN → "Testar botões") mostra todos os botões nomeados
+acendendo ao pressionar + os analógicos; ela **captura todos os botões** (nenhuma
+navegação dispara) e **sai com Start+Select juntos**.
 
 ## Abas da UI (alimentadas pelo `cyberdeck-agent`)
 
-A tela inicial é a **HOME**, com **cards agrupados por semântica**: **MONITOR** (ao vivo:
-STATUS/PROCS/NET/LOGS), **SISTEMA** (inspeção: DEVICE/KERNEL/FS/SVC), **AÇÕES** (CMD/TOOLS)
-e **DIAGNÓSTICO** (KEYS). A barra de abas segue a mesma ordem.
+A tela inicial é a **HOME** (cockpit): faixa de **alertas**, **metric tiles** (CPU/RAM/
+TEMP/BAT) e **cards** das seções. A barra de abas no topo dá acesso direto a cada seção;
+funções e energia ficam no **menu FN**.
 
 | Aba | Mostra |
 |---|---|
@@ -158,9 +165,13 @@ e **DIAGNÓSTICO** (KEYS). A barra de abas segue a mesma ordem.
 | **NET** | interfaces (estado, IPs, MAC, RX/TX), gateway, DNS, SSID/sinal, conexões (`ss`) |
 | **LOGS** | dmesg / journal / unidades (agent, kiosk, ui) com filtro de severidade, busca e pausa |
 | **CMD** | comandos prontos por categoria (**allowlist**); saída em tela cheia, B volta |
-| **TOOLS** | DISPLAY/UI (fonte ±, screenshot) + ações: brilho/volume ±, recarregar UI, reiniciar agente/kiosk, reboot, poweroff |
+| **AJUSTES** | subabas **DISPLAY** (fonte ±, brilho ±, screenshot) e **AUDIO** (barra de volume, Volume ±/mudo, **testar alto-falante** e **testar fone**) — acessível pelo menu FN |
 | **KERNEL** | kernel detalhado (version, cmdline, taint, módulos carregados) + **Device Tree** (modelo, compatible, bootargs, nós) — card na HOME |
-| **KEYS** | diagnóstico de input (teclas/botões/eixos ao vivo) — acessível por card na HOME |
+| **TESTE DE BOTÕES** | painel de todos os botões nomeados que acendem ao pressionar + analógicos — acessível pelo menu **FN**; sai com Start+Select |
+
+O menu **FN** (botão Function) concentra: **Ajustes**, **Testar botões**, **Auto
+screenshot** (captura a cada troca de tela), **Screenshot agora**, e **ENERGIA**
+(recarregar UI, reiniciar agente/kiosk, reiniciar/desligar — com confirmação).
 
 ### Endpoints do agente (`127.0.0.1:8080`, JSON `{ok,data}` / `{ok,error}`)
 
@@ -172,13 +183,14 @@ GET  /api/network/connections    GET  /api/systemd/summary   GET  /api/logs?sour
 GET  /api/systemd/services       GET  /api/systemd/service?unit=   GET /api/logs/sources
 GET  /api/systemd/logs?unit=     POST /api/systemd/action {action,unit}
 GET  /api/commands               POST /api/commands/exec {key}
-GET  /api/actions                POST /api/actions {key}    (inclui volume-up/down/mute)
+GET  /api/actions                POST /api/actions {key}    (bright±, volume±/mute, audio-test-spk/hp, reload/restart/reboot/poweroff)
 GET  /api/kernel                 GET/POST /api/settings {fontScale}
-GET  /api/device                 POST /api/screenshot       -> /root/screenshots/*.png
+GET  /api/volume                 GET  /api/health           GET /api/ping (versão do agente)
+GET  /api/device                 POST /api/screenshot {version} -> /root/screenshots/v<versão>/shot-NNNN.png
 ```
 
 **Modelo de segurança:** o agente roda em `127.0.0.1` e **não expõe execução de shell
-arbitrária**. Comandos (`CMD`) e ações (`TOOLS`, `SVC`) são **allowlist** validadas no
+arbitrária**. Comandos (`CMD`) e ações (`AJUSTES`, `SVC`) são **allowlist** validadas no
 backend; tudo via `execFile` (sem shell). FS é **read-only** com path saneado (sem
 `../` para fora da raiz), limites de tamanho/entradas e detecção de binário. Nomes de
 unit e sinais são validados por regex/allowlist. Detalhes em [`docs/STACK.md`](docs/STACK.md).

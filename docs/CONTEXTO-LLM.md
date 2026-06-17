@@ -3,7 +3,7 @@
 > **Como usar:** cole este documento inteiro no início da conversa com um modelo de IA
 > que **não tem acesso ao repositório**, antes de fazer perguntas. Ele é autocontido:
 > descreve o que é o projeto, o hardware, a arquitetura, as decisões, o estado atual e
-> as restrições. Atualizado em 2026-06-16.
+> as restrições. Atualizado em 2026-06-17 (UI+agente **v0.8.0**).
 
 ---
 
@@ -71,7 +71,7 @@ FRONT-END (HTML/CSS/JS, kiosk)  --fetch JSON-->  BACKEND (Node.js, localhost)  -
 - **Node.js puro, sem dependências** (`http`, `os`, `fs`, `child_process`). Deploy = copiar arquivos.
 - **Modular:** `agent.js` (roteador HTTP) + `lib/*.js` por domínio:
   `http, exec, util, status, device, kernel, fsbrowse, systemd, processes, network,
-  logs, commands, actions, settings, screenshot`.
+  logs, commands, actions, settings, screenshot, volume, health`.
 - **Contrato JSON consistente:**
   - sucesso: `{ "ok": true, "data": {…} }`
   - erro: `{ "ok": false, "error": { "code", "message", "details" } }`
@@ -89,9 +89,11 @@ POST /api/systemd/action {action,unit}
 /api/network/{summary,connections}
 /api/logs?source=&severity=&q=         (dmesg/journal/unidades)
 /api/commands  ·  POST /api/commands/exec {key}      (allowlist)
-/api/actions   ·  POST /api/actions {key}            (brilho/volume/reboot/… allowlist)
+/api/actions   ·  POST /api/actions {key}            (brilho/volume/audio-test/reboot/… allowlist)
+/api/volume                             nível de áudio atual {pct,muted,control} (rk817)
+/api/health  ·  /api/ping               severidade agregada (HOME) · versão do agente
 GET/POST /api/settings {fontScale}     (preferências persistentes)
-POST /api/screenshot                    salva PNG em /root/screenshots
+POST /api/screenshot {version}          PNG sequencial em /root/screenshots/v<versão>/shot-NNNN.png
 ```
 
 **Modelo de segurança (importante):**
@@ -105,14 +107,21 @@ POST /api/screenshot                    salva PNG em /root/screenshots
 
 - **Vanilla JS, sem framework, sem build.** Carrega por `file://`, então **sem ES
   modules** — os scripts compartilham o namespace global `window.CD`, incluídos por ordem.
-- Arquivos: `index.html`, `style.css`, `app.js` (router/polling/relógio) e `js/`:
-  `state.js`, `api.js`, `ui.js` (helpers DOM + confirm/toast), `views.js` (todas as telas),
-  `gamepad.js` (input).
-- **Telas:** HOME (cards) · STATUS · DEVICE · FS · SVC (systemd) · PROCS · NET · LOGS ·
-  CMD (allowlist) · TOOLS (ações + DISPLAY/UI) · KERNEL (kernel+DTB) · KEYS (debug input).
-- **Padrão mestre→detalhe** em FS/SVC/PROCS (B volta um nível). **Modal de confirmação**
-  em tela cheia p/ ações perigosas. Estados OK/warn/crit/loading e **erro amigável**
-  quando o agente está offline (rodapé mostra “agente: OFF”).
+- Arquivos: `index.html`, `style.css`, `app.js` (router/polling/relógio + **menu FN** +
+  screenshot) e `js/`: `state.js`, `api.js`, `ui.js` (helpers DOM + confirm/toast +
+  **btnize**), `views.js` (todas as telas), `gamepad.js` (input).
+- **Telas:** HOME (cockpit: alertas + metric tiles + cards) · STATUS (AO VIVO/ENERGIA/
+  TENDÊNCIA) · DEVICE (ID/CPU/DISPLAY/BOOT/INPUT, mini-cards) · KERNEL (kernel+DTB) · FS ·
+  SVC (systemd) · PROCS · NET · LOGS · CMD (allowlist) · AJUSTES (DISPLAY/AUDIO) ·
+  TESTE DE BOTÕES.
+- **Subpáginas/paginação por L1/R1** (minimiza scroll em 640×480). **Padrão
+  mestre→detalhe** em FS/SVC/PROCS (B volta). **Menu FN** (botão Function) concentra
+  Ajustes/Testar botões/Auto screenshot/Screenshot/energia. **Modal de confirmação** p/
+  ações perigosas. Referências de botão com **cor fixa** (A vermelho/B amarelo/X azul/
+  Y verde; resto branco) via `CD.ui.btnize`. Estados OK/warn/crit/loading e **erro
+  amigável** quando o agente está offline (rodapé “agente: OFF”).
+- **Versão (semver)** casada entre `CD.VERSION`, os dois `package.json` e `/api/ping`;
+  os screenshots são organizados por versão (`v<versão>/`).
 
 ---
 
@@ -120,15 +129,17 @@ POST /api/screenshot                    salva PNG em /root/screenshots
 
 | Controle | Ação |
 |---|---|
-| D-pad ← → | trocar de aba |
-| D-pad ↑ ↓ | mover foco |
+| D-pad ← → | trocar de aba (nas bordas) / mover foco 2D |
+| D-pad ↑ ↓ | mover foco (↑ no topo alcança a barra de abas) |
 | A | clica no ponteiro real (se movido há pouco) ou ativa o item focado |
 | Start | ativa o item focado |
 | B / Select | voltar um nível |
 | Analógico esq. | move o **ponteiro REAL do X** (driver `xf86-input-joystick`) |
 | Analógico dir. | scroll |
-| **L1 + R1** | **screenshot** (salvo em `/root/screenshots/`) |
-| Volume +/− | volume do sistema (via `amixer`) |
+| **L1 / R1** | trocar **subpágina/página** da seção (subabas, paginação, origem do log) |
+| **L2 + R2** (combo) | **screenshot** (`/root/screenshots/v<versão>/shot-NNNN.png`) |
+| **FN** | abre o menu **FUNCTION** (Ajustes/Testar botões/Auto screenshot/Screenshot/energia) |
+| Volume +/− | volume do sistema (via `amixer`/`lib/volume.js`) |
 
 - O ponteiro é o **real do X11** (não um cursor desenhado). É movido por
   `xf86-input-joystick` via `/etc/X11/xorg.conf.d/60-joystick.conf` (eixos do stick →
@@ -149,7 +160,9 @@ POST /api/screenshot                    salva PNG em /root/screenshots
   empurra só `cyberdeck-ui/public/` + `cyberdeck-agent/` (UI + agente). **Não instala
   pacotes apt nem aplica `xorg.conf.d`** — mudanças de sistema exigem rebuild + flash.
 - **Recuperar screenshots:** `sudo scripts/sdcard/sd-get-screenshots.sh <cartao>`
-  (monta rootfs read-only e copia `/root/screenshots`).
+  (monta rootfs read-only e copia `/root/screenshots`, organizados por `v<versão>/`).
+- **Limpar screenshots do cartão:** `sudo scripts/sdcard/sd-clear-screenshots.sh <cartao>`
+  (evita misturar prints de versões antigas numa nova validação).
 - Serviços systemd: `cyberdeck-agent.service` (backend, sobe antes da UI) e
   `cyberdeck-x.service` (Xorg + Chromium kiosk).
 
@@ -173,14 +186,16 @@ POST /api/screenshot                    salva PNG em /root/screenshots
 
 ## 8. Estado atual (o que está validado e o que NÃO)
 
-- ✅ A imagem **funciona no R36S físico**: UI renderiza, gamepad navega, dados ao vivo.
+- ✅ **Validado no R36S físico (via screenshots, até v0.7.1):** UI/cockpit, gamepad,
+  dados ao vivo, ponteiro pelo analógico, escala de fonte persistida, screenshot
+  versionado/sequencial, subpáginas/paginação (L1/R1), menu FN, foco refinado, cores dos
+  botões, NET checklist, CMD allowlist, KERNEL/DTB.
 - ✅ Validado **no host (PC Ubuntu)**: `node --check` em todo o backend/front; smoke test
-  headless (Chrome) das telas sem exceções; endpoints respondem com erro gracioso onde
-  dependem do aparelho.
-- ⚠️ **NÃO testado no R36S físico ainda** (features recentes): ponteiro pelo analógico
-  (driver joystick), suavização do ponteiro, escala de fonte persistida, screenshot
-  (`fbgrab`/`scrot`), teclas de volume (`amixer` no controle certo do rk817), aba
-  KERNEL/DTB (no host `/proc/device-tree` não existe). Esses dependem de rebuild+flash.
+  headless (Chrome) das telas sem exceções; endpoints com erro gracioso onde dependem do aparelho.
+- ⚠️ **NÃO testado no R36S físico ainda:** o **áudio** (v0.8.0) — controle de volume e
+  testes de saída alto-falante/fone dependem do controle certo do rk817 (descoberto via
+  `amixer scontrols`) e do roteamento "Playback Path"; a **tela de teste de botões**
+  (combo Start+Select, acender por índice). Dependem de rebuild+flash + escuta/uso real.
 
 > **Regra do projeto:** nunca afirmar que algo foi “testado no R36S físico” se não foi.
 
