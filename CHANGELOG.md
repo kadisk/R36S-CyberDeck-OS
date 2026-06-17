@@ -4,6 +4,11 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Changed — 2026-06-16 — Bump 0.7.1 + limpeza de código morto
+- Versão **0.7.1** (ui+agente) — fecha o ciclo de polimento V4; próximos screenshots em `v0.7.1/`.
+- Removido código/CSS morto: `GROUPS` (não usado após HOME compacta), `.welcome-head`
+  (título-herói removido) e `.health-metrics` (substituído pelos metric tiles).
+
 ### Changed — 2026-06-16 — V4 final: foco 3 camadas, STATUS com blocos, subabas underline
 - **Foco em 3 camadas**: barra lateral ciano + **borda ciano fina** + fundo sutil.
 - **STATUS** preenchido com blocos: AO VIVO usa **metric tiles** (CPU/RAM/TEMP/LOAD);

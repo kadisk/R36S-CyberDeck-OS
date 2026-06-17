@@ -24,7 +24,6 @@
     { id: "keys",    title: "KEYS",    icon: "@", desc: "Teste de gamepad",         group: "DIAGNÓSTICO", tab: false },
   ];
   CD.META = META;
-  var GROUPS = ["MONITOR", "SISTEMA", "AÇÕES", "DIAGNÓSTICO"];
 
   var V = {};
   function reg(impl) { V[impl.id] = impl; }

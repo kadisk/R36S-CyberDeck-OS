@@ -107,7 +107,6 @@ body.pointer-on, body.pointer-on * { cursor: default !important; }
 .health-line { font-size: 13px; }
 .health-line b { letter-spacing: 1px; }
 .health-line.ok b { color: var(--ok); } .health-line.warn b { color: var(--warn); } .health-line.crit b { color: var(--crit); }
-.health-metrics { font-size: 12px; color: var(--fg-dim); margin-top: 2px; }
 .alert { margin-top: 4px; padding: 3px 6px; font-size: 12px; border-left: 3px solid var(--warn); background: #1a1405; color: var(--warn); }
 .alert.crit { border-left-color: var(--crit); background: #1a0608; color: var(--crit); }
 .alert:focus { outline: none; background: rgba(0,224,255,.12); box-shadow: inset 3px 0 0 var(--accent); }
@@ -124,9 +123,6 @@ body.pointer-on, body.pointer-on * { cursor: default !important; }
 .tile.crit .tile-val { color: var(--crit); } .tile.crit .tile-bar i { background: var(--crit); }
 
 /* ---------- WELCOME cards ---------- */
-.welcome-head { text-align: center; margin: 2px 0 8px; }
-.welcome-head .big { font-size: 20px; color: var(--accent); letter-spacing: 2px; }
-.welcome-head .sm { font-size: 13px; color: var(--fg-dim); }
 .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
 .card {
   border: 1px solid var(--line); background: var(--bg2); padding: 7px 6px;

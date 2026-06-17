@@ -1,6 +1,6 @@
 {
   "name": "cyberdeck-agent",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "private": true,
   "description": "Backend de dados do R36S CyberDeck OS (Node.js, sem dependências)",
   "main": "agent.js",

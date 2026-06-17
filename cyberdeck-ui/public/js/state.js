@@ -5,7 +5,7 @@
   window.CD = window.CD || {};
 
   CD.AGENT = "http://127.0.0.1:8080";
-  CD.VERSION = "0.7.0";   // semver da UI (casa com cyberdeck-ui/package.json)
+  CD.VERSION = "0.7.1";   // semver da UI (casa com cyberdeck-ui/package.json)
 
   CD.state = {
     section: "welcome",     // aba ativa
