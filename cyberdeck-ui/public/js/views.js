@@ -250,14 +250,29 @@
         kvGroup(b, "", [["HOST", id.hostname], ["DISTRO", id.distro], ["KERNEL", id.kernel], ["ARCH", id.arch],
           ["UPTIME", UI.fmt.uptime(id.uptime_s)], ["TZ", id.timezone], ["USER", id.user], ["ROOTFS", id.rootfs]]);
       } else if (sub === "CPU") {
-        kvGroup(b, "", [["SoC", hw.soc], ["CPU", hw.cpu_model], ["CORES", hw.cores], ["GPU", hw.gpu],
-          ["RAM", hw.mem ? (hw.mem.total_mb + " MB · livre " + hw.mem.available_mb) : "—"],
-          ["SWAP/ZRAM", hw.mem && hw.mem.swap_total_mb > 0 ? hw.mem.swap_total_mb + " MB" : (hw.zram && hw.zram.length && hw.zram[0].mb > 0 ? hw.zram[0].mb + " MB zram" : "inativo")]]);
-        (hw.freq || []).forEach(function (f) { b.appendChild(UI.kv("CPU" + f.cpu, (f.cur_mhz > 0 ? f.cur_mhz : "?") + " MHz · " + f.governor)); });
+        var soc = (hw.soc || "").replace(/^Rockchip\s+/, "");
+        var gpu = (hw.gpu || "").replace(/^ARM\s+/, "").replace(/\s*\(.*\)/, "");
+        var gpuArch = (String(hw.gpu || "").match(/\(([^)]+)\)/) || [])[1] || "";
+        var mc = h("div", { cls: "minicards" });
+        mc.appendChild(UI.mcard("SoC", soc || "—", (hw.cores || "?") + " cores"));
+        mc.appendChild(UI.mcard("RAM", hw.mem ? hw.mem.total_mb + " MB" : "—", hw.mem ? "livre " + hw.mem.available_mb : ""));
+        mc.appendChild(UI.mcard("GPU", gpu || "—", gpuArch));
+        b.appendChild(mc);
+        // frequências por núcleo em 2 colunas (compacto)
+        var g = h("div", { cls: "kv2" });
+        (hw.freq || []).forEach(function (f) { g.appendChild(UI.kv("CPU" + f.cpu, (f.cur_mhz > 0 ? f.cur_mhz : "?") + " MHz")); });
+        b.appendChild(g);
         (hw.thermals || []).forEach(function (t) { b.appendChild(UI.kv("TEMP " + t.type, t.temp_c >= 0 ? t.temp_c + " °C" : "—")); });
+        b.appendChild(UI.kv("SWAP/ZRAM", hw.mem && hw.mem.swap_total_mb > 0 ? hw.mem.swap_total_mb + " MB" : (hw.zram && hw.zram.length && hw.zram[0].mb > 0 ? hw.zram[0].mb + " MB zram" : "inativo")));
+        b.appendChild(UI.kv("GOVERNOR", (hw.freq && hw.freq[0]) ? hw.freq[0].governor : "—"));
       } else if (sub === "DISPLAY") {
-        kvGroup(b, "", [["FB", dp.framebuffer ? (dp.framebuffer.name + " " + dp.framebuffer.virtual_size + " @" + dp.framebuffer.bits_per_pixel + "bpp") : "—"],
-          ["BACKLIGHT", dp.backlight ? (dp.backlight.cur + "/" + dp.backlight.max + " (" + dp.backlight.pct + "%)") : "—"], ["PANEL", dp.panel]]);
+        var fb = dp.framebuffer || {}, bl = dp.backlight || {};
+        var panelModel = dp.panel ? dp.panel.replace(/^[^,]*,/, "").split(/[\s—]/)[0] : "—";
+        var mc2 = h("div", { cls: "minicards" });
+        mc2.appendChild(UI.mcard("FB", fb.virtual_size || "—", (fb.bits_per_pixel ? "@" + fb.bits_per_pixel + "bpp" : "")));
+        mc2.appendChild(UI.mcard("LUZ", bl.pct >= 0 ? bl.pct + "%" : "—", bl.cur != null ? bl.cur + "/" + bl.max : ""));
+        mc2.appendChild(UI.mcard("PAINEL", panelModel, "MIPI-DSI"));
+        b.appendChild(mc2);
         kvGroup(b, "ARMAZENAMENTO", (hw.storage || []).map(function (s) { return [s.dev, s.gb + " GB" + (s.ro ? " (ro)" : "") + (s.model ? " · " + s.model : "")]; }));
       } else if (sub === "BOOT") {
         kvGroup(b, "", [["VERSION", k.version], ["MODELO DT", k.dtb_model || hw.model], ["MÓDULOS", k.modules_count]]);

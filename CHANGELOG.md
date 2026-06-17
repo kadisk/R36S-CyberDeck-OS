@@ -4,6 +4,14 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Changed — 2026-06-16 — V4: painéis + DEVICE com mini-cards (CPU/DISPLAY)
+- **DEVICE · CPU**: mini-cards (SoC/RAM/GPU) + frequências por núcleo em **2 colunas** +
+  temps/zram/governor — menos lista crua, mais painel.
+- **DEVICE · DISPLAY**: mini-cards (FB/LUZ/PAINEL) + armazenamento.
+- Componentes novos: `CD.ui.mcard`, classes `.minicards/.mcard`, `.kv2` (key/value 2 col),
+  `.panel/.panel-emphasis` (superfície).
+- Validado por render headless (DEVICE CPU/DISPLAY).
+
 ### Changed — 2026-06-16 — Cores fixas p/ referências de botão + bump 0.7.0
 - Referências a botões agora têm **cor fixa e negrito**: **A** vermelho, **B** amarelo,
   **X** azul, **Y** verde; demais (L1/R1/L2/R2/FN/Start/Select) **negrito branco**.

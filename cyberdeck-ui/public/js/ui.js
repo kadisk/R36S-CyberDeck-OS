@@ -30,6 +30,15 @@
   };
   UI.clear = function (el) { while (el.firstChild) el.removeChild(el.firstChild); return el; };
 
+  /* mini-card: título pequeno + valor + sub (DEVICE etc.) */
+  UI.mcard = function (ti, v, s) {
+    return UI.h("div", { cls: "mcard" }, [
+      UI.h("div", { cls: "ti", text: ti }),
+      UI.h("div", { cls: "v", text: v == null || v === "" ? "—" : String(v) }),
+      s ? UI.h("div", { cls: "s", text: s }) : null,
+    ]);
+  };
+
   /* key/value row */
   UI.kv = function (label, value) {
     return UI.h("div", { cls: "kv" }, [UI.h("span", { text: label }), UI.h("b", { text: value == null || value === "" ? "—" : String(value) })]);

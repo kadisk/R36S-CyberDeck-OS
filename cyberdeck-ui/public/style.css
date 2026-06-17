@@ -76,6 +76,18 @@ body.pointer-on, body.pointer-on * { cursor: default !important; }
 .hint { color: var(--warn); font-size: 13px; margin-bottom: 6px; }
 .sub { font-size: 13px; color: var(--accent); letter-spacing: 1px; margin: 8px 0 3px; }
 
+/* ---------- painéis / superfícies (V4) ---------- */
+.panel { background: var(--bg2); border: 1px solid var(--line); padding: 7px; }
+.panel-emphasis { background: #082015; border-color: var(--accent-dim); }
+
+/* mini-cards (DEVICE) + key/value em 2 colunas */
+.minicards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 8px; }
+.mcard { border: 1px solid var(--line); background: var(--bg2); padding: 6px 7px; overflow: hidden; }
+.mcard .ti { font-size: 11px; color: var(--fg-dim); letter-spacing: 1px; }
+.mcard .v { font-size: 15px; color: var(--fg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mcard .s { font-size: 11px; color: var(--fg-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kv2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
+
 /* ---------- key/value ---------- */
 .kv { display: flex; justify-content: space-between; gap: 8px; padding: 3px 0; border-bottom: 1px dotted rgba(45,255,150,.10); }
 .kv span { color: var(--fg-dim); white-space: nowrap; }
