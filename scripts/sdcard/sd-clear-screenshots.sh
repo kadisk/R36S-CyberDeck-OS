@@ -31,16 +31,17 @@ if [ ! -d "$DIR" ]; then
     exit 0
 fi
 
-COUNT="$(find "$DIR" -maxdepth 1 -type f -name '*.png' | wc -l)"
+COUNT="$(find "$DIR" -type f -name '*.png' | wc -l)"
 if [ "$COUNT" -eq 0 ]; then
     ok "nada a limpar — pasta vazia em '$NAME' ($DIR)."
     exit 0
 fi
 
-# remove APENAS .png dentro de /root/screenshots (caminho fixo, sem glob perigoso)
-find "$DIR" -maxdepth 1 -type f -name '*.png' -delete
+# remove os .png em /root/screenshots e subpastas de versão (e limpa pastas vazias)
+find "$DIR" -type f -name '*.png' -delete
+find "$DIR" -mindepth 1 -type d -empty -delete 2>/dev/null || true
 sync
 
-REST="$(find "$DIR" -maxdepth 1 -type f -name '*.png' | wc -l)"
+REST="$(find "$DIR" -type f -name '*.png' | wc -l)"
 ok "$COUNT screenshot(s) apagados de '$NAME' (restam: $REST)."
 say "RESULTADO: sucesso — agora os prints novos do aparelho virão limpos."

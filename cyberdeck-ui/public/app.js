@@ -185,7 +185,7 @@
     var t = document.getElementById("toast"); if (t) t.hidden = true;
     // espera o framebuffer repintar (RK3326 = render por software) antes do agente capturar.
     setTimeout(function () {
-      CD.api.post("/api/screenshot", {}, { timeout: 12000 }).then(function (d) {
+      CD.api.post("/api/screenshot", { version: CD.VERSION }, { timeout: 12000 }).then(function (d) {
         if (!silent) UI.toast("salvo: " + (d.file ? d.file.replace(/^.*\//, "") : "ok"));
       }).catch(function (e) {
         if (!silent) UI.toast(e.business ? e.message : "falha no screenshot (agente offline)", true);

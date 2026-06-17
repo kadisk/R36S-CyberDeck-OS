@@ -11,11 +11,15 @@ const { run } = require("./exec");
 
 const DIR = "/root/screenshots";
 
-/* nome SEQUENCIAL (a data/RTC do R36S não é confiável): shot-0001.png, 0002… */
-function nextName() {
+/* organiza por VERSÃO da UI: /root/screenshots/v0.6.0/shot-0001.png … */
+function safeVer(v) { v = String(v == null ? "" : v).trim().replace(/^v/i, ""); return /^[0-9A-Za-z._-]{1,24}$/.test(v) ? v : "unknown"; }
+function dirFor(version) { return DIR + "/v" + safeVer(version); }
+
+/* nome SEQUENCIAL por pasta (a data/RTC do R36S não é confiável): shot-0001.png… */
+function nextName(dir) {
   let max = 0;
   try {
-    for (const f of fs.readdirSync(DIR)) {
+    for (const f of fs.readdirSync(dir)) {
       const m = f.match(/^shot-(\d+)\.png$/);
       if (m) { const n = parseInt(m[1], 10); if (n > max) max = n; }
     }
@@ -24,9 +28,10 @@ function nextName() {
 }
 function ok(file) { try { return fs.statSync(file).size > 0; } catch (e) { return false; } }
 
-async function capture() {
-  try { fs.mkdirSync(DIR, { recursive: true }); } catch (e) {}
-  const file = DIR + "/" + nextName();
+async function capture(version) {
+  const sub = dirFor(version);
+  try { fs.mkdirSync(sub, { recursive: true }); } catch (e) {}
+  const file = sub + "/" + nextName(sub);
 
   // 1) fbgrab (framebuffer direto)
   let r = await run("fbgrab", [file], { timeout: 9000 });
@@ -43,7 +48,7 @@ async function capture() {
     e.code = "INTERNAL"; throw e;
   }
   let size = -1; try { size = fs.statSync(file).size; } catch (e) {}
-  return { file: file, dir: DIR, tool: tool, bytes: size };
+  return { file: file, dir: sub, version: safeVer(version), tool: tool, bytes: size };
 }
 
 module.exports = { capture, DIR };

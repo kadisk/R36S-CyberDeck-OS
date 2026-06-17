@@ -41,14 +41,14 @@ mount -o ro "$P2" "$MNT" || die "falha ao montar $P2 (read-only)"
 SRC="$MNT/root/screenshots"
 [ -d "$SRC" ] || die "nenhuma pasta de screenshots no cartão ($SRC). Tire um print no aparelho (L1+R1)."
 
-COUNT="$(find "$SRC" -maxdepth 1 -type f -name '*.png' | wc -l)"
+# os prints ficam em subpastas por versão (v0.6.0/…) — conta/recursivo
+COUNT="$(find "$SRC" -type f -name '*.png' | wc -l)"
 [ "$COUNT" -gt 0 ] || die "a pasta existe mas está vazia ($SRC)."
 
 mkdir -p "$DEST"
-# cópia preservando timestamps; não apaga o que já houver no destino
-cp -a -n "$SRC"/*.png "$DEST"/ 2>/dev/null || cp -a "$SRC"/*.png "$DEST"/
+# copia a ÁRVORE inteira preservando as subpastas de versão
+cp -a "$SRC/." "$DEST/"
 # arquivos/pastas foram criados como root (sudo) — devolve a posse ao usuário real
-# (árvore inteira, incluindo a pasta base, com o grupo primário correto do usuário).
 if [ -n "${SUDO_USER:-}" ]; then
     GRP="$(id -gn "$SUDO_USER" 2>/dev/null || echo "$SUDO_USER")"
     chown -R "$SUDO_USER:$GRP" "$OWN_DIR" || warn "não consegui ajustar o dono de $OWN_DIR"
@@ -56,6 +56,6 @@ fi
 sync
 
 ok "$COUNT screenshot(s) copiados de '$NAME' para: $DEST"
-say "Mais recentes:"
-ls -1t "$DEST"/*.png 2>/dev/null | head -n 5 | sed 's/^/   /'
+say "Por versão:"
+for d in "$DEST"/v*/; do [ -d "$d" ] && say "   $(basename "$d"): $(find "$d" -type f -name '*.png' | wc -l) print(s)"; done
 say "RESULTADO: sucesso (cartão não foi modificado — montado read-only)."

@@ -121,7 +121,7 @@ async function handlePost(res, pathname, body) {
     case "/api/settings":
       return ok(res, settings.write({ fontScale: body.fontScale }));
     case "/api/screenshot":
-      return ok(res, await screenshot.capture());
+      return ok(res, await screenshot.capture(body.version || AGENT_VERSION));
     default:
       return fail(res, "NOT_FOUND", "rota não encontrada: " + pathname);
   }

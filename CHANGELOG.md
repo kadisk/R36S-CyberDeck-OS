@@ -4,6 +4,13 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Changed — 2026-06-16 — Screenshots organizados por versão da UI
+- Os prints agora ficam em **subpasta por versão**: `/root/screenshots/v0.6.0/shot-0001.png`…
+  A UI envia `CD.VERSION` no `POST /api/screenshot`; o agente sanitiza (bloqueia path
+  traversal → `vunknown`) e numera sequencialmente **dentro de cada versão**.
+- `sd-get-screenshots.sh` copia a árvore inteira (preserva as pastas de versão) e resume por
+  versão; `sd-clear-screenshots.sh` apaga `*.png` recursivamente e remove pastas vazias.
+
 ### Added — 2026-06-16 — Menu FUNCTION (FN), auto screenshot, screenshots sequenciais, semver
 - **Botão FN abre o menu FUNCTION**: contém **AJUSTES** e **POWER** (saíram da barra de
   abas) + **Auto screenshot** (liga/desliga) + Screenshot agora. FN/B fecha. Mostra a versão.
