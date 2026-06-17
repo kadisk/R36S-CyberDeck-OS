@@ -49,9 +49,12 @@
   var BTN_CLS = { A: "btn-a", B: "btn-b", X: "btn-x", Y: "btn-y" };
   function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
   UI.btnize = function (str) {
-    return esc(str).replace(/\b(L1|R1|L2|R2|FN|Start|Select|A|B|X|Y)\b/g, function (m) {
-      return '<b class="btn ' + (BTN_CLS[m] || "btn-o") + '">' + m + "</b>";
-    });
+    return esc(str)
+      .replace(/\b(L1|R1|L2|R2|FN|Start|Select|A|B|X|Y)\b/g, function (m) {
+        return '<b class="btn ' + (BTN_CLS[m] || "btn-o") + '">' + m + "</b>";
+      })
+      // setas direcionais (D-pad): negrito branco, como os outros botões
+      .replace(/([←↑→↓↔↕]+)/g, '<b class="btn btn-o">$1</b>');
   };
 
   /* badge de estado a partir de um "kind": ok|warn|crit|off|run */
