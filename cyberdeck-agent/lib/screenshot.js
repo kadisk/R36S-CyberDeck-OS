@@ -11,15 +11,22 @@ const { run } = require("./exec");
 
 const DIR = "/root/screenshots";
 
-function stamp() {
-  const d = new Date(), p = (n) => String(n).padStart(2, "0");
-  return d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + "-" + p(d.getHours()) + p(d.getMinutes()) + p(d.getSeconds());
+/* nome SEQUENCIAL (a data/RTC do R36S não é confiável): shot-0001.png, 0002… */
+function nextName() {
+  let max = 0;
+  try {
+    for (const f of fs.readdirSync(DIR)) {
+      const m = f.match(/^shot-(\d+)\.png$/);
+      if (m) { const n = parseInt(m[1], 10); if (n > max) max = n; }
+    }
+  } catch (e) {}
+  return "shot-" + String(max + 1).padStart(4, "0") + ".png";
 }
 function ok(file) { try { return fs.statSync(file).size > 0; } catch (e) { return false; } }
 
 async function capture() {
   try { fs.mkdirSync(DIR, { recursive: true }); } catch (e) {}
-  const file = DIR + "/shot-" + stamp() + ".png";
+  const file = DIR + "/" + nextName();
 
   // 1) fbgrab (framebuffer direto)
   let r = await run("fbgrab", [file], { timeout: 9000 });

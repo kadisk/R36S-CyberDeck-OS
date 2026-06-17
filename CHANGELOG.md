@@ -4,6 +4,21 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added — 2026-06-16 — Menu FUNCTION (FN), auto screenshot, screenshots sequenciais, semver
+- **Botão FN abre o menu FUNCTION**: contém **AJUSTES** e **POWER** (saíram da barra de
+  abas) + **Auto screenshot** (liga/desliga) + Screenshot agora. FN/B fecha. Mostra a versão.
+- **Auto screenshot**: captura a **cada mudança de tela** (navegação: aba/subpágina/página/
+  origem/voltar), em silêncio (sem toast na foto). Desarma reentrando no menu FN.
+- **Screenshots sequenciais**: `shot-0001.png`, `0002`… (numeração crescente lendo a pasta;
+  a data/RTC do R36S não é confiável).
+- **Versionamento semver**: ui+agente em **0.6.0** (package.json); agente expõe em
+  `/api/ping`, UI em `CD.VERSION` (no rodapé do menu FUNCTION).
+- **Fix do rodapé sumindo ao aumentar a fonte**: o zoom da fonte agora é aplicado a um
+  wrapper interno (`#screen`), mantendo `#content` com altura fixa e scroll — o rodapé fica.
+- **Fonte padrão um pouco maior** (base 16→17; títulos/linhas/boxes +1).
+- Validado por render headless (rodapé presente em fonte 1.6; menu FUNCTION; ping v0.6.0).
+  Não testado no R36S físico.
+
 ### Changed — 2026-06-16 — Polimento visual (relatório UX V4): foco refinado, HOME cockpit
 - **Foco refinado** (o maior ganho): em vez de bloco ciano preenchido, item focado ganha
   **barra lateral ciano + fundo sutil**, mantendo o texto legível. Vale p/ linhas, cards,

@@ -32,6 +32,8 @@ const kernel = require("./lib/kernel");
 const health = require("./lib/health");
 
 const PORT = parseInt(process.argv[2] || "8080", 10);
+let AGENT_VERSION = "0.0.0";
+try { AGENT_VERSION = require("./package.json").version || AGENT_VERSION; } catch (e) {}
 
 /* Converte um erro lançado pelos módulos em resposta {ok:false}. */
 function onError(res, e) {
@@ -45,7 +47,7 @@ async function handleGet(res, pathname, q) {
     case pathname === "/" || pathname === "/api/status":
       return ok(res, status.get());
     case pathname === "/api/ping":
-      return ok(res, { up: true, pid: process.pid, node: process.version });
+      return ok(res, { up: true, pid: process.pid, node: process.version, version: AGENT_VERSION });
     case pathname === "/api/health":
       return ok(res, await health.get());
 

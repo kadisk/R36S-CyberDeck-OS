@@ -20,8 +20,8 @@
     { id: "fs",      title: "FS",      icon: "/", desc: "Navegar o rootfs",         group: "SISTEMA",     tab: true },
     { id: "systemd", title: "SVC",     icon: "*", desc: "Serviços systemd",         group: "SISTEMA",     tab: true },
     { id: "cmd",     title: "CMD",     icon: ">", desc: "Comandos prontos",         group: "AÇÕES",       tab: true },
-    { id: "tools",   title: "AJUSTES", icon: "+", desc: "Display, áudio, fonte",     group: "AÇÕES",       tab: true },
-    { id: "power",   title: "POWER",   icon: "U", desc: "Reiniciar / desligar",      group: "AÇÕES",       tab: true },
+    { id: "tools",   title: "AJUSTES", icon: "+", desc: "Display, áudio, fonte",     group: "AÇÕES",       tab: false },
+    { id: "power",   title: "POWER",   icon: "U", desc: "Reiniciar / desligar",      group: "AÇÕES",       tab: false },
     { id: "keys",    title: "KEYS",    icon: "@", desc: "Teste de gamepad",         group: "DIAGNÓSTICO", tab: false },
   ];
   CD.META = META;
@@ -47,10 +47,11 @@
   CD.subCycle = function (dir) {
     var id = CD.state.section, v = V[id];
     if (!v) return false;
-    if (typeof v.lr === "function") { v.lr(dir); return true; }
+    if (typeof v.lr === "function") { v.lr(dir); if (CD.afterNav) CD.afterNav(); return true; }
     if (!v.subs || !v.subs.length) return false;
     CD.state.sub[id] = subIndex(id) + dir;
     v.show(); CD.focusFirst(v.el);
+    if (CD.afterNav) CD.afterNav();
     return true;
   };
 

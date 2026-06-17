@@ -12,10 +12,15 @@
     tabButtons[m.id] = b; tabsEl.appendChild(b);
   });
 
+  /* ---- wrapper interno que recebe o ZOOM da fonte (mantém #content fixo + scroll,
+         senão o zoom no #content empurra o rodapé p/ fora da tela) ---- */
+  var screen = UI.h("div", { id: "screen" });
+  content.appendChild(screen);
+
   /* ---- monta as views (uma vez) ---- */
   META.forEach(function (m) {
     var v = views[m.id]; if (!v) return;
-    var el = v.build(); content.appendChild(el);
+    var el = v.build(); screen.appendChild(el);
   });
 
   /* ---- foco no primeiro focável ---- */
@@ -38,12 +43,46 @@
     try { views[id].show(); } catch (e) { /* não derruba a UI */ }
     CD.focusFirst(views[id].el);
     updateHints(id);
+    CD.afterNav();
   };
 
   CD.back = function () {
     var v = views[S.section];
-    if (v && v.back && v.back()) { CD.focusFirst(v.el); return; }
+    if (v && v.back && v.back()) { CD.focusFirst(v.el); CD.afterNav(); return; }
     if (S.section !== "welcome") CD.go("welcome");
+  };
+
+  /* ---- auto screenshot: captura a cada MUDANÇA DE TELA (debounce) ---- */
+  var navTimer = null;
+  CD.afterNav = function () {
+    if (!S.autoShot) return;
+    if (navTimer) clearTimeout(navTimer);
+    navTimer = setTimeout(function () { CD.screenshot(true); }, 500);  // silencioso
+  };
+  CD.toggleAutoShot = function () {
+    S.autoShot = !S.autoShot;
+    UI.toast("auto screenshot " + (S.autoShot ? "ON — captura a cada tela" : "OFF"));
+  };
+
+  /* ---- menu FUNCTION (botão FN): AJUSTES, POWER, auto screenshot ---- */
+  var fnEl = document.getElementById("fnmenu"), fnList = document.getElementById("fn-list");
+  var fnVer = document.getElementById("fn-ver"); if (fnVer) fnVer.textContent = "CyberDeck v" + CD.VERSION;
+  CD.fn = {
+    isOpen: function () { return fnEl && !fnEl.hidden; },
+    open: function () { this.render(); fnEl.hidden = false; var f = fnList.querySelector("[data-focus]"); if (f) f.focus(); },
+    close: function () { if (fnEl) fnEl.hidden = true; },
+    toggle: function () { this.isOpen() ? this.close() : this.open(); },
+    render: function () {
+      UI.clear(fnList);
+      var item = function (label, sub, fn) {
+        fnList.appendChild(UI.h("div", { cls: "row", focus: true, on: { click: fn } },
+          [UI.h("span", { cls: "grow", text: label }), UI.h("span", { cls: "r", text: sub || "" })]));
+      };
+      item("AJUSTES", "display/áudio", function () { CD.fn.close(); CD.go("tools"); });
+      item("POWER", "reiniciar/desligar", function () { CD.fn.close(); CD.go("power"); });
+      item("Auto screenshot", S.autoShot ? "ON" : "OFF", function () { CD.toggleAutoShot(); CD.fn.render(); var f = fnList.querySelector("[data-focus]"); if (f) f.focus(); });
+      item("Screenshot agora", "L2+R2", function () { CD.fn.close(); CD.screenshot(); });
+    },
   };
 
   CD.nextTab = function (dir) {
@@ -126,7 +165,8 @@
   CD.applyFontScale = function (scale) {
     scale = Math.max(0.7, Math.min(1.8, Number(scale) || 1));
     CD.state.fontScale = scale;
-    content.style.zoom = scale;            // escala texto+espaçamento juntos (proporcional)
+    screen.style.zoom = scale;             // zoom no wrapper interno (rodapé não some)
+    content.scrollTop = 0;
     return scale;
   };
   CD.setFontScale = function (delta) {
@@ -136,20 +176,21 @@
   };
   CD.resetFontScale = function () { CD.applyFontScale(1); UI.toast("fonte 100%"); CD.api.post("/api/settings", { fontScale: 1 }).catch(function () {}); };
 
-  /* ---- screenshot (salvo pelo agente em /root/screenshots) ---- */
+  /* ---- screenshot (salvo pelo agente em /root/screenshots). silent: sem toast (auto) ---- */
   var shotBusy = false;
-  CD.screenshot = function () {
+  CD.screenshot = function (silent) {
     if (shotBusy) return; shotBusy = true;
+    var reset = function () { shotBusy = false; };
     // esconde QUALQUER toast antes de capturar — senão ele sai na própria foto.
     var t = document.getElementById("toast"); if (t) t.hidden = true;
     // espera o framebuffer repintar (RK3326 = render por software) antes do agente capturar.
     setTimeout(function () {
       CD.api.post("/api/screenshot", {}, { timeout: 12000 }).then(function (d) {
-        UI.toast("salvo: " + (d.file ? d.file.replace(/^.*\//, "") : "ok")); // só o nome do arquivo
+        if (!silent) UI.toast("salvo: " + (d.file ? d.file.replace(/^.*\//, "") : "ok"));
       }).catch(function (e) {
-        UI.toast(e.business ? e.message : "falha no screenshot (agente offline)", true);
-      }).then(function () { shotBusy = false; }, function () { shotBusy = false; });
-    }, 250);
+        if (!silent) UI.toast(e.business ? e.message : "falha no screenshot (agente offline)", true);
+      }).then(reset, reset);
+    }, silent ? 120 : 250);
   };
 
   /* ---- volume (teclas de volume -> amixer no agente) ---- */

@@ -5,11 +5,13 @@
   window.CD = window.CD || {};
 
   CD.AGENT = "http://127.0.0.1:8080";
+  CD.VERSION = "0.6.0";   // semver da UI (casa com cyberdeck-ui/package.json)
 
   CD.state = {
     section: "welcome",     // aba ativa
     agent: "unknown",       // "on" | "off" | "unknown"
     fontScale: 1,           // escala de fonte do conteúdo (0.7–1.8), persistida no agente
+    autoShot: false,        // auto screenshot: captura a cada mudança de tela
     fullscreen: false,
     sub: {},                // índice da subpágina por seção (L1/R1) — ex.: { device: 0 }
     // por-view:

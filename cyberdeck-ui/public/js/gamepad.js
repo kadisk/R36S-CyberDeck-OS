@@ -4,7 +4,11 @@
 (function () {
   "use strict";
 
-  function activeEl() { var v = CD.views[CD.state.section]; return v && v.el; }
+  function fnOpen() { return CD.fn && CD.fn.isOpen(); }
+  function activeEl() {
+    if (fnOpen()) return document.getElementById("fnmenu");   // menu FN é o escopo de foco quando aberto
+    var v = CD.views[CD.state.section]; return v && v.el;
+  }
   function focusables() {
     var root = activeEl(); if (!root) return [];
     return Array.prototype.slice.call(root.querySelectorAll("[data-focus]")).filter(function (e) {
@@ -28,6 +32,7 @@
   function move(dir) {
     if (confirmOpen()) return;
     hidePointer();                       // usar D-pad/setas -> modo FOCO (ponteiro some)
+    if (fnOpen()) { if (dir === "up" || dir === "down") moveFocus(dir === "down" ? 1 : -1); return; }  // navega só no menu FN
     var cur = document.activeElement;
     // ---- foco NA BARRA DE ABAS (menu superior) ----
     if (isTab(cur)) {
@@ -98,6 +103,14 @@
       else if (e.key === "Escape" || e.key === "Backspace") { CD.ui.resolveConfirm(false); e.preventDefault(); }
       return;
     }
+    // menu FUNCTION aberto: navega só nele
+    if (fnOpen()) {
+      if (e.key === "Escape" || e.key === "Backspace" || e.key === "f" || e.key === "F") CD.fn.close();
+      else if (e.key === "Enter" || e.key === " ") activate();
+      else if (e.key === "ArrowDown") move("down");
+      else if (e.key === "ArrowUp") move("up");
+      e.preventDefault(); return;
+    }
     switch (e.key) {
       case "ArrowRight": move("right"); break;
       case "ArrowLeft": move("left"); break;
@@ -105,6 +118,7 @@
       case "ArrowUp": move("up"); break;
       case "Tab": moveFocus(e.shiftKey ? -1 : 1); break;
       case "Enter": activate(); break;
+      case "f": case "F": if (CD.fn) CD.fn.toggle(); break;   // FN (dev)
       case "Escape": case "Backspace": CD.back(); break;
       case "[": CD.subCycle(-1); break;     // subpágina anterior (dev)
       case "]": CD.subCycle(1); break;      // próxima subpágina (dev)
@@ -175,7 +189,7 @@
 
   /* ---- Gamepad API (R36S: odroidgo3-joypad) ---- */
   // RAW (confirmado no R36S): B=0,A=1,X=2,Y=3,L1=4,R1=5,↑=8,↓=9,←=10,→=11,Select=12,Start=13,Fn=16
-  var GP_RAW = { B: 0, A: 1, X: 2, Y: 3, L1: 4, R1: 5, R2: 6, L2: 7, UP: 8, DOWN: 9, LEFT: 10, RIGHT: 11, SELECT: 12, START: 13 };
+  var GP_RAW = { B: 0, A: 1, X: 2, Y: 3, L1: 4, R1: 5, R2: 6, L2: 7, UP: 8, DOWN: 9, LEFT: 10, RIGHT: 11, SELECT: 12, START: 13, FN: 16 };
   var GP_STD = { A: 0, B: 1, X: 2, Y: 3, L1: 4, R1: 5, L2: 6, R2: 7, UP: 12, DOWN: 13, LEFT: 14, RIGHT: 15 };
   function mapFor(gp) { return gp.mapping === "standard" ? GP_STD : GP_RAW; }
   var prev = [];
@@ -211,9 +225,10 @@
       // A: se o ponteiro real foi movido há pouco, clica nele (como um mouse);
       // senão, ativa o item focado (navegação por D-pad).
       edge(gp, M.A, function () { if (confirmOpen()) CD.ui.resolveConfirm(true); else if (pointerVisible) { if (!clickAtPointer()) activate(); } else activate(); });
-      edge(gp, M.B, function () { if (confirmOpen()) CD.ui.resolveConfirm(false); else CD.back(); });
+      edge(gp, M.B, function () { if (confirmOpen()) CD.ui.resolveConfirm(false); else if (fnOpen()) CD.fn.close(); else CD.back(); });
       edge(gp, M.START, function () { if (!confirmOpen()) activate(); });
-      edge(gp, M.SELECT, function () { if (confirmOpen()) CD.ui.resolveConfirm(false); else CD.back(); });
+      edge(gp, M.SELECT, function () { if (confirmOpen()) CD.ui.resolveConfirm(false); else if (fnOpen()) CD.fn.close(); else CD.back(); });
+      edge(gp, M.FN, function () { if (!confirmOpen() && CD.fn) CD.fn.toggle(); });   // FN abre/fecha o menu FUNCTION
       edge(gp, M.RIGHT, function () { move("right"); });
       edge(gp, M.LEFT, function () { move("left"); });
       edge(gp, M.DOWN, function () { move("down"); });
