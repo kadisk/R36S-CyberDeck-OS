@@ -297,7 +297,8 @@ O **código próprio deste projeto** (UI web, `cyberdeck-agent`, `cyberdeck-fb`,
 scripts e docs) está sob a licença **MIT** — ver [`LICENSE`](LICENSE).
 
 Componentes de **terceiros** mantêm suas próprias licenças e **não** são cobertos
-pela MIT deste repo: Debian e seus pacotes (Xorg, Chromium, etc.), o kernel/U-Boot
-BSP e o blob Mali (extraídos do ArkOS apenas como referência de boot/hardware, em
-modo somente leitura — nada do ArkOS é redistribuído aqui). Ao construir/distribuir
-uma imagem `.img`, respeite as licenças desses componentes.
+pela MIT deste repo: Debian e seus pacotes (Xorg, Chromium, etc.) e o kernel/U-Boot
+BSP. Este repositório **não redistribui binários proprietários do ArkOS** (kernel
+BSP, blob Mali) — eles são lidos do **seu próprio ArkOS** em tempo de build/gravação,
+em modo somente leitura. Ao construir/distribuir uma imagem `.img`, respeite as
+licenças desses componentes.

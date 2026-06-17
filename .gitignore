@@ -8,6 +8,9 @@
 /artifacts/arkos-reference/kernel/Image
 /artifacts/arkos-reference/kernel/uInitrd
 /artifacts/arkos-reference/kernel/zImage
+# Blobs proprietários da Mali — NÃO redistribuir; regeráveis via
+# experiments/extract-arkos-mali.sh a partir do ArkOS do próprio usuário.
+/artifacts/arkos-reference/mali/
 
 # Imagens de SD / kernels / dtbs soltos
 *.img
