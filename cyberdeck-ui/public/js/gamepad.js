@@ -230,7 +230,11 @@
       var M = mapFor(gp);
       // tela de teste de botões: captura TODOS os botões (só acende as células).
       // Nenhuma ação de navegação dispara; sai com Start+Select juntos.
-      if (document.getElementById("view-keys")) {
+      // ATENÇÃO: todas as views ficam SEMPRE no DOM (troca = classe .active),
+      // então é obrigatório testar .active — testar só a existência do elemento
+      // mataria a navegação em TODAS as telas (bug v0.8.0).
+      var kv = document.getElementById("view-keys");
+      if (kv && kv.classList.contains("active")) {
         dump(gp);
         var st = gp.buttons[M.START] && gp.buttons[M.START].pressed;
         var se = gp.buttons[M.SELECT] && gp.buttons[M.SELECT].pressed;
