@@ -30,6 +30,7 @@ PKGS="xserver-xorg-core xserver-xorg-video-fbdev xserver-xorg-input-evdev \
       xserver-xorg-input-joystick \
       xinit x11-xserver-utils chromium fonts-dejavu-core ca-certificates zram-tools \
       nodejs iproute2 wireless-tools wpasupplicant rfkill iw isc-dhcp-client \
+      openssh-server avahi-daemon libnss-mdns \
       fbcat scrot alsa-utils"
 
 DEBOOTSTRAP="$(command -v debootstrap || true)"
@@ -138,6 +139,11 @@ systemctl enable cyberdeck-x.service
 systemctl enable cyberdeck-agent.service
 systemctl enable cyberdeck-net.service
 echo "root:cyberdeck" | chpasswd
+# SSH: login root por senha (rede LAN do handheld). avahi -> ssh root@r36s-cyberdeck.local
+systemctl enable ssh || true
+systemctl enable avahi-daemon || true
+mkdir -p /etc/ssh/sshd_config.d
+printf 'PermitRootLogin yes\nPasswordAuthentication yes\n' > /etc/ssh/sshd_config.d/cyberdeck.conf
 # zram swap (alivia 1GB RAM p/ o Chromium)
 echo 'ALGO=zstd\nPERCENT=60' > /etc/default/zramswap || true
 # journal PERSISTENTE (sobrevive a reboot) — permite extrair logs do cartão depois
