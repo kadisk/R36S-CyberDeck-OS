@@ -117,6 +117,15 @@ dhcp() {
   fi
 }
 
+# corrige o relógio assim que há internet (o RTC do R36S não é confiável). Força o
+# timesyncd a (re)sincronizar agora; ele também atualiza o RTC.
+sync_time() {
+  command -v timedatectl >/dev/null 2>&1 && timedatectl set-ntp true 2>/dev/null || true
+  systemctl restart systemd-timesyncd 2>/dev/null \
+    || systemctl restart systemd-timesyncd.service 2>/dev/null || true
+  log "NTP solicitado (timesyncd)"
+}
+
 up() {
   unblock_rf                                       # libera o RF ANTES (rockchip inicia bloqueado)
   ensure_module || true
@@ -140,6 +149,7 @@ up() {
   done
   log "wpa_state=${st:-?}"
   dhcp "$IF"
+  sync_time                                          # acerta o relógio ao ter internet
   status
 }
 
@@ -194,6 +204,7 @@ diag() {
   echo "--- config wpa ---"; [ -f "$CONF" ] && { echo "existe $CONF:"; grep -vE 'psk=' "$CONF"; echo "    psk=<oculto>"; } || echo "(SEM $CONF)"
   echo "--- autoload (modules-load.d / blacklist) ---"; cat /etc/modules-load.d/cyberdeck-wifi.conf 2>/dev/null; cat /etc/modprobe.d/cyberdeck-wifi.conf 2>/dev/null
   echo "--- serviço ---"; systemctl is-enabled cyberdeck-net.service 2>/dev/null; systemctl status cyberdeck-net.service --no-pager 2>/dev/null | head -12
+  echo "--- relógio / NTP ---"; date; command -v timedatectl >/dev/null 2>&1 && timedatectl 2>/dev/null | grep -iE 'Time zone|NTP|synchronized|Local time'
   echo "--- status atual ---"; status
   echo "==== fim diag ===="
 }

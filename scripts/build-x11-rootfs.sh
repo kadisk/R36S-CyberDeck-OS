@@ -30,7 +30,7 @@ PKGS="xserver-xorg-core xserver-xorg-video-fbdev xserver-xorg-input-evdev \
       xserver-xorg-input-joystick \
       xinit x11-xserver-utils chromium fonts-dejavu-core ca-certificates zram-tools \
       nodejs iproute2 wireless-tools wpasupplicant rfkill iw isc-dhcp-client \
-      openssh-server avahi-daemon libnss-mdns \
+      openssh-server avahi-daemon libnss-mdns systemd-timesyncd \
       fbcat scrot alsa-utils"
 
 DEBOOTSTRAP="$(command -v debootstrap || true)"
@@ -144,6 +144,11 @@ systemctl enable ssh || true
 systemctl enable avahi-daemon || true
 mkdir -p /etc/ssh/sshd_config.d
 printf 'PermitRootLogin yes\nPasswordAuthentication yes\n' > /etc/ssh/sshd_config.d/cyberdeck.conf
+# Relógio: RTC do R36S não é confiável -> NTP (systemd-timesyncd) ao ter internet.
+# Fuso horário BR (ajuste se necessário); timesyncd sincroniza e atualiza o RTC.
+ln -sf /usr/share/zoneinfo/America/Sao_Paulo /etc/localtime
+echo "America/Sao_Paulo" > /etc/timezone
+systemctl enable systemd-timesyncd || true
 # zram swap (alivia 1GB RAM p/ o Chromium)
 echo 'ALGO=zstd\nPERCENT=60' > /etc/default/zramswap || true
 # journal PERSISTENTE (sobrevive a reboot) — permite extrair logs do cartão depois
@@ -202,6 +207,15 @@ EOF
     umask 022
 else
     log "SEM credenciais Wi-Fi (board/r36s/wifi.conf ausente) — imagem sem rede pré-configurada"
+fi
+
+# 3d. Chave(s) SSH autorizadas (login root sem senha). De board/r36s/authorized_keys
+# (NÃO versionado; populado por scripts/ssh-setup-key-r36s.sh). Sem o arquivo, fica
+# só a senha (cyberdeck).
+if [ -s "$REPO_DIR/board/r36s/authorized_keys" ]; then
+    log "instalando chave(s) SSH autorizada(s) em /root/.ssh/authorized_keys"
+    install -d -m0700 "$RF/root/.ssh"
+    install -m0600 "$REPO_DIR/board/r36s/authorized_keys" "$RF/root/.ssh/authorized_keys"
 fi
 
 # 4. ext4 (label ARCHR_ROOT) + montar imagem (clone do boot ArkOS, kernel BSP)

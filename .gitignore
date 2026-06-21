@@ -12,6 +12,8 @@
 # experiments/extract-arkos-mali.sh a partir do ArkOS do próprio usuário.
 # Credenciais de Wi-Fi embutidas na imagem — NUNCA versionar.
 /board/r36s/wifi.conf
+# Chave(s) SSH autorizadas (específicas do usuário) — fora do git.
+/board/r36s/authorized_keys
 # Capturas e logs puxados do cartão (locais ao projeto, não versionados).
 /screenshots/
 /logs/

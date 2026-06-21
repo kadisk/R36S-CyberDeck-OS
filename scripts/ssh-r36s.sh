@@ -17,4 +17,7 @@ exec ssh \
   -o UserKnownHostsFile=/dev/null \
   -o LogLevel=ERROR \
   -o ConnectTimeout=8 \
+  -o ControlMaster=auto \
+  -o ControlPath="$HOME/.ssh/cm-%C" \
+  -o ControlPersist=120 \
   root@"$HOST" "$@"
