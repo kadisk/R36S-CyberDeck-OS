@@ -626,12 +626,33 @@
         check(!!d.gateway, "gateway configurado", true);
         check(dns.length > 0, "DNS configurado", false);
 
-        // ações
+        // ações de rede (Wi-Fi via dongle USB)
         var bar = h("div", { cls: "toolbar" });
-        bar.appendChild(h("button", { cls: "chip", focus: true, text: "conexões (ss)", on: { click: function () { self.conns(); } } }));
+        bar.appendChild(h("button", { cls: "chip", focus: true, text: "conectar", on: { click: function () { self.act("wifi-up"); } } }));
+        bar.appendChild(h("button", { cls: "chip", text: "reconectar", on: { click: function () { self.act("wifi-reconnect"); } } }));
+        bar.appendChild(h("button", { cls: "chip", text: "buscar redes", on: { click: function () { self.scan(); } } }));
+        bar.appendChild(h("button", { cls: "chip", text: "conexões (ss)", on: { click: function () { self.conns(); } } }));
         b.appendChild(bar);
         self.connHost = h("div"); b.appendChild(self.connHost);
       });
+    },
+    // dispara uma ação Wi-Fi do agente e re-renderiza a tela com o novo estado
+    act: function (key) {
+      var self = this; UI.toast("…");
+      api.post("/api/actions", { key: key }).then(function (r) {
+        UI.toast(r.msg || "ok"); self.show();
+      }).catch(function (e) { UI.toast("erro: " + ((e && e.message) || e)); });
+    },
+    // lista os SSIDs visíveis (scan ativo via agente)
+    scan: function () {
+      var lh = this.connHost; UI.clear(lh); lh.appendChild(UI.loading());
+      api.post("/api/network/wifi/scan", {}).then(function (d) {
+        UI.clear(lh);
+        var ss = d.ssids || [];
+        lh.appendChild(h("div", { cls: "sub", text: "REDES VISÍVEIS (" + ss.length + ")" }));
+        if (!ss.length) { lh.appendChild(h("div", { cls: "chkline off", text: "? nenhuma rede (dongle/driver ok?)" })); return; }
+        ss.forEach(function (s) { lh.appendChild(h("div", { cls: "chkline", text: "· " + s })); });
+      }).catch(function (e) { UI.clear(lh); lh.appendChild(UI.errBox(e)); });
     },
     conns: function () {
       var lh = this.connHost; UI.clear(lh); lh.appendChild(UI.loading());

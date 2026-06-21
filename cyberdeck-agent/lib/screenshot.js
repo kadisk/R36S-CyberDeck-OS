@@ -4,7 +4,8 @@
  * Estratégia (em ordem):
  *   1) fbgrab  — lê /dev/fb0 direto (não precisa de DISPLAY/X auth). Ideal p/ fbdev.
  *   2) scrot   — fallback no DISPLAY :0 (precisa do X).
- * Salva em /root/screenshots/shot-AAAAMMDD-HHMMSS.png — navegável pela aba FS.
+ * Salva em /root/screenshots/v<versão>/shot-NNNN.png (sequencial, NÃO por data —
+ * o RTC do R36S não é confiável) — navegável pela aba FS.
  */
 const fs = require("fs");
 const { run } = require("./exec");

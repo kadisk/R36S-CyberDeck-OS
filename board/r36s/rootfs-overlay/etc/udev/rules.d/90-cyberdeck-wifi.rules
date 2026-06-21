@@ -1,0 +1,9 @@
+# 90-cyberdeck-wifi.rules — auto-connect do Wi-Fi via dongle USB.
+#
+# (1) No PLUG do dongle Realtek f179 (RTL8188FTV): dispara o cyberdeck-net, que
+#     (re)carrega o módulo LIMPO com o dispositivo presente e conecta. Este é o
+#     gatilho que faltava — o driver rockchip 8188fu só vincula se o module_init
+#     rodar COM o dongle conectado (pré-carregar no boot não vincula).
+SUBSYSTEM=="usb", ACTION=="add", ATTR{idVendor}=="0bda", ATTR{idProduct}=="f179", RUN+="/usr/bin/systemctl --no-block restart cyberdeck-net.service"
+# (2) Quando a interface wireless finalmente nasce (wl*): garante wpa+DHCP.
+SUBSYSTEM=="net", ACTION=="add", KERNEL=="wl*", RUN+="/usr/bin/systemctl --no-block start cyberdeck-net.service"

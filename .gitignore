@@ -10,7 +10,15 @@
 /artifacts/arkos-reference/kernel/zImage
 # Blobs proprietários da Mali — NÃO redistribuir; regeráveis via
 # experiments/extract-arkos-mali.sh a partir do ArkOS do próprio usuário.
+# Credenciais de Wi-Fi embutidas na imagem — NUNCA versionar.
+/board/r36s/wifi.conf
+# Capturas e logs puxados do cartão (locais ao projeto, não versionados).
+/screenshots/
+/logs/
 /artifacts/arkos-reference/mali/
+# Árvore de módulos do kernel BSP 4.4.189 (~57M) — regerável via
+# scripts/extract-arkos-modules.sh a partir do ArkOS do próprio usuário.
+/artifacts/arkos-reference/modules/
 
 # Imagens de SD / kernels / dtbs soltos
 *.img

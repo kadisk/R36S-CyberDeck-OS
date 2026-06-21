@@ -26,10 +26,9 @@ DEV="$SD_DEV"; P2="${DEV}2"
 sd_describe "$DEV"
 NAME="${SD_NAME:-$CARD}"
 
-# destino padrão: FORA do repositório (home do usuário, não em artifacts/ — capturas
-# não devem entrar no git). Resolve a home do usuário real mesmo rodando sob sudo.
-USER_HOME="$(eval echo ~"${SUDO_USER:-$USER}")"
-if [ -n "$DEST" ]; then OWN_DIR="$DEST"; else DEST="$USER_HOME/cyberdeck-screenshots/$NAME"; OWN_DIR="$USER_HOME/cyberdeck-screenshots"; fi
+# destino padrão: DENTRO do projeto, em screenshots/<cartao>/ (esse diretório está
+# no .gitignore — capturas não entram no git, mas ficam locais ao projeto).
+if [ -n "$DEST" ]; then OWN_DIR="$DEST"; else DEST="$REPO/screenshots/$NAME"; OWN_DIR="$REPO/screenshots"; fi
 
 say "================= RECUPERAR SCREENSHOTS (read-only) ================="
 say "Cartão '$CARD' -> $DEV  (rootfs $P2, montado RO)"

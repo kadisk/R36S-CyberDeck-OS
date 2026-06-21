@@ -20,6 +20,7 @@ const { cors, ok, fail, readBody } = require("./lib/http");
 const status = require("./lib/status");
 const device = require("./lib/device");
 const network = require("./lib/network");
+const wifi = require("./lib/wifi");
 const systemd = require("./lib/systemd");
 const processes = require("./lib/processes");
 const fsbrowse = require("./lib/fsbrowse");
@@ -65,6 +66,8 @@ async function handleGet(res, pathname, q) {
       return ok(res, { routes: await network.routes() });
     case pathname === "/api/network/connections":
       return ok(res, await network.connections(parseInt(q.get("limit"), 10)));
+    case pathname === "/api/network/wifi" || pathname === "/api/network/wifi/status":
+      return ok(res, await wifi.status());
 
     case pathname === "/api/systemd" || pathname === "/api/systemd/summary":
       return ok(res, await systemd.summary());
@@ -125,6 +128,8 @@ async function handlePost(res, pathname, body) {
       return ok(res, settings.write({ fontScale: body.fontScale }));
     case "/api/screenshot":
       return ok(res, await screenshot.capture(body.version || AGENT_VERSION));
+    case "/api/network/wifi/scan":
+      return ok(res, await wifi.scan());
     default:
       return fail(res, "NOT_FOUND", "rota não encontrada: " + pathname);
   }

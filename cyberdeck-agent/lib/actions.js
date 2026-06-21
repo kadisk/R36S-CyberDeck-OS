@@ -8,6 +8,14 @@ const { rdInt } = require("./util");
 const { backlightDir } = require("./status");
 const { run } = require("./exec");
 const volume = require("./volume");
+const wifi = require("./wifi");
+
+function wifiMsg(s) {
+  if (!s) return "Wi-Fi: sem estado";
+  if (s.state === "no-device") return "Wi-Fi: dongle não detectado";
+  if (s.connected) return "Wi-Fi: conectado a " + (s.ssid || "?") + (s.ip ? " · " + s.ip : "");
+  return "Wi-Fi: " + (s.state || "desconectado") + (s.ssid ? " (" + s.ssid + ")" : "");
+}
 
 function err(code, message) { const e = new Error(message); e.code = code; return e; }
 
@@ -36,6 +44,9 @@ const ACTIONS = {
   "volume-mute":    { label: "Mudo (alternar)",             dangerous: false, fn: async () => vol("toggle") },
   "audio-test-spk": { label: "Testar alto-falante",         dangerous: false, fn: async () => { const r = await volume.test("speaker"); return { msg: r.msg }; } },
   "audio-test-hp":  { label: "Testar fone",                 dangerous: false, fn: async () => { const r = await volume.test("headphone"); return { msg: r.msg }; } },
+  "wifi-up":        { label: "Conectar Wi-Fi",              dangerous: false, fn: async () => { const r = await wifi.up();       return { msg: wifiMsg(r.status), status: r.status }; } },
+  "wifi-reconnect": { label: "Reconectar Wi-Fi",            dangerous: false, fn: async () => { const r = await wifi.reconnect(); return { msg: wifiMsg(r.status), status: r.status }; } },
+  "wifi-down":      { label: "Desligar Wi-Fi",              dangerous: false, fn: async () => { const s = await wifi.down();     return { msg: "Wi-Fi desligado", status: s }; } },
   "reload-ui":      { label: "Recarregar UI",               dangerous: true,  fn: async () => svc("restart", "cyberdeck-x.service", "recarregando UI") },
   "restart-agent":  { label: "Reiniciar cyberdeck-agent",   dangerous: true,  fn: async () => svc("restart", "cyberdeck-agent.service", "reiniciando agente") },
   "restart-kiosk":  { label: "Reiniciar kiosk",             dangerous: true,  fn: async () => svc("restart", "cyberdeck.service", "reiniciando kiosk") },

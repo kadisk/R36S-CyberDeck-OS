@@ -29,7 +29,7 @@ OUT="$OUT_DIR/r36s-cyberdeck-x11.img"
 PKGS="xserver-xorg-core xserver-xorg-video-fbdev xserver-xorg-input-evdev \
       xserver-xorg-input-joystick \
       xinit x11-xserver-utils chromium fonts-dejavu-core ca-certificates zram-tools \
-      nodejs iproute2 wireless-tools \
+      nodejs iproute2 wireless-tools wpasupplicant rfkill iw isc-dhcp-client \
       fbcat scrot alsa-utils"
 
 DEBOOTSTRAP="$(command -v debootstrap || true)"
@@ -63,6 +63,10 @@ install -D -m0644 "$REPO_DIR/runtime/services/cyberdeck-x.service" "$RF/etc/syst
 install -d "$RF/usr/local/lib/cyberdeck-agent"
 cp -a "$REPO_DIR/cyberdeck-agent/agent.js" "$REPO_DIR/cyberdeck-agent/lib" "$RF/usr/local/lib/cyberdeck-agent/"
 install -D -m0644 "$REPO_DIR/runtime/services/cyberdeck-agent.service" "$RF/etc/systemd/system/cyberdeck-agent.service"
+# rede Wi-Fi via dongle USB: gerenciador + serviço (boot) + regra udev (hotplug)
+install -D -m0755 "$REPO_DIR/runtime/scripts/cyberdeck-net.sh"        "$RF/usr/local/bin/cyberdeck-net.sh"
+install -D -m0644 "$REPO_DIR/runtime/services/cyberdeck-net.service"  "$RF/etc/systemd/system/cyberdeck-net.service"
+install -D -m0644 "$REPO_DIR/board/r36s/rootfs-overlay/etc/udev/rules.d/90-cyberdeck-wifi.rules" "$RF/etc/udev/rules.d/90-cyberdeck-wifi.rules"
 mkdir -p "$RF/etc/X11/xorg.conf.d"
 cat > "$RF/etc/X11/xorg.conf.d/99-fbdev.conf" <<'EOF'
 Section "Device"
@@ -132,9 +136,12 @@ printf '[Service]\nExecStart=\nExecStart=-/sbin/agetty --autologin root --noclea
     > /etc/systemd/system/serial-getty@ttyFIQ0.service.d/autologin.conf
 systemctl enable cyberdeck-x.service
 systemctl enable cyberdeck-agent.service
+systemctl enable cyberdeck-net.service
 echo "root:cyberdeck" | chpasswd
 # zram swap (alivia 1GB RAM p/ o Chromium)
 echo 'ALGO=zstd\nPERCENT=60' > /etc/default/zramswap || true
+# journal PERSISTENTE (sobrevive a reboot) — permite extrair logs do cartão depois
+mkdir -p /var/log/journal && systemd-tmpfiles --create --prefix /var/log/journal 2>/dev/null || true
 apt-get clean
 EOF
 chmod +x "$RF/root/setup-x11.sh"
@@ -144,6 +151,52 @@ log "instalando Xorg + Chromium (chroot/qemu — LENTO)"
 chroot "$RF" /root/setup-x11.sh || { cleanup; die "setup-x11 falhou"; }
 cleanup; rm -f "$RF/root/setup-x11.sh"
 log "rootfs X11 pronto: $(du -sh "$RF"|cut -f1)"
+
+# 3b. Módulos do kernel BSP 4.4.189 — o rootfs Debian NÃO tem /lib/modules da 4.4,
+# então só drivers embutidos (=y) funcionavam. Instalar a árvore do ArkOS habilita
+# os .ko carregáveis: Wi-Fi via dongle USB (RTL8188FTV/8188fu = 0bda:f179), etc.
+KVER=4.4.189
+MODSRC="$REPO_DIR/artifacts/arkos-reference/modules/$KVER"
+[ -d "$MODSRC" ] || die "módulos $KVER ausentes: $MODSRC
+     Rode antes: sudo scripts/extract-arkos-modules.sh"
+log "instalando módulos $KVER ($(du -sh "$MODSRC"|cut -f1)) + depmod"
+install -d "$RF/lib/modules"
+rm -rf "$RF/lib/modules/$KVER"
+cp -a "$MODSRC" "$RF/lib/modules/$KVER"
+depmod -b "$RF" "$KVER"
+# NÃO pré-carregar 8188fu no boot: o driver rockchip só vincula o dongle se o
+# module_init rodar COM o dispositivo presente (igual ao autoload por udev do ArkOS;
+# pré-carregar antes do plug NÃO vincula). Quem carrega é a regra udev no plug.
+# Só fixamos a preferência pelo 8188fu (autocontido) sobre o rtl8188fu (precisa de fw).
+printf 'blacklist rtl8188fu\n' > "$RF/etc/modprobe.d/cyberdeck-wifi.conf"
+rm -f "$RF/etc/modules-load.d/cyberdeck-wifi.conf"
+
+# 3c. Credenciais Wi-Fi -> /etc/wpa_supplicant/cyberdeck.conf (chmod 600). As
+# credenciais vêm de board/r36s/wifi.conf (NÃO versionado) ou de env WIFI_SSID/WIFI_PSK.
+# Sem credenciais, pula (a imagem fica sem rede pré-configurada).
+WIFI_FILE="$REPO_DIR/board/r36s/wifi.conf"
+[ -f "$WIFI_FILE" ] && . "$WIFI_FILE"
+if [ -n "${WIFI_SSID:-}" ] && [ -n "${WIFI_PSK:-}" ]; then
+    log "configurando Wi-Fi: SSID '$WIFI_SSID' (country ${WIFI_COUNTRY:-BR})"
+    install -d -m0755 "$RF/etc/wpa_supplicant"
+    umask 077
+    cat > "$RF/etc/wpa_supplicant/cyberdeck.conf" <<EOF
+# Gerado por build-x11-rootfs.sh — credenciais de Wi-Fi do CyberDeck.
+ctrl_interface=/run/wpa_supplicant
+update_config=1
+country=${WIFI_COUNTRY:-BR}
+network={
+    ssid="$WIFI_SSID"
+    psk="$WIFI_PSK"
+    key_mgmt=WPA-PSK
+    scan_ssid=1
+}
+EOF
+    chmod 600 "$RF/etc/wpa_supplicant/cyberdeck.conf"
+    umask 022
+else
+    log "SEM credenciais Wi-Fi (board/r36s/wifi.conf ausente) — imagem sem rede pré-configurada"
+fi
 
 # 4. ext4 (label ARCHR_ROOT) + montar imagem (clone do boot ArkOS, kernel BSP)
 P2="$PART_DIR/x11-p2.ext4"

@@ -1,0 +1,16 @@
+[Unit]
+Description=CyberDeck Wi-Fi (dongle USB) — conecta automaticamente
+# roda assim que houver rede/após boot; a regra udev também dispara este serviço
+# quando a interface wireless aparece (dongle plugado a quente).
+After=network-pre.target
+Wants=network.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/cyberdeck-net.sh up
+# não falha o boot se o dongle não estiver presente
+SuccessExitStatus=0 1
+
+[Install]
+WantedBy=multi-user.target
