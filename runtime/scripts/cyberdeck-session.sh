@@ -9,6 +9,11 @@
 CHOOSER=/usr/local/bin/cyberdeck-chooser
 PREF=/var/lib/cyberdeck/interface
 
+# Silencia o console do kernel (loglevel=1): o driver do dongle Wi-Fi (RTL8188) pode
+# spammar "fw read cmd failed" no tty1 — se a UI tiver um soluço, o spam NÃO inunda a
+# tela. (Os logs continuam no journal/dmesg, vistos pela aba LOGS.)
+dmesg -n 1 2>/dev/null || true
+
 choice=""
 if [ -x "$CHOOSER" ]; then
     # o chooser desenha no /dev/fb0, lê o joypad e imprime "web"/"fb" no stdout
