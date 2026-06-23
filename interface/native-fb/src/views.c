@@ -534,25 +534,32 @@ static const char *hbytes(double n, char *buf, int sz){
     if(i==0)snprintf(buf,sz,"%d%s",(int)n,u[i]); else snprintf(buf,sz,"%.1f%s",n,u[i]);
     return buf;
 }
-static int st_can_expand(void){ cJSON*d=api_data(g_cache[V_STORAGE]); return d && Jn(d,"expandable_bytes",-1)>1048576; }
+static int st_can_expand(void){ cJSON*d=api_data(g_cache[V_STORAGE]); return d && (int)Jn(d,"rootfs_growable",0); }
 static int st_has_card(void){ cJSON*d=api_data(g_cache[V_STORAGE]),*sc=d?J(d,"second_card"):NULL; return sc && (int)Jn(sc,"present",0); }
 static int st_card_mounted(void){ cJSON*d=api_data(g_cache[V_STORAGE]),*sc=d?J(d,"second_card"):NULL; return sc && (int)Jn(sc,"mounted",0); }
 static void storage_render(int focus){
     int x=cx(),y=cy0(),w=cw(); ui_title(x,y,"ARMAZENAMENTO"); y+=ROWH+2;
     cJSON*d=api_data(g_cache[V_STORAGE]);
     if(!d){fb_text(x,y,AGENT_OK?"carregando...":"agente offline",PAL.muted,PAL.bg,0);return;}
-    cJSON*r=J(d,"rootfs"); char a[24],b[24],v[80];
+    cJSON*r=J(d,"rootfs"),*dk=J(d,"disk"); char a[24],b[24],c[24],v[90];
     if(r){ int up=(int)Jn(r,"usepct",-1); if(up>=0)y=ui_gauge(x,y,w,"ROOTFS",up)+2;
-        y=ui_kv(x,y,w,"DISPOSITIVO",Js(r,"dev","-"));
-        snprintf(v,sizeof v,"%s / %s",hbytes(Jn(r,"used",-1),a,sizeof a),hbytes(Jn(r,"size",-1),b,sizeof b)); y=ui_kv(x,y,w,"USO",v); }
-    y=ui_kv(x,y,w,"CARTAO",hbytes(Jn(d,"disk_bytes",-1),a,sizeof a));
-    double ex=Jn(d,"expandable_bytes",-1);
-    y=ui_kv(x,y,w,"EXPANSIVEL", ex>0?hbytes(ex,a,sizeof a):((int)Jn(d,"expanded",0)?"ja no maximo":"-"));
+        snprintf(v,sizeof v,"%s / %s livre %s",hbytes(Jn(r,"used",-1),a,sizeof a),hbytes(Jn(r,"size",-1),b,sizeof b),hbytes(Jn(r,"avail",-1),c,sizeof c)); y=ui_kv(x,y,w,"USO",v); }
+    if(dk){ snprintf(v,sizeof v,"%s  %s",Js(dk,"dev","-"),hbytes(Jn(dk,"size",-1),a,sizeof a)); y=ui_kv(x,y,w,"CARTAO",v); }
+    /* partições */
+    fb_text(x,y,"PARTICOES",PAL.fg_dim,PAL.bg,0); y+=ROWH;
+    cJSON*parts=J(d,"parts"),*p;
+    if(parts) cJSON_ArrayForEach(p,parts){ char sz[24]; const char*role=Js(p,"role","?");
+        snprintf(v,sizeof v,"%-6.6s %s %s",role,Js(p,"dev","")+5,Js(p,"label",""));
+        fb_text(x,y,v,PAL.fg,PAL.bg,0);
+        snprintf(sz,sizeof sz,"%s %s",Js(p,"fstype","?"),hbytes(Jn(p,"size",-1),a,sizeof a));
+        fb_text(x+w-fb_text_w(sz),y,sz,PAL.muted,PAL.bg,0); y+=FB_FONT_H; if(y>cy1()-3*ROWH)break; }
+    y+=4;
     int fi=0;
     if(st_can_expand()){ int sel=(focus==fi),ry=y; if(sel)fb_fill(x-2,ry-2,w,ROWH,PAL.line2);
         fb_text(x,ry,"A",PAL.btn_a,sel?PAL.line2:PAL.bg,0);
-        snprintf(v,sizeof v,"Expandir rootfs (+%s)",hbytes(ex,a,sizeof a));
+        snprintf(v,sizeof v,"Expandir rootfs (+%s)",hbytes(Jn(d,"expandable_bytes",-1),a,sizeof a));
         fb_text(x+FB_FONT_W*2,ry,v,sel?PAL.accent:PAL.fg,sel?PAL.line2:PAL.bg,0); y+=ROWH; fi++; }
+    else { fb_text(x,y,Js(d,"blocked_by","rootfs no maximo"),PAL.muted,PAL.bg,0); y+=ROWH; }
     y+=4; fb_text(x,y,"2o CARTAO (slot extra)",PAL.fg_dim,PAL.bg,0); y+=ROWH;
     cJSON*sc=J(d,"second_card");
     if(!st_has_card()){ fb_text(x,y,"nenhum 2o cartao",PAL.muted,PAL.bg,0); }

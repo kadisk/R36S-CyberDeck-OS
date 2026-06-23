@@ -956,18 +956,30 @@
       el.appendChild(title("ARMAZENAMENTO"));
       var host = h("div"); el.appendChild(host);
       asyncRender(host, function () { return api.get("/api/storage"); }, function (d) {
-        var r = d.rootfs || {};
+        var r = d.rootfs || {}, disk = d.disk || {};
         if (r.usepct >= 0) host.appendChild(UI.gauge("ROOTFS", r.usepct));
-        host.appendChild(UI.kv("DISPOSITIVO", r.dev || "—"));
-        host.appendChild(UI.kv("ROOTFS", r.size >= 0 ? (UI.fmt.bytes(r.used) + " / " + UI.fmt.bytes(r.size) + " (livre " + UI.fmt.bytes(r.avail) + ")") : "—"));
-        host.appendChild(UI.kv("CARTÃO (disco)", UI.fmt.bytes(d.disk_bytes)));
-        var exp = d.expandable_bytes;
-        host.appendChild(UI.kv("EXPANSÍVEL", exp > 0 ? UI.fmt.bytes(exp) : (d.expanded ? "já no máximo" : "—")));
-        if (exp > 1048576) {
+        host.appendChild(UI.kv("ROOTFS", r.size >= 0 ? (UI.fmt.bytes(r.used) + " / " + UI.fmt.bytes(r.size) + " livre " + UI.fmt.bytes(r.avail)) : "—"));
+        host.appendChild(UI.kv("CARTÃO", (disk.dev || "—") + "  " + UI.fmt.bytes(disk.size)));
+        // layout de partições
+        host.appendChild(h("div", { cls: "sub", text: "PARTIÇÕES" }));
+        var pl = h("div", { cls: "list" });
+        (d.parts || []).forEach(function (p) {
+          pl.appendChild(row([
+            { t: p.role.toUpperCase(), cls: "fstype" },
+            { t: p.dev.replace("/dev/", "") + (p.label ? " " + p.label : ""), grow: true },
+            { t: (p.fstype || "?"), cls: "r" },
+            { t: UI.fmt.bytes(p.size), cls: "r" },
+          ], null, false));
+        });
+        host.appendChild(pl);
+        // expansão
+        if (d.rootfs_growable) {
           var bar = h("div", { cls: "list" });
-          bar.appendChild(row([{ t: "Expandir rootfs p/ o cartão inteiro", grow: true }, { t: "+" + UI.fmt.bytes(exp), cls: "r" }],
+          bar.appendChild(row([{ t: "Expandir rootfs p/ o cartão inteiro", grow: true }, { t: "+" + UI.fmt.bytes(d.expandable_bytes), cls: "r" }],
             function () { self.expand(); }, true));
           host.appendChild(bar);
+        } else {
+          host.appendChild(h("div", { cls: "hint", text: d.blocked_by ? ("rootfs não expansível: " + d.blocked_by) : "rootfs já ocupa o máximo disponível" }));
         }
         // 2º cartão
         host.appendChild(h("div", { cls: "sub", text: "2º CARTÃO (slot extra)" }));
