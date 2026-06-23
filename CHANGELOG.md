@@ -4,6 +4,22 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added — 2026-06-23 — Seletor de interface no boot + imagem unificada (Fase 3)
+- **Imagem única** (Debian): a `build-x11-rootfs.sh` agora cross-compila e instala **as duas
+  interfaces** (`cyberdeck-fb`) + o **seletor** (`cyberdeck-chooser`), além do dispatcher.
+- **Seletor de boot** (`interface/native-fb/src/chooser.c`): desenha WEB × NATIVE no `/dev/fb0`,
+  navega pelo joypad, confirma com A/Start, **timeout ~6 s → última escolha**; persiste em
+  `/var/lib/cyberdeck/interface`. Reusa os módulos `fb`/`input` da native-fb.
+- **Dispatcher** `cyberdeck-session.service` + `cyberdeck-session.sh`: roda o seletor e lança a
+  UI escolhida (web = Xorg+Chromium; fb = native). **Substitui** `cyberdeck-x.service` como
+  entrada de UI no boot; o agente continua sempre ativo.
+- **Troca de interface em runtime**: ações `interface-web`/`interface-fb` no agente (gravam a
+  preferência + reiniciam a sessão) e item **"Trocar interface"** no menu FN das duas UIs.
+  `reload-ui`/`restart-kiosk` passam a mirar `cyberdeck-session.service`.
+- **Removido o legado busybox**: `create-minimal-rootfs.sh`, o pipeline de imagem de teste da
+  Fase 2 (`create-test-sd-image.sh`, `prepare-rootfs-partition.sh`, `print-flash-command.sh`) e
+  os overlays só-busybox (`inittab`, `issue`, `init.d/*`, `cyberdeck-launch.sh`). Docs ajustados.
+
 ### Added — 2026-06-23 — native-fb: telas interativas completas (Fase 2, Tranche B)
 - Novas telas em paridade, com **master→detalhe**, **paginação** e **filtros**:
   **PROCS** (lista→detalhe por PID + sinais SIGTERM/SIGKILL), **FS** (browser read-only

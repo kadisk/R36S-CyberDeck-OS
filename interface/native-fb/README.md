@@ -34,14 +34,14 @@ Requer `aarch64-linux-gnu-gcc` (Ubuntu: `gcc-aarch64-linux-gnu`). A fonte bitmap
 
 ## Como entra na imagem
 
-`scripts/create-minimal-rootfs.sh` compila e instala em `/usr/local/bin/cyberdeck-fb`.
-O `inittab` lança no `tty1` via `cyberdeck-launch.sh` (se o renderizador sair/faltar,
-cai num shell **na tela** — depuração sem cabo serial).
+`scripts/build-x11-rootfs.sh` cross-compila e instala `cyberdeck-fb` **e** o seletor de boot
+`cyberdeck-chooser` em `/usr/local/bin` (imagem única Debian). No boot, o
+`cyberdeck-session.service` roda o seletor e lança a interface escolhida (web ou native-fb).
+A native-fb consome o `cyberdeck-agent` (HTTP) — a mesma fonte de dados da web.
 
-## Próximos passos
+## Estado
 
-- Mapear A/B/X/Y e F-keys para ações (abrir seção, voltar, brilho via
-  `/sys/class/backlight/backlight/brightness`).
-- Dados ao vivo nas outras seções (rede, bateria via `/sys/class/power_supply`).
-- Double-buffering: usar `/dev/dri/card0` (KMS) ou pan do framebuffer p/ evitar flicker.
-- Depois: decidir entre evoluir este renderizador OU subir runtime web (WPE) p/ a UI HTML/JS.
+Em **paridade** com a `web-vanilla` (ver [`../../docs/interface/FEATURES.md`](../../docs/interface/FEATURES.md)):
+arquitetura modular (`fb`/`input`/`http`/`ui`/`views` + cJSON), double buffering, navegação por
+joypad, mestre→detalhe, confirmação de ações, screenshot (fbgrab) e as 12 telas + menu FN.
+Gaps menores: filtro de severidade em LOGS, scan Wi-Fi/`ss` em NET.

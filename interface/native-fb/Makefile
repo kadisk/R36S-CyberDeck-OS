@@ -2,11 +2,20 @@
 CC      ?= aarch64-linux-gnu-gcc
 CFLAGS  ?= -O2 -static -Wall -Wno-format-truncation -Wno-misleading-indentation -Isrc
 OUT      = build/cyberdeck-fb
+CHOOSER  = build/cyberdeck-chooser
 SRCS     = src/main.c src/fb.c src/input.c src/http.c src/ui.c src/views.c src/cjson/cJSON.c
+CHSRCS   = src/chooser.c src/fb.c src/input.c
+
+all: $(OUT) $(CHOOSER)
 
 $(OUT): $(SRCS) src/font8x16.h
 	@mkdir -p build
 	$(CC) $(CFLAGS) -o $@ $(SRCS)
+	@file $@
+
+$(CHOOSER): $(CHSRCS) src/font8x16.h
+	@mkdir -p build
+	$(CC) $(CFLAGS) -o $@ $(CHSRCS)
 	@file $@
 
 src/font8x16.h:
@@ -15,4 +24,4 @@ src/font8x16.h:
 clean:
 	rm -rf build
 
-.PHONY: clean
+.PHONY: all clean

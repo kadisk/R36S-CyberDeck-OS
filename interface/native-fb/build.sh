@@ -24,9 +24,17 @@ if [ ! -f "$SELF/src/font8x16.h" ]; then
 fi
 
 mkdir -p "$SELF/build"
-echo "[build] compilando ($CC, static)"
+echo "[build] compilando cyberdeck-fb ($CC, static)"
 "$CC" -O2 -static -Wall -Wno-format-truncation -Wno-misleading-indentation -I"$SELF/src" -o "$OUT" \
     "$SELF/src/main.c" "$SELF/src/fb.c" "$SELF/src/input.c" "$SELF/src/http.c" \
     "$SELF/src/ui.c" "$SELF/src/views.c" "$SELF/src/cjson/cJSON.c"
 echo "[build] OK: $OUT"
 file "$OUT"
+
+# seletor de interface no boot (autocontido: só fb + input)
+CHOOSER="$SELF/build/cyberdeck-chooser"
+echo "[build] compilando cyberdeck-chooser"
+"$CC" -O2 -static -Wall -Wno-format-truncation -Wno-misleading-indentation -I"$SELF/src" -o "$CHOOSER" \
+    "$SELF/src/chooser.c" "$SELF/src/fb.c" "$SELF/src/input.c"
+echo "[build] OK: $CHOOSER"
+file "$CHOOSER"

@@ -25,6 +25,14 @@ async function vol(arg) {
   return { msg: "volume " + (r.pct >= 0 ? r.pct + "%" : "ok") + (r.muted ? " (mudo)" : ""), control: r.control };
 }
 
+/* preferência de interface (lida pelo cyberdeck-chooser/cyberdeck-session): web | fb */
+function setInterface(which) {
+  try {
+    fs.mkdirSync("/var/lib/cyberdeck", { recursive: true });
+    fs.writeFileSync("/var/lib/cyberdeck/interface", which + "\n");
+  } catch (e) { throw err("INTERNAL", "falha ao gravar interface: " + e.message); }
+}
+
 function setBright(delta) {
   const dir = backlightDir();
   if (!dir) return "sem backlight";
@@ -47,9 +55,11 @@ const ACTIONS = {
   "wifi-up":        { label: "Conectar Wi-Fi",              dangerous: false, fn: async () => { const r = await wifi.up();       return { msg: wifiMsg(r.status), status: r.status }; } },
   "wifi-reconnect": { label: "Reconectar Wi-Fi",            dangerous: false, fn: async () => { const r = await wifi.reconnect(); return { msg: wifiMsg(r.status), status: r.status }; } },
   "wifi-down":      { label: "Desligar Wi-Fi",              dangerous: false, fn: async () => { const s = await wifi.down();     return { msg: "Wi-Fi desligado", status: s }; } },
-  "reload-ui":      { label: "Recarregar UI",               dangerous: true,  fn: async () => svc("restart", "cyberdeck-x.service", "recarregando UI") },
+  "reload-ui":      { label: "Recarregar UI",               dangerous: true,  fn: async () => svc("restart", "cyberdeck-session.service", "recarregando UI") },
   "restart-agent":  { label: "Reiniciar cyberdeck-agent",   dangerous: true,  fn: async () => svc("restart", "cyberdeck-agent.service", "reiniciando agente") },
-  "restart-kiosk":  { label: "Reiniciar kiosk",             dangerous: true,  fn: async () => svc("restart", "cyberdeck.service", "reiniciando kiosk") },
+  "restart-kiosk":  { label: "Reiniciar sessão",            dangerous: true,  fn: async () => svc("restart", "cyberdeck-session.service", "reiniciando sessão") },
+  "interface-web":  { label: "Interface: Web",              dangerous: true,  fn: async () => { setInterface("web"); return svc("restart", "cyberdeck-session.service", "trocando p/ Web (reiniciando sessão)"); } },
+  "interface-fb":   { label: "Interface: Nativa",           dangerous: true,  fn: async () => { setInterface("fb");  return svc("restart", "cyberdeck-session.service", "trocando p/ Nativa (reiniciando sessão)"); } },
   "reboot":         { label: "Reiniciar sistema",           dangerous: true,  fn: async () => later("reboot", "reiniciando") },
   "poweroff":       { label: "Desligar sistema",            dangerous: true,  fn: async () => later("poweroff", "desligando") },
 };

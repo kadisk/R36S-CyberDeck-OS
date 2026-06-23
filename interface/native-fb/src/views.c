@@ -527,6 +527,7 @@ static fn_item FN_ITEMS[]={
     {"Testar botoes","gamepad",0,"11"},
     {"Kernel & DTB","diag",0,"9"},
     {"Screenshot agora","L2+R2",1,NULL},
+    {"Trocar p/ Web","reinicia",2,"interface-web"},
     {"Reiniciar agente","confirma",2,"restart-agent"},
     {"Reiniciar sistema","confirma",2,"reboot"},
     {"Desligar","confirma",2,"poweroff"},

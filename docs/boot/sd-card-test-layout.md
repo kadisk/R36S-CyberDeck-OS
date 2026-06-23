@@ -1,5 +1,11 @@
 # Layout do cartão de teste + gravação e rollback — Fase 2
 
+> **Histórico (Fase 2).** Os scripts `create-test-sd-image.sh` / `prepare-rootfs-partition.sh` /
+> `print-flash-command.sh` e a imagem busybox mínima **foram removidos** — a imagem oficial é
+> única (Debian) e se gera com `scripts/build-x11-rootfs.sh`, gravando com o kit em
+> `scripts/sdcard/` (ex.: `sd-update.sh`). A **estratégia de clonar a região de boot do ArkOS**
+> descrita abaixo continua válida (é o que o `build-x11-rootfs.sh` faz).
+
 ## Estratégia: clonar o boot do ArkOS (modo padrão `--clone`)
 
 Descobrimos no teste físico que um **MBR feito do zero** (sfdisk) **impede o boot**

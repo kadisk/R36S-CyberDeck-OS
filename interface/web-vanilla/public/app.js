@@ -93,6 +93,7 @@
       item("*", "Testar botões", "gamepad", function () { CD.fn.close(); CD.go("keys"); });
       item("@", "Auto screenshot", S.autoShot ? "ON" : "OFF", function () { CD.toggleAutoShot(); CD.fn.render(); var f = fnList.querySelector("[data-focus]"); if (f) f.focus(); });
       item("#", "Screenshot agora", "L2+R2", function () { CD.fn.close(); CD.screenshot(); });
+      item("@", "Trocar interface", "p/ Nativa", act("interface-fb", "Trocar p/ interface Nativa (reinicia a sessão)", true));
 
       // ENERGIA — opções inline (pedem confirmação); não navegam p/ outra tela
       sec("ENERGIA");

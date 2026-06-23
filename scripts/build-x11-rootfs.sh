@@ -70,6 +70,21 @@ install -D -m0644 "$REPO_DIR/runtime/services/cyberdeck-net.service"  "$RF/etc/s
 install -D -m0644 "$REPO_DIR/board/r36s/rootfs-overlay/etc/udev/rules.d/90-cyberdeck-wifi.rules" "$RF/etc/udev/rules.d/90-cyberdeck-wifi.rules"
 # policy gerenciada do Chromium (desliga a barra de tradução de página no kiosk)
 install -D -m0644 "$REPO_DIR/board/r36s/rootfs-overlay/etc/chromium/policies/managed/cyberdeck-policies.json" "$RF/etc/chromium/policies/managed/cyberdeck-policies.json"
+# interface nativa (framebuffer) + seletor de boot: cross-compila e instala os 2 binários.
+if command -v aarch64-linux-gnu-gcc >/dev/null 2>&1; then
+    log "compilando interface/native-fb (cyberdeck-fb + cyberdeck-chooser)"
+    bash "$REPO_DIR/interface/native-fb/build.sh" >/dev/null 2>&1 || log "AVISO: build da native-fb falhou"
+fi
+for b in cyberdeck-fb cyberdeck-chooser; do
+    if [ -x "$REPO_DIR/interface/native-fb/build/$b" ]; then
+        install -D -m0755 "$REPO_DIR/interface/native-fb/build/$b" "$RF/usr/local/bin/$b"
+    else
+        log "AVISO: binário $b ausente (sem aarch64-linux-gnu-gcc?) — interface nativa/seletor pode faltar"
+    fi
+done
+# dispatcher de sessão: seletor de interface no boot + lança a UI escolhida (web/fb)
+install -D -m0755 "$REPO_DIR/runtime/scripts/cyberdeck-session.sh"       "$RF/usr/local/bin/cyberdeck-session.sh"
+install -D -m0644 "$REPO_DIR/runtime/services/cyberdeck-session.service" "$RF/etc/systemd/system/cyberdeck-session.service"
 mkdir -p "$RF/etc/X11/xorg.conf.d"
 cat > "$RF/etc/X11/xorg.conf.d/99-fbdev.conf" <<'EOF'
 Section "Device"
@@ -137,7 +152,10 @@ eatmydata apt-get install -y --no-install-recommends $PKGS
 mkdir -p /etc/systemd/system/serial-getty@ttyFIQ0.service.d
 printf '[Service]\nExecStart=\nExecStart=-/sbin/agetty --autologin root --noclear %%I 115200 \$TERM\n' \
     > /etc/systemd/system/serial-getty@ttyFIQ0.service.d/autologin.conf
-systemctl enable cyberdeck-x.service
+# entrada de UI no boot = cyberdeck-session (seletor + UI escolhida); cyberdeck-x NÃO é
+# habilitado (a web é lançada pelo start-cyberdeck-x.sh chamado pela sessão).
+systemctl enable cyberdeck-session.service
+systemctl disable cyberdeck-x.service 2>/dev/null || true
 systemctl enable cyberdeck-agent.service
 systemctl enable cyberdeck-net.service
 echo "root:cyberdeck" | chpasswd

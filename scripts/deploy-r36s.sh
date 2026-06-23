@@ -58,20 +58,24 @@ if want ui; then
   NEED_UI=1
 fi
 if want fb; then
-  # native-fb é um binário aarch64 estático: cross-compila no host e empurra por scp.
+  # interface nativa + seletor de boot: binários aarch64 estáticos (cross-compila e empurra).
   FB_BIN="$REPO/interface/native-fb/build/cyberdeck-fb"
-  if [ ! -x "$FB_BIN" ] && command -v aarch64-linux-gnu-gcc >/dev/null 2>&1; then
+  CH_BIN="$REPO/interface/native-fb/build/cyberdeck-chooser"
+  if { [ ! -x "$FB_BIN" ] || [ ! -x "$CH_BIN" ]; } && command -v aarch64-linux-gnu-gcc >/dev/null 2>&1; then
     log "native-fb -> compilando (aarch64 static)"
     bash "$REPO/interface/native-fb/build.sh" >/dev/null 2>&1 || true
   fi
-  if [ -x "$FB_BIN" ]; then
-    log "native-fb -> /usr/local/bin/cyberdeck-fb"
-    scp $SSH_OPTS "$FB_BIN" "root@$HOST:/usr/local/bin/cyberdeck-fb.new" >/dev/null
-    sshd "chmod +x /usr/local/bin/cyberdeck-fb.new && mv -f /usr/local/bin/cyberdeck-fb.new /usr/local/bin/cyberdeck-fb"
-    NEED_FB=1
-  else
-    log "AVISO: native-fb não compilado (sem aarch64-linux-gnu-gcc?) — pulei o componente fb"
-  fi
+  pushed=0
+  for b in cyberdeck-fb cyberdeck-chooser; do
+    src="$REPO/interface/native-fb/build/$b"
+    if [ -x "$src" ]; then
+      log "native-fb -> /usr/local/bin/$b"
+      scp $SSH_OPTS "$src" "root@$HOST:/usr/local/bin/$b.new" >/dev/null
+      sshd "chmod +x /usr/local/bin/$b.new && mv -f /usr/local/bin/$b.new /usr/local/bin/$b"
+      pushed=1
+    fi
+  done
+  [ "$pushed" = 1 ] && NEED_FB=1 || log "AVISO: binários nativos ausentes (sem aarch64-linux-gnu-gcc?) — pulei o componente fb"
 fi
 if want agent; then
   log "agente -> /usr/local/lib/cyberdeck-agent"
