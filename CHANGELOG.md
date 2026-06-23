@@ -43,7 +43,7 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/).
 - **Imagem única** (Debian): a `build-x11-rootfs.sh` agora cross-compila e instala **as duas
   interfaces** (`cyberdeck-fb`) + o **seletor** (`cyberdeck-chooser`), além do dispatcher.
 - **Seletor de boot** (`interface/native-fb/src/chooser.c`): desenha WEB × NATIVE no `/dev/fb0`,
-  navega pelo joypad, confirma com A/Start, **timeout ~6 s → última escolha**; persiste em
+  navega pelo joypad, confirma com A/Start, **timeout ~15 s → última escolha**; persiste em
   `/var/lib/cyberdeck/interface`. Reusa os módulos `fb`/`input` da native-fb.
 - **Dispatcher** `cyberdeck-session.service` + `cyberdeck-session.sh`: roda o seletor e lança a
   UI escolhida (web = Xorg+Chromium; fb = native). **Substitui** `cyberdeck-x.service` como

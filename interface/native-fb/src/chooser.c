@@ -20,7 +20,7 @@
 
 #define PREF_DIR  "/var/lib/cyberdeck"
 #define PREF_FILE "/var/lib/cyberdeck/interface"
-#define TIMEOUT_S 6
+#define TIMEOUT_S 15
 
 static int read_pref(void) {   /* 0 = web, 1 = fb */
     FILE *f = fopen(PREF_FILE, "r");
