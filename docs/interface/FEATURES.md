@@ -337,7 +337,7 @@ Legenda extra: 🅰 = entregue na Tranche A · 🅱 = previsto p/ Tranche B.
 | NET | ✅ | ✅ (estado+ações+scan+conexões via X/Y) | ❌ |
 | LOGS (lista+detalhe) | ✅ | ✅ (origem L1/R1 + severidade via X) | ❌ |
 | DEVICE | ✅ | ✅ (ID/CPU/DISPLAY/BOOT/INPUT) | ❌ |
-| KERNEL & DTB | ✅ | 🟡 (campos + módulos; nós DTB→FS ainda não) | ❌ |
+| KERNEL & DTB | ✅ | ✅ (campos + nós DTB→FS via A; módulos = contagem) | ❌ |
 | FS (browser read-only) | ✅ | ✅ (lista paginada + viewer + atalhos via X) | ❌ |
 | SVC (systemd) | ✅ | ✅ (lista+detalhe+ações+journal+filtro via X) | ❌ |
 | CMD (allowlist) | ✅ | ✅ 🅱 (categorias→comandos→saída) | ❌ |
@@ -356,7 +356,7 @@ Legenda extra: 🅰 = entregue na Tranche A · 🅱 = previsto p/ Tranche B.
 > (`fb`/`input`/`http`/`ui`/`views` + cJSON), dados via `cyberdeck-agent` (HTTP), double buffer,
 > transliteração UTF-8→ASCII, master→detalhe, paginação, confirmação e as 12 telas + menu FN.
 > **Paridade interativa completa** (filtros/ordenação/severidade/scan/conexões/atalhos via X/Y;
-> journal de serviço no SVC). **Gaps menores remanescentes:** navegar nós do Device Tree → FS na
-> tela KERNEL; "pausar" o tail ao vivo de LOGS; escala de fonte e toggle de auto-screenshot
+> journal de serviço no SVC; nós do Device Tree → FS no KERNEL). **Gaps menores remanescentes:**
+> "pausar" o tail ao vivo de LOGS; escala de fonte e toggle de auto-screenshot
 > (n/a / não aplicáveis na fonte bitmap do fb). **web-react:** reimplementar esta especificação
 > com React/Webpack, mesma casca e tokens.

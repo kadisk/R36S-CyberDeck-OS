@@ -495,20 +495,27 @@ static void cmd_activate(int focus){
 static int cmd_back(void){ if(cmd_mode==2){cmd_mode=1;return 1;} if(cmd_mode==1){cmd_mode=0;cmd_cat[0]=0;g_focus[V_CMD]=0;return 1;} return 0; }
 
 /* =================================================================== KERNEL */
+static cJSON *kn_nodes(void){ cJSON*d=api_data(g_cache[V_KERNEL]),*dt=d?J(d,"dtb"):NULL; cJSON*n=dt?J(dt,"nodes"):NULL; return (n&&cJSON_IsArray(n))?n:NULL; }
 static void kernel_render(int focus){
-    (void)focus; int x=cx(),y=cy0(),w=cw(); ui_title(x,y,"KERNEL & DEVICE TREE"); y+=ROWH+2;
+    int x=cx(),y=cy0(),w=cw(); ui_title(x,y,"KERNEL & DEVICE TREE"); y+=ROWH+2;
     cJSON *d=api_data(g_cache[V_KERNEL]); if(!d){fb_text(x,y,AGENT_OK?"carregando...":"agente offline",PAL.muted,PAL.bg,0);return;} char v[80];
     y=ui_kv(x,y,w,"RELEASE",Js(d,"osrelease","-")); y=ui_kv(x,y,w,"ARCH",Js(d,"arch","-"));
-    snprintf(v,sizeof v,"%d",(int)Jn(d,"tainted",0));y=ui_kv(x,y,w,"TAINTED",v);
-    snprintf(v,sizeof v,"%d",(int)Jn(d,"modules_total",0));y=ui_kv(x,y,w,"MODULOS",v);
     cJSON *dt=J(d,"dtb"); if(dt){ y=ui_kv(x,y,w,"DT MODELO",Js(dt,"model","-")); }
-    fb_text(x,y,"CMDLINE",PAL.fg_dim,PAL.bg,0);y+=ROWH; { const char*cl=Js(d,"cmdline","-");int cols=w/FB_FONT_W,row=0; for(const char*p=cl;*p&&row<3;){char b[200];int bl=0;while(*p&&bl<cols&&bl<199)b[bl++]=*p++;b[bl]=0;fb_text(x,y+row*FB_FONT_H,b,PAL.fg,PAL.bg,0);row++;} y+=3*FB_FONT_H+2; }
-    /* módulos paginados (L1/R1) */
-    cJSON *mods=J(d,"modules"); int N=mods&&cJSON_IsArray(mods)?cJSON_GetArraySize(mods):0; int tot=pg_count(N); kn_page=clampi(kn_page,0,tot-1);
-    char hdr[40];snprintf(hdr,sizeof hdr,"MODULOS pag %d/%d (L1/R1)",kn_page+1,tot); fb_text(x,y,hdr,PAL.fg_dim,PAL.bg,0); y+=ROWH;
-    for(int i=kn_page*PAGE;i<N&&i<kn_page*PAGE+PAGE;i++){cJSON*m=cJSON_GetArrayItem(mods,i);char ln[80];snprintf(ln,sizeof ln,"%d KB",(int)Jn(m,"size_kb",0));fb_text(x,y,Js(m,"name","?"),PAL.fg,PAL.bg,0);fb_text(x+w-fb_text_w(ln),y,ln,PAL.muted,PAL.bg,0);y+=FB_FONT_H;}
+    fb_text(x,y,"CMDLINE",PAL.fg_dim,PAL.bg,0);y+=ROWH; { const char*cl=Js(d,"cmdline","-");int cols=w/FB_FONT_W,row=0; for(const char*p=cl;*p&&row<2;){char b[200];int bl=0;while(*p&&bl<cols&&bl<199)b[bl++]=*p++;b[bl]=0;fb_text(x,y+row*FB_FONT_H,b,PAL.fg,PAL.bg,0);row++;} y+=2*FB_FONT_H+2; }
+    /* nós do Device Tree — focáveis (A abre no FS), paginados por L1/R1 */
+    cJSON *nodes=kn_nodes(); int N=nodes?cJSON_GetArraySize(nodes):0; int tot=pg_count(N); kn_page=clampi(kn_page,0,tot-1);
+    char hdr[60];snprintf(hdr,sizeof hdr,"DEVICE TREE - A abre no FS  pag %d/%d (L1/R1)",kn_page+1,tot); fb_text(x,y,hdr,PAL.fg_dim,PAL.bg,0); y+=ROWH;
+    for(int i=kn_page*PAGE,fi=0;i<N&&i<kn_page*PAGE+PAGE;i++,fi++){cJSON*nd=cJSON_GetArrayItem(nodes,i);int sel=(focus==fi),ry=y+fi*ROWH;if(ry+ROWH>cy1()-ROWH)break;
+        if(sel)fb_fill(x-2,ry-2,w,ROWH,PAL.line2);
+        fb_text_clip(x,ry,Js(nd,"name","?"),(w/FB_FONT_W)-22,sel?PAL.accent:PAL.fg,sel?PAL.line2:PAL.bg,0);
+        fb_text_clip(x+w-fb_text_w("                     "),ry,Js(nd,"compatible",""),20,PAL.muted,sel?PAL.line2:PAL.bg,0);}
+    if(!N)fb_text(x,y,"(sem nós de device-tree)",PAL.muted,PAL.bg,0);
+    snprintf(v,sizeof v,"%d",(int)Jn(d,"modules_total",0)); fb_text(x,cy1()-ROWH+4,"MODULOS carregados:",PAL.fg_dim,PAL.bg,0); fb_text(x+fb_text_w("MODULOS carregados: "),cy1()-ROWH+4,v,PAL.fg,PAL.bg,0);
 }
-static int kernel_page(int dir){ kn_page+=dir; if(kn_page<0)kn_page=0; return 1; }
+static int kernel_nfocus(void){ cJSON*n=kn_nodes(); if(!n)return 0; int N=cJSON_GetArraySize(n); int start=kn_page*PAGE,cnt=N-start; return cnt<0?0:(cnt>PAGE?PAGE:cnt); }
+static void kernel_activate(int focus){ cJSON*n=kn_nodes(); if(!n)return; cJSON*nd=cJSON_GetArrayItem(n,kn_page*PAGE+focus); if(!nd)return; const char*nm=Js(nd,"name",""); if(!nm[0])return;
+    snprintf(fs_path,sizeof fs_path,"/proc/device-tree/%s",nm); fs_mode=0; fs_page=0; g_focus[V_FS]=0; g_section=V_FS; view_enter(V_FS); }
+static int kernel_page(int dir){ kn_page+=dir; if(kn_page<0)kn_page=0; g_focus[V_KERNEL]=0; return 1; }
 
 /* =================================================================== AJUSTES */
 static const char *DISP_K[]={"bright-down","bright-up"};
@@ -636,7 +643,7 @@ static const cd_view VIEWS[NVIEWS]={
     [V_FS]    ={fs_render,     fs_nfocus,   fs_activate,   fs_back,   fs_page_fn, fs_key},
     [V_SVC]   ={svc_render,    svc_nfocus,  svc_activate,  svc_back,  svc_page_fn,svc_key},
     [V_CMD]   ={cmd_render,    cmd_nfocus,  cmd_activate,  cmd_back,  NULL},
-    [V_KERNEL]={kernel_render, NULL,        NULL,          NULL,      kernel_page},
+    [V_KERNEL]={kernel_render, kernel_nfocus,kernel_activate,NULL,     kernel_page},
     [V_TOOLS] ={tools_render,  tools_nfocus,tools_activate,NULL,      NULL},
     [V_KEYS]  ={keys_render,   NULL,        NULL,          NULL,      NULL},
     [V_MEDIA] ={media_render,  media_nfocus,media_activate,media_back,NULL},
@@ -684,7 +691,7 @@ static const char *hint_for(int s){
         case V_FS:return "A: abrir  X: atalhos  L1/R1: pag  B: voltar";
         case V_SVC:return "A: detalhe/acao  X: filtro  L1/R1: pag";
         case V_CMD:return "A: executar  B: voltar";
-        case V_KERNEL:return "L1/R1: pagina modulos  B: voltar";
+        case V_KERNEL:return "A: nó no FS  L1/R1: pagina  B: voltar";
         case V_TOOLS:return "A: executar  L1/R1: subpagina  B: voltar";
         case V_KEYS:return "aperte botoes  Start+Select: sair";
         case V_MEDIA:return "A: tocar  B: parar/voltar";
