@@ -318,26 +318,26 @@ Legenda extra: 🅰 = entregue na Tranche A · 🅱 = previsto p/ Tranche B.
 | Fonte do dado | agente (HTTP) | agente (HTTP) 🅰 | (será agente) |
 | HOME cockpit (saúde+tiles+cards) | ✅ | ✅ 🅰 | ❌ |
 | STATUS (live/energia/tendência) | ✅ | ✅ 🅰 | ❌ |
-| PROCS | ✅ | ❌ 🅱 | ❌ |
-| NET | ✅ | ✅ 🅰 (estado+ações; scan/ss 🅱) | ❌ |
-| LOGS | ✅ | 🟡 🅰 (leitura+severidade; detalhe 🅱) | ❌ |
+| PROCS (lista+detalhe+sinais) | ✅ | ✅ 🅱 | ❌ |
+| NET | ✅ | ✅ 🅰 (estado+ações; scan/ss ainda não) | ❌ |
+| LOGS (lista+detalhe) | ✅ | ✅ 🅱 (severidade por cor; filtro de severidade ainda não) | ❌ |
 | DEVICE | ✅ | ✅ 🅰 (ID/CPU/DISPLAY/BOOT/INPUT) | ❌ |
-| KERNEL & DTB | ✅ | ❌ 🅱 | ❌ |
-| FS (browser read-only) | ✅ | ❌ 🅱 | ❌ |
-| SVC (systemd) | ✅ | ❌ 🅱 | ❌ |
-| CMD (allowlist) | ✅ | ❌ 🅱 | ❌ |
+| KERNEL & DTB | ✅ | ✅ 🅱 (campos + módulos paginados) | ❌ |
+| FS (browser read-only) | ✅ | ✅ 🅱 (lista paginada + viewer) | ❌ |
+| SVC (systemd) | ✅ | ✅ 🅱 (lista+detalhe+ações) | ❌ |
+| CMD (allowlist) | ✅ | ✅ 🅱 (categorias→comandos→saída) | ❌ |
 | AJUSTES (display/áudio) | ✅ | ✅ 🅰 (fonte ± = n/a no fb) | ❌ |
 | TESTE DE BOTÕES | ✅ | ✅ 🅰 | ❌ |
-| Menu FN | ✅ | ✅ 🅰 | ❌ |
-| Screenshot (L2+R2) | ✅ | 🟡 🅰 (combo pronto; agente precisa de `fbgrab` sem X) | ❌ |
-| Confirmação de ações perigosas | ✅ | ✅ 🅰 | ❌ |
+| Menu FN | ✅ | ✅ 🅰 (+ Kernel) | ❌ |
+| Screenshot (L2+R2) | ✅ | ✅ 🅱 (fbgrab+netpbm no build) | ❌ |
+| Confirmação de ações perigosas | ✅ | ✅ 🅰🅱 (actions + systemd + sinais) | ❌ |
 | Escala de fonte persistida | ✅ | ➖ (fonte fixa 8x16) | ❌ |
 | Cores fixas de botão | ✅ | ✅ 🅰 | ❌ |
 | Double buffering (sem flicker) | ➖ | ✅ 🅰 | ➖ |
 
-> **native-fb — Tranche A (feito):** arquitetura modular (`fb`/`input`/`http`/`ui`/`views` +
-> cJSON vendorizado), fala com o `cyberdeck-agent` por HTTP, double buffer, transliteração
-> UTF-8→ASCII, e as 8 telas de monitor/ajuste acima.
-> **native-fb — Tranche B (a fazer):** FS, SVC (ações), PROCS (sinais), CMD, KERNEL+DTB,
-> e detalhe de LOGS; além de `fbgrab` no build p/ o screenshot em modo fb.
-> **web-react:** reimplementar esta especificação com React/Webpack, mesma casca e tokens.
+> **native-fb — paridade essencialmente completa** (Tranche A + B): arquitetura modular
+> (`fb`/`input`/`http`/`ui`/`views` + cJSON), dados via `cyberdeck-agent` (HTTP), double buffer,
+> transliteração UTF-8→ASCII, master→detalhe, paginação, confirmação e as 12 telas + menu FN.
+> **Pequenos gaps remanescentes:** filtro de severidade em LOGS, scan de Wi-Fi/conexões `ss` em
+> NET, escala de fonte (n/a com fonte bitmap). **web-react:** reimplementar esta especificação
+> com React/Webpack, mesma casca e tokens.

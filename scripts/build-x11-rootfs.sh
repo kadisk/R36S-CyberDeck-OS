@@ -31,7 +31,7 @@ PKGS="xserver-xorg-core xserver-xorg-video-fbdev xserver-xorg-input-evdev \
       xinit x11-xserver-utils chromium fonts-dejavu-core ca-certificates zram-tools \
       nodejs iproute2 wireless-tools wpasupplicant rfkill iw isc-dhcp-client \
       openssh-server avahi-daemon libnss-mdns systemd-timesyncd \
-      fbcat scrot alsa-utils"
+      fbcat fbgrab netpbm scrot alsa-utils"
 
 DEBOOTSTRAP="$(command -v debootstrap || true)"
 [ -z "$DEBOOTSTRAP" ] && [ -x /tmp/dbs/out/usr/sbin/debootstrap ] && \

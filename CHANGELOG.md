@@ -4,6 +4,21 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added — 2026-06-23 — native-fb: telas interativas completas (Fase 2, Tranche B)
+- Novas telas em paridade, com **master→detalhe**, **paginação** e **filtros**:
+  **PROCS** (lista→detalhe por PID + sinais SIGTERM/SIGKILL), **FS** (browser read-only
+  paginado + viewer de arquivo), **SVC** (lista→detalhe + ações start/stop/restart),
+  **CMD** (categorias→comandos→saída, allowlist), **KERNEL & DTB** (campos + módulos
+  paginados) e **detalhe de LOGS** (separa timestamp/mensagem).
+- Barra de **abas expandida p/ 9** (HOME/STATUS/PROCS/NET/LOGS/DEVICE/FS/SVC/CMD);
+  KERNEL pelo menu FN. Router **table-driven** (render/nfocus/activate/back/page por view).
+- **Confirmação generalizada** para ações perigosas: `/api/actions`, `/api/systemd/action`
+  e `/api/processes/:pid/signal`.
+- **Screenshot em modo fb** habilitado: `fbgrab` + `netpbm` (conversor PPM→PNG) adicionados
+  ao build x11; o `screenshot.js` já preferia `fbgrab` (sem X). Validado no R36S físico.
+- Paridade da native-fb agora essencialmente completa (ver matriz em `docs/interface/FEATURES.md`);
+  gaps menores: filtro de severidade em LOGS e scan Wi-Fi/`ss` em NET.
+
 ### Added — 2026-06-23 — native-fb em paridade com a web (Fase 2, Tranche A)
 - A `interface/native-fb` foi reescrita de forma **modular** (`fb`/`input`/`http`/`ui`/`views`/
   `main` + **cJSON** vendorizado, MIT) e agora **fala com o `cyberdeck-agent` por HTTP/JSON**
