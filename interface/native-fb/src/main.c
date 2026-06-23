@@ -1,348 +1,62 @@
 /*
- * cyberdeck-fb — renderizador 2D no framebuffer para o R36S CyberDeck OS (Fase 3).
+ * main.c — CyberDeck native-fb (Tranche A): shell gráfico no /dev/fb0 que espelha
+ * a web-vanilla, consumindo o cyberdeck-agent por HTTP. Ver docs/interface/FEATURES.md.
  *
- * Desenha uma UI estilo "cyberdeck" direto em /dev/fb0 (sem GL) e navega pelo
- * joypad (odroidgo3-joypad) lendo /dev/input/event*. Detecta geometria/bpp em
- * tempo de execução (16/32 bpp). Precursor nativo da UI HTML/JS.
+ * Loop: poll de input (joypad) -> navegação; poll de /api/status a cada 2 s;
+ * render do frame no backbuffer -> blit (double buffer). L2+R2 = screenshot, F5 sai.
  *
- * Cross-compile: aarch64-linux-gnu-gcc -O2 -static -o cyberdeck-fb src/main.c
+ * Cross-compile: aarch64-linux-gnu-gcc -O2 -static (ver build.sh / Makefile).
  */
-#include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <stdint.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <time.h>
-#include <poll.h>
-#include <dirent.h>
 #include <signal.h>
-#include <sys/mman.h>
-#include <sys/ioctl.h>
-#include <linux/fb.h>
-#include <linux/input.h>
-#include <linux/kd.h>
+#include <time.h>
 
-#include "font8x16.h"
+#include "fb.h"
+#include "ui.h"
+#include "input.h"
+#include "http.h"
+#include "views.h"
 
-/* Códigos do odroidgo3-joypad — CONFIRMADOS na captura (event1) e no DTB.
- * Ver docs/hardware/input-buttons.md. (Prefixo JOY_ p/ não colidir com input.h) */
-#define JOY_UP     0x220
-#define JOY_DOWN   0x221
-#define JOY_LEFT   0x222
-#define JOY_RIGHT  0x223
-#define JOY_A      0x131   /* rótulo "A" no aparelho */
-#define JOY_B      0x130   /* rótulo "B" */
-#define JOY_X      0x133
-#define JOY_Y      0x134
-#define JOY_L1     0x136
-#define JOY_R1     0x137
-#define JOY_L2     0x138
-#define JOY_R2     0x139
-#define JOY_F1     0x2c0
-#define JOY_F5     0x2c4   /* usado p/ sair (F6/0x2c5 não existe neste joypad) */
+static volatile int g_sig = 0;
+static void on_sig(int s) { (void)s; g_sig = 1; }
 
-static unsigned char *fbmem = NULL;
-static struct fb_var_screeninfo vi;
-static struct fb_fix_screeninfo fi;
-static long screensize = 0;
-static int fbfd = -1;
-
-/* ----- framebuffer ----- */
-static unsigned long pack(int r, int g, int b) {
-    return ((unsigned long)(r >> (8 - vi.red.length))   << vi.red.offset)
-         | ((unsigned long)(g >> (8 - vi.green.length)) << vi.green.offset)
-         | ((unsigned long)(b >> (8 - vi.blue.length))  << vi.blue.offset);
-}
-static void put_px(int x, int y, unsigned long c) {
-    if (x < 0 || y < 0 || x >= (int)vi.xres || y >= (int)vi.yres) return;
-    long off = (long)y * fi.line_length + (long)x * (vi.bits_per_pixel / 8);
-    if (vi.bits_per_pixel == 16) { *(uint16_t *)(fbmem + off) = (uint16_t)c; }
-    else                         { *(uint32_t *)(fbmem + off) = (uint32_t)c; }
-}
-static void fill(int x, int y, int w, int h, unsigned long c) {
-    for (int j = 0; j < h; j++) for (int i = 0; i < w; i++) put_px(x + i, y + j, c);
-}
-static void draw_char(int x, int y, char ch, unsigned long fg, unsigned long bg, int show_bg) {
-    if (ch < FONT_FIRST || ch > FONT_LAST) ch = '?';
-    const unsigned char *g = font8x16[(int)ch - FONT_FIRST];
-    for (int row = 0; row < FONT_H; row++)
-        for (int col = 0; col < FONT_W; col++) {
-            if (g[row] & (0x80 >> col)) put_px(x + col, y + row, fg);
-            else if (show_bg)           put_px(x + col, y + row, bg);
-        }
-}
-static void draw_text(int x, int y, const char *s, unsigned long fg, unsigned long bg, int show_bg) {
-    for (; *s; s++, x += FONT_W) draw_char(x, y, *s, fg, bg, show_bg);
+static long now_ms(void) {
+    struct timespec ts; clock_gettime(CLOCK_MONOTONIC, &ts);
+    return ts.tv_sec * 1000L + ts.tv_nsec / 1000000L;
 }
 
-/* ----- dados do sistema ----- */
-static void read_first_line(const char *path, char *buf, int n) {
-    buf[0] = 0;
-    FILE *f = fopen(path, "r");
-    if (!f) return;
-    if (fgets(buf, n, f)) { char *nl = strchr(buf, '\n'); if (nl) *nl = 0; }
-    fclose(f);
-}
-static long meminfo_kb(const char *key) {
-    FILE *f = fopen("/proc/meminfo", "r"); if (!f) return -1;
-    char line[128]; long v = -1;
-    while (fgets(line, sizeof line, f)) {
-        if (!strncmp(line, key, strlen(key))) { sscanf(line + strlen(key), " %ld", &v); break; }
-    }
-    fclose(f); return v;
-}
-static int cpu_count(void) {
-    FILE *f = fopen("/proc/cpuinfo", "r"); if (!f) return 0;
-    char line[256]; int n = 0;
-    while (fgets(line, sizeof line, f)) if (!strncmp(line, "processor", 9)) n++;
-    fclose(f); return n;
-}
-static long read_long_file(const char *path) {
-    char b[64]; read_first_line(path, b, sizeof b); return b[0] ? atol(b) : -1;
-}
-static void write_long_file(const char *path, long v) {
-    int fd = open(path, O_WRONLY); if (fd < 0) return;
-    char b[24]; int n = snprintf(b, sizeof b, "%ld\n", v);
-    if (write(fd, b, n) < 0) {} close(fd);
-}
-/* bateria (RK817) via /sys/class/power_supply */
-static void battery_str(char *out, int n) {
-    long cap = read_long_file("/sys/class/power_supply/battery/capacity");
-    char st[32]; read_first_line("/sys/class/power_supply/battery/status", st, sizeof st);
-    long on = read_long_file("/sys/class/power_supply/usb/online");
-    if (on < 0) on = read_long_file("/sys/class/power_supply/ac/online");
-    snprintf(out, n, "%ld%% %s%s", cap < 0 ? 0 : cap, st[0] ? st : "?", on > 0 ? " +CARGA" : "");
-}
-static void loadavg_str(char *o, int n) {
-    char b[96]; read_first_line("/proc/loadavg", b, sizeof b);
-    int sp = 0; for (char *q = b; *q; q++) if (*q == ' ' && ++sp == 3) { *q = 0; break; }
-    snprintf(o, n, "%s", b);
-}
-static long temp_c(void) {
-    long m = read_long_file("/sys/class/thermal/thermal_zone0/temp");
-    if (m < 0) return -1;
-    return m > 1000 ? m / 1000 : m;
-}
-static int net_list(char out[][48], int maxl) {
-    DIR *d = opendir("/sys/class/net"); if (!d) return 0;
-    struct dirent *e; int n = 0;
-    while ((e = readdir(d)) && n < maxl) {
-        if (e->d_name[0] == '.') continue;
-        char p[160], st[32] = "?";
-        snprintf(p, sizeof p, "/sys/class/net/%s/operstate", e->d_name);
-        read_first_line(p, st, sizeof st);
-        snprintf(out[n], 48, "%-10.10s %s", e->d_name, st); n++;
-    }
-    closedir(d); return n;
-}
-static int load_dmesg(char out[][80], int maxl) {
-    FILE *f = popen("dmesg 2>/dev/null | tail -n 16", "r"); if (!f) return 0;
-    int n = 0; char line[300];
-    while (n < maxl && fgets(line, sizeof line, f)) {
-        char *nl = strchr(line, '\n'); if (nl) *nl = 0;
-        line[78] = 0; snprintf(out[n], 80, "%s", line); n++;
-    }
-    pclose(f); return n;
-}
+int main(int argc, char **argv) {
+    int port = (argc > 1) ? atoi(argv[1]) : 8080;
+    signal(SIGINT, on_sig); signal(SIGTERM, on_sig); signal(SIGPIPE, SIG_IGN);
 
-/* ----- input ----- */
-#define MAX_EV 16
-static int ev_fds[MAX_EV]; static int ev_n = 0;
-static void open_inputs(void) {
-    DIR *d = opendir("/dev/input"); if (!d) return;
-    struct dirent *e;
-    while ((e = readdir(d)) && ev_n < MAX_EV) {
-        if (strncmp(e->d_name, "event", 5)) continue;
-        char p[64]; snprintf(p, sizeof p, "/dev/input/%s", e->d_name);
-        int fd = open(p, O_RDONLY | O_NONBLOCK);
-        if (fd >= 0) ev_fds[ev_n++] = fd;
-    }
-    closedir(d);
-}
+    if (fb_init() != 0) return 1;
+    ui_init();
+    http_init(port);
+    input_open();           /* sem joypad ainda funciona (só não navega) */
+    view_init();
 
-/* ----- UI ----- */
-static const char *ITEMS[] = {
-    "STATUS", "REDE", "TERMINAL", "LOGS", "FERRAMENTAS", "DEVICE"
-};
-#define NITEMS (int)(sizeof(ITEMS)/sizeof(ITEMS[0]))
-enum { I_STATUS, I_REDE, I_TERM, I_LOGS, I_TOOLS, I_DEVICE };
+    long last_poll = 0;
+    int combo = 0;
 
-static const char *TOOLS[] = { "Brilho -", "Brilho +", "Recarregar UI", "Reiniciar", "Desligar" };
-#define NTOOLS (int)(sizeof(TOOLS)/sizeof(TOOLS[0]))
+    while (view_running() && !g_sig) {
+        long t = now_ms();
+        if (t - last_poll > 2000) { view_tick(); last_poll = t; }
 
-static volatile int running = 1;
-static void on_sig(int s) { (void)s; running = 0; }
-
-int main(void) {
-    fbfd = open("/dev/fb0", O_RDWR);
-    if (fbfd < 0) { perror("open /dev/fb0"); return 1; }
-    if (ioctl(fbfd, FBIOGET_FSCREENINFO, &fi) || ioctl(fbfd, FBIOGET_VSCREENINFO, &vi)) {
-        perror("ioctl fbinfo"); return 1;
-    }
-    screensize = (long)fi.line_length * vi.yres;
-    fbmem = mmap(NULL, screensize, PROT_READ | PROT_WRITE, MAP_SHARED, fbfd, 0);
-    if (fbmem == MAP_FAILED) { perror("mmap"); return 1; }
-
-    signal(SIGINT, on_sig); signal(SIGTERM, on_sig);
-    open_inputs();
-
-    /* Põe o tty1 em modo gráfico p/ o fbcon não desenhar por cima da UI. */
-    int tty = open("/dev/tty1", O_RDWR);
-    if (tty >= 0) ioctl(tty, KDSETMODE, KD_GRAPHICS);
-
-    unsigned long BG    = pack(7, 16, 11);
-    unsigned long FG    = pack(77, 255, 158);
-    unsigned long DIM   = pack(31, 156, 94);
-    unsigned long ACC   = pack(0, 224, 255);
-    unsigned long SELBG = pack(77, 255, 158);
-    unsigned long SELFG = pack(7, 16, 11);
-
-    char model[128]; read_first_line("/proc/device-tree/model", model, sizeof model);
-    if (!model[0]) strcpy(model, "Rockchip RK3326");
-    int ncpu = cpu_count();
-
-    /* backlight (RK817 PWM) — L2/R2 ajustam */
-    const char *BLDIR = "/sys/class/backlight/backlight";
-    char bl_path[200]; snprintf(bl_path, sizeof bl_path, "%s/brightness", BLDIR);
-    char blm_path[200]; snprintf(blm_path, sizeof blm_path, "%s/max_brightness", BLDIR);
-    long bl_max = read_long_file(blm_path); if (bl_max <= 0) bl_max = 160;
-    long bl_cur = read_long_file(bl_path);  if (bl_cur < 0)  bl_cur = bl_max;
-    long bl_step = bl_max / 10; if (bl_step < 1) bl_step = 1;
-
-    int sel = 0, mode = 0, subsel = 0;   /* mode: 0=MENU, 1=DETALHE */
-    char dlog[16][80]; int dlog_n = 0;   /* cache de dmesg p/ a seção LOGS */
-
-    while (running) {
-        char buf[200];
-        /* ---- barra de título (comum) ---- */
-        fill(0, 0, vi.xres, vi.yres, BG);
-        fill(0, 0, vi.xres, 22, pack(12, 26, 18));
-        draw_text(8, 3, "R36S // CYBERDECK", ACC, BG, 0);
-        time_t t = time(NULL); struct tm *tm = localtime(&t);
-        char clk[16]; strftime(clk, sizeof clk, "%H:%M:%S", tm);
-        draw_text(vi.xres - 8 - 8 * (int)strlen(clk), 3, clk, DIM, BG, 0);
-        char bat[40]; battery_str(bat, sizeof bat);
-        char top[72]; snprintf(top, sizeof top, "BAT %s  BRI %ld", bat, bl_cur);
-        draw_text(vi.xres - 8 - 8 * (int)strlen(clk) - 8 * ((int)strlen(top) + 1), 3, top, DIM, BG, 0);
-
-        if (mode == 0) {
-            /* ====== MENU ====== */
-            int my = 40;
-            for (int i = 0; i < NITEMS; i++) {
-                int y = my + i * 22;
-                if (i == sel) { fill(6, y - 2, 150, 20, SELBG); draw_text(12, y, ITEMS[i], SELFG, SELBG, 0); }
-                else          draw_text(12, y, ITEMS[i], FG, BG, 0);
-            }
-            int px = 170, line = 40;
-            draw_text(px, line, ITEMS[sel], ACC, BG, 0); line += 24;
-            draw_text(px, line, "A: abrir   B: voltar", DIM, BG, 0); line += 26;
-            if (sel == I_STATUS) {
-                long mt = meminfo_kb("MemTotal:"), ma = meminfo_kb("MemAvailable:");
-                if (mt > 0) { snprintf(buf, sizeof buf, "RAM : %ld/%ld MB", (mt-ma)/1024, mt/1024); draw_text(px, line, buf, FG, BG, 0); line += 18; }
-                snprintf(buf, sizeof buf, "BAT : %s", bat); draw_text(px, line, buf, FG, BG, 0); line += 18;
-                snprintf(buf, sizeof buf, "BRI : %ld/%ld", bl_cur, bl_max); draw_text(px, line, buf, FG, BG, 0);
-            } else if (sel == I_DEVICE) {
-                snprintf(buf, sizeof buf, "%.24s", model); draw_text(px, line, buf, FG, BG, 0); line += 18;
-                snprintf(buf, sizeof buf, "%ux%u %ubpp", vi.xres, vi.yres, vi.bits_per_pixel); draw_text(px, line, buf, FG, BG, 0);
+        cd_event ev;
+        if (input_next(&ev, 200) && ev.value == 1) {
+            if (input_pressed(CDB_L2) && input_pressed(CDB_R2)) {
+                if (!combo) { combo = 1; view_screenshot(); }
             } else {
-                draw_text(px, line, "Aperte A para abrir.", DIM, BG, 0);
+                view_handle(&ev);
             }
-            fill(0, vi.yres - 20, vi.xres, 20, pack(12, 26, 18));
-            draw_text(8, vi.yres - 17, "D-PAD: mover  A: abrir  L2/R2: brilho  F5: sair", DIM, BG, 0);
-        } else {
-            /* ====== DETALHE ====== */
-            int px = 12, line = 40;
-            snprintf(buf, sizeof buf, ">> %s", ITEMS[sel]); draw_text(px, line, buf, ACC, BG, 0); line += 28;
-            if (sel == I_STATUS) {
-                long mt = meminfo_kb("MemTotal:"), ma = meminfo_kb("MemAvailable:");
-                char up[64]; read_first_line("/proc/uptime", up, sizeof up);
-                char la[48]; loadavg_str(la, sizeof la); long tc = temp_c();
-                snprintf(buf, sizeof buf, "CPU  : %d nucleos Cortex-A35   LOAD %s", ncpu, la); draw_text(px, line, buf, FG, BG, 0); line += 20;
-                if (mt > 0) { snprintf(buf, sizeof buf, "RAM  : %ld MB usados / %ld MB total", (mt-ma)/1024, mt/1024); draw_text(px, line, buf, FG, BG, 0); line += 20; }
-                snprintf(buf, sizeof buf, "UPTIME: %d s", (int)atof(up)); draw_text(px, line, buf, FG, BG, 0); line += 20;
-                if (tc > 0) { snprintf(buf, sizeof buf, "TEMP : %ld C", tc); draw_text(px, line, buf, FG, BG, 0); line += 20; }
-                snprintf(buf, sizeof buf, "BAT  : %s", bat); draw_text(px, line, buf, FG, BG, 0); line += 20;
-                snprintf(buf, sizeof buf, "BRI  : %ld/%ld  (L2/R2 ajusta)", bl_cur, bl_max); draw_text(px, line, buf, FG, BG, 0); line += 20;
-            } else if (sel == I_DEVICE) {
-                snprintf(buf, sizeof buf, "MODELO : %.40s", model); draw_text(px, line, buf, FG, BG, 0); line += 20;
-                draw_text(px, line, "SoC    : Rockchip RK3326 (4x Cortex-A35)", FG, BG, 0); line += 20;
-                draw_text(px, line, "GPU    : ARM Mali-G31", FG, BG, 0); line += 20;
-                snprintf(buf, sizeof buf, "TELA   : %ux%u %ubpp (MIPI-DSI kd35t133)", vi.xres, vi.yres, vi.bits_per_pixel); draw_text(px, line, buf, FG, BG, 0); line += 20;
-                draw_text(px, line, "PMIC   : RK817 (bateria/audio/power)", FG, BG, 0); line += 20;
-                draw_text(px, line, "JOYPAD : odroidgo3 (event1)", FG, BG, 0); line += 20;
-            } else if (sel == I_REDE) {
-                char nets[8][48]; int nn = net_list(nets, 8);
-                draw_text(px, line, "Interfaces (dongle USB p/ Wi-Fi/eth):", DIM, BG, 0); line += 22;
-                for (int i = 0; i < nn; i++) { draw_text(px, line, nets[i], FG, BG, 0); line += 18; }
-                if (nn <= 1) { draw_text(px, line, "(so loopback - sem dongle de rede)", DIM, BG, 0); }
-            } else if (sel == I_LOGS) {
-                for (int i = 0; i < dlog_n; i++) { draw_text(px, line, dlog[i], FG, BG, 0); line += 16; }
-                if (!dlog_n) draw_text(px, line, "(sem dmesg)", DIM, BG, 0);
-            } else if (sel == I_TOOLS) {
-                for (int i = 0; i < NTOOLS; i++) {
-                    int y = line + i * 24;
-                    if (i == subsel) { fill(8, y - 2, 200, 20, SELBG); draw_text(px, y, TOOLS[i], SELFG, SELBG, 0); }
-                    else             draw_text(px, y, TOOLS[i], FG, BG, 0);
-                }
-            } else { /* TERMINAL */
-                draw_text(px, line, "Terminal: use o shell no serial (ttyFIQ0)", FG, BG, 0); line += 20;
-                draw_text(px, line, "ou plugue teclado USB. (ponte pty na UI: a fazer)", DIM, BG, 0);
-            }
-            fill(0, vi.yres - 20, vi.xres, 20, pack(12, 26, 18));
-            if (sel == I_TOOLS) draw_text(8, vi.yres - 17, "D-PAD: escolher  A: executar  B: voltar", DIM, BG, 0);
-            else                draw_text(8, vi.yres - 17, "B: voltar   L2/R2: brilho   F5: sair", DIM, BG, 0);
         }
+        if (!(input_pressed(CDB_L2) && input_pressed(CDB_R2))) combo = 0;
 
-        /* ---- input (timeout 500ms p/ atualizar o relogio) ---- */
-        struct pollfd pfd[MAX_EV];
-        for (int i = 0; i < ev_n; i++) { pfd[i].fd = ev_fds[i]; pfd[i].events = POLLIN; }
-        if (poll(pfd, ev_n, 500) > 0) {
-            for (int i = 0; i < ev_n; i++) {
-                if (!(pfd[i].revents & POLLIN)) continue;
-                struct input_event ev;
-                while (read(ev_fds[i], &ev, sizeof ev) == sizeof ev) {
-                    if (ev.type != EV_KEY || ev.value != 1) continue;
-                    /* globais */
-                    if (ev.code == JOY_L2) { bl_cur -= bl_step; if (bl_cur < 1) bl_cur = 1; write_long_file(bl_path, bl_cur); continue; }
-                    if (ev.code == JOY_R2) { bl_cur += bl_step; if (bl_cur > bl_max) bl_cur = bl_max; write_long_file(bl_path, bl_cur); continue; }
-                    if (ev.code == JOY_F5) { running = 0; continue; }
-                    if (mode == 0) { /* MENU */
-                        switch (ev.code) {
-                            case JOY_UP: case JOY_L1:   sel = (sel - 1 + NITEMS) % NITEMS; break;
-                            case JOY_DOWN: case JOY_R1: sel = (sel + 1) % NITEMS; break;
-                            case JOY_A:  mode = 1; subsel = 0;
-                                         if (sel == I_LOGS) dlog_n = load_dmesg(dlog, 16);
-                                         break;
-                            default: break;
-                        }
-                    } else { /* DETALHE */
-                        if (ev.code == JOY_B) { mode = 0; continue; }
-                        if (sel == I_TOOLS) {
-                            switch (ev.code) {
-                                case JOY_UP:   subsel = (subsel - 1 + NTOOLS) % NTOOLS; break;
-                                case JOY_DOWN: subsel = (subsel + 1) % NTOOLS; break;
-                                case JOY_A:
-                                    if (subsel == 0) { bl_cur -= bl_step; if (bl_cur < 1) bl_cur = 1; write_long_file(bl_path, bl_cur); }
-                                    else if (subsel == 1) { bl_cur += bl_step; if (bl_cur > bl_max) bl_cur = bl_max; write_long_file(bl_path, bl_cur); }
-                                    else if (subsel == 2) { running = 0; }                 /* recarrega a UI (launcher) */
-                                    else if (subsel == 3) { if (system("sync; reboot")  ) {} }
-                                    else if (subsel == 4) { if (system("sync; poweroff")) {} }
-                                    break;
-                                default: break;
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        view_render();
+        fb_present();
     }
 
-    /* limpa a tela e restaura o modo texto ao sair */
-    if (fbmem && fbmem != MAP_FAILED) { memset(fbmem, 0, screensize); munmap(fbmem, screensize); }
-    if (tty >= 0) { ioctl(tty, KDSETMODE, KD_TEXT); close(tty); }
-    if (fbfd >= 0) close(fbfd);
-    for (int i = 0; i < ev_n; i++) close(ev_fds[i]);
-    printf("cyberdeck-fb: saiu\n");
+    fb_close();
+    input_close();
     return 0;
 }

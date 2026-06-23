@@ -1,11 +1,12 @@
 # cyberdeck-fb — renderizador 2D no framebuffer (aarch64 estático)
 CC      ?= aarch64-linux-gnu-gcc
-CFLAGS  ?= -O2 -static -Wall -Wno-format-truncation
+CFLAGS  ?= -O2 -static -Wall -Wno-format-truncation -Isrc
 OUT      = build/cyberdeck-fb
+SRCS     = src/main.c src/fb.c src/input.c src/http.c src/ui.c src/views.c src/cjson/cJSON.c
 
-$(OUT): src/main.c src/font8x16.h
+$(OUT): $(SRCS) src/font8x16.h
 	@mkdir -p build
-	$(CC) $(CFLAGS) -o $@ src/main.c
+	$(CC) $(CFLAGS) -o $@ $(SRCS)
 	@file $@
 
 src/font8x16.h:

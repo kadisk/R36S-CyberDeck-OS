@@ -310,28 +310,34 @@ FS read-only saneado; unit/sinais validados. Detalhes em [`../STACK.md`](../STAC
 
 Legenda: ✅ completo · 🟡 parcial · ❌ ausente · ➖ n/a.
 
-| Recurso | web-vanilla | native-fb (hoje) | web-react |
-|---------|:----------:|:----------------:|:---------:|
-| Casca (top bar/abas/rodapé/overlays) | ✅ | 🟡 (barra+menu lateral) | ❌ |
-| Fonte do dado | agente (HTTP) | `/proc` direto | (será agente) |
-| HOME cockpit (saúde+tiles+cards) | ✅ | ❌ | ❌ |
-| STATUS (live/energia/tendência) | ✅ | 🟡 (só live básico) | ❌ |
-| PROCS | ✅ | ❌ | ❌ |
-| NET | ✅ | 🟡 (lista de ifaces) | ❌ |
-| LOGS | ✅ | 🟡 (dmesg tail) | ❌ |
-| DEVICE | ✅ | 🟡 (modelo/tela/SoC) | ❌ |
-| KERNEL & DTB | ✅ | ❌ | ❌ |
-| FS (browser read-only) | ✅ | ❌ | ❌ |
-| SVC (systemd) | ✅ | ❌ | ❌ |
-| CMD (allowlist) | ✅ | ❌ | ❌ |
-| AJUSTES (display/áudio) | ✅ | 🟡 (brilho/reboot/poweroff) | ❌ |
-| TESTE DE BOTÕES | ✅ | 🟡 (debug de input cru) | ❌ |
-| Menu FN | ✅ | ➖ (ações no menu TOOLS) | ❌ |
-| Screenshot (L2+R2) | ✅ | ❌ | ❌ |
-| Confirmação de ações perigosas | ✅ | ❌ | ❌ |
-| Escala de fonte persistida | ✅ | ➖ | ❌ |
-| Cores fixas de botão | ✅ | 🟡 | ❌ |
+Legenda extra: 🅰 = entregue na Tranche A · 🅱 = previsto p/ Tranche B.
 
-> **native-fb (alvo das próximas fases):** passar a falar com o `cyberdeck-agent` por HTTP
-> (cliente HTTP mínimo em C) em vez de ler `/proc` direto, e replicar as telas acima.
+| Recurso | web-vanilla | native-fb | web-react |
+|---------|:----------:|:----------------:|:---------:|
+| Casca (top bar/abas/rodapé/overlays) | ✅ | ✅ 🅰 | ❌ |
+| Fonte do dado | agente (HTTP) | agente (HTTP) 🅰 | (será agente) |
+| HOME cockpit (saúde+tiles+cards) | ✅ | ✅ 🅰 | ❌ |
+| STATUS (live/energia/tendência) | ✅ | ✅ 🅰 | ❌ |
+| PROCS | ✅ | ❌ 🅱 | ❌ |
+| NET | ✅ | ✅ 🅰 (estado+ações; scan/ss 🅱) | ❌ |
+| LOGS | ✅ | 🟡 🅰 (leitura+severidade; detalhe 🅱) | ❌ |
+| DEVICE | ✅ | ✅ 🅰 (ID/CPU/DISPLAY/BOOT/INPUT) | ❌ |
+| KERNEL & DTB | ✅ | ❌ 🅱 | ❌ |
+| FS (browser read-only) | ✅ | ❌ 🅱 | ❌ |
+| SVC (systemd) | ✅ | ❌ 🅱 | ❌ |
+| CMD (allowlist) | ✅ | ❌ 🅱 | ❌ |
+| AJUSTES (display/áudio) | ✅ | ✅ 🅰 (fonte ± = n/a no fb) | ❌ |
+| TESTE DE BOTÕES | ✅ | ✅ 🅰 | ❌ |
+| Menu FN | ✅ | ✅ 🅰 | ❌ |
+| Screenshot (L2+R2) | ✅ | 🟡 🅰 (combo pronto; agente precisa de `fbgrab` sem X) | ❌ |
+| Confirmação de ações perigosas | ✅ | ✅ 🅰 | ❌ |
+| Escala de fonte persistida | ✅ | ➖ (fonte fixa 8x16) | ❌ |
+| Cores fixas de botão | ✅ | ✅ 🅰 | ❌ |
+| Double buffering (sem flicker) | ➖ | ✅ 🅰 | ➖ |
+
+> **native-fb — Tranche A (feito):** arquitetura modular (`fb`/`input`/`http`/`ui`/`views` +
+> cJSON vendorizado), fala com o `cyberdeck-agent` por HTTP, double buffer, transliteração
+> UTF-8→ASCII, e as 8 telas de monitor/ajuste acima.
+> **native-fb — Tranche B (a fazer):** FS, SVC (ações), PROCS (sinais), CMD, KERNEL+DTB,
+> e detalhe de LOGS; além de `fbgrab` no build p/ o screenshot em modo fb.
 > **web-react:** reimplementar esta especificação com React/Webpack, mesma casca e tokens.

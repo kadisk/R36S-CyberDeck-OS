@@ -25,6 +25,8 @@ fi
 
 mkdir -p "$SELF/build"
 echo "[build] compilando ($CC, static)"
-"$CC" -O2 -static -Wall -Wno-format-truncation -o "$OUT" "$SELF/src/main.c"
+"$CC" -O2 -static -Wall -Wno-format-truncation -I"$SELF/src" -o "$OUT" \
+    "$SELF/src/main.c" "$SELF/src/fb.c" "$SELF/src/input.c" "$SELF/src/http.c" \
+    "$SELF/src/ui.c" "$SELF/src/views.c" "$SELF/src/cjson/cJSON.c"
 echo "[build] OK: $OUT"
 file "$OUT"

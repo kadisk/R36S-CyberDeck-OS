@@ -4,6 +4,21 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added — 2026-06-23 — native-fb em paridade com a web (Fase 2, Tranche A)
+- A `interface/native-fb` foi reescrita de forma **modular** (`fb`/`input`/`http`/`ui`/`views`/
+  `main` + **cJSON** vendorizado, MIT) e agora **fala com o `cyberdeck-agent` por HTTP/JSON**
+  (mesma fonte de dados da web), em vez de ler `/proc` direto.
+- **Double buffering** (blit de backbuffer → `/dev/fb0`, sem flicker) e **transliteração
+  UTF-8→ASCII** (acentos do agente legíveis na fonte 8x16).
+- 8 telas em paridade visual/funcional: **HOME** (saúde+tiles+cards), **STATUS** (AO VIVO/
+  ENERGIA/TENDÊNCIA), **DEVICE** (ID/CPU/DISPLAY/BOOT/INPUT), **NET** (estado+ações Wi-Fi),
+  **LOGS** (origem+severidade), **AJUSTES** (DISPLAY/AUDIO), **TESTE DE BOTÕES** e o **menu
+  FUNCTION** com **modal de confirmação** para ações perigosas. Cores fixas de botão (A/B/X/Y).
+- Validado no R36S físico (captura do `/dev/fb0` por tela). Matriz de paridade atualizada em
+  `docs/interface/FEATURES.md`.
+- Pendente p/ Tranche B: FS, SVC (ações), PROCS (sinais), CMD, KERNEL+DTB, detalhe de LOGS, e
+  `fbgrab` no build p/ screenshot em modo fb (sem X).
+
 ### Changed — 2026-06-23 — Interfaces reorganizadas em `interface/` (uma stack por subpasta)
 - `cyberdeck-ui/` → **`interface/web-vanilla/`** (UI web HTML/CSS/JS, oficial).
 - `cyberdeck-fb/` → **`interface/native-fb/`** (renderizador nativo em C no framebuffer).
