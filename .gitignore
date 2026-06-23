@@ -41,6 +41,11 @@ initrd.img*
 # Screenshots recuperados do cartão (sd-get-screenshots.sh) — capturas locais
 /artifacts/screenshots/
 
+# Artefatos da bateria de teste de UI (scripts/test) — report + screenshots locais
+/artifacts/uitest/
+# Gamepad virtual compilado (regerável via test-r36s.sh)
+/scripts/test/cdpad
+
 # Renderizador de framebuffer: binário compilado (regerável via build.sh)
 /interface/native-fb/build/
 
