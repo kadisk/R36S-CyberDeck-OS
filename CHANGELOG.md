@@ -4,6 +4,15 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Fixed — 2026-06-23 — native-fb: paridade interativa real com a web (controles X/Y)
+- Faltavam na `native-fb` os controles secundários que na web são chips focáveis. Mapeados em
+  **X/Y** (rodapé documenta cada tela): **PROCS** X=filtro / Y=ordenação; **SVC** X=filtro +
+  4ª ação **journal** no detalhe; **LOGS** X=severidade; **NET** X=buscar redes / Y=conexões
+  (`ss`); **FS** X=atalhos (bookmarks). Validado no R36S (PROCS: filtro→chromium, sort→mem).
+- `docs/interface/FEATURES.md` corrigido: contrato de input da native-fb (X/Y) + matriz de
+  paridade honesta. Gaps menores que sobram: nós DTB→FS no KERNEL, pause do tail de LOGS,
+  escala de fonte/auto-screenshot (n/a no fb).
+
 ### Added — 2026-06-23 — Gerenciador de armazenamento: expandir rootfs + 2º cartão (Fase 5)
 - **Auto-expand da rootfs**: `cyberdeck-growfs.{sh,service}` (1º boot, idempotente) cresce a p2
   ext4 p/ o cartão inteiro (`growpart`+`resize2fs` online, sem perda de dados). Pacotes

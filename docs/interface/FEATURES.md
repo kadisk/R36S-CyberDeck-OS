@@ -108,6 +108,18 @@ hardware diretamente** — sempre pede ao agente. Veja a [§7 Contrato do agente
 · `f` = FN · `[` / `]` = subpágina · `PageUp/PageDown` = scroll · `+`/`−` = escala de fonte
 · `F12`/`PrintScreen` = screenshot · `AudioVolumeUp/Down/Mute` = volume.
 
+### native-fb: controles secundários (X / Y)
+A web usa **chips focáveis** para filtros/ordenação/ações secundárias; a `native-fb`, por ser
+grade de terminal, mapeia esses controles nos botões **X** e **Y** (documentado no rodapé de cada
+tela):
+- **PROCS** — `X` cicla o filtro (ativos/all/node/chromium/cyberdeck/running/zombie), `Y` cicla a
+  ordenação (cpu/mem/pid/name).
+- **SVC** — `X` cicla o filtro (all/running/failed/cyberdeck); no detalhe, a 4ª ação abre o
+  **journal** (logs do serviço).
+- **LOGS** — `X` cicla a severidade (all/error/warning/info); `L1/R1` troca a origem.
+- **NET** — `X` = buscar redes (scan de SSIDs), `Y` = conexões (`ss`).
+- **FS** — `X` cicla pelos **atalhos** (bookmarks do agente).
+
 ### Modelo de foco
 - Itens focáveis são marcados (`data-focus`) e **visíveis**; o D-pad move por **geometria 2D**.
 - Ao trocar de seção/abrir tela, foco vai para o **primeiro focável**.
@@ -321,13 +333,13 @@ Legenda extra: 🅰 = entregue na Tranche A · 🅱 = previsto p/ Tranche B.
 | Fonte do dado | agente (HTTP) | agente (HTTP) 🅰 | (será agente) |
 | HOME cockpit (saúde+tiles+cards) | ✅ | ✅ 🅰 | ❌ |
 | STATUS (live/energia/tendência) | ✅ | ✅ 🅰 | ❌ |
-| PROCS (lista+detalhe+sinais) | ✅ | ✅ 🅱 | ❌ |
-| NET | ✅ | ✅ 🅰 (estado+ações; scan/ss ainda não) | ❌ |
-| LOGS (lista+detalhe) | ✅ | ✅ 🅱 (severidade por cor; filtro de severidade ainda não) | ❌ |
-| DEVICE | ✅ | ✅ 🅰 (ID/CPU/DISPLAY/BOOT/INPUT) | ❌ |
-| KERNEL & DTB | ✅ | ✅ 🅱 (campos + módulos paginados) | ❌ |
-| FS (browser read-only) | ✅ | ✅ 🅱 (lista paginada + viewer) | ❌ |
-| SVC (systemd) | ✅ | ✅ 🅱 (lista+detalhe+ações) | ❌ |
+| PROCS (lista+detalhe+sinais) | ✅ | ✅ (filtro/sort via X/Y) | ❌ |
+| NET | ✅ | ✅ (estado+ações+scan+conexões via X/Y) | ❌ |
+| LOGS (lista+detalhe) | ✅ | ✅ (origem L1/R1 + severidade via X) | ❌ |
+| DEVICE | ✅ | ✅ (ID/CPU/DISPLAY/BOOT/INPUT) | ❌ |
+| KERNEL & DTB | ✅ | 🟡 (campos + módulos; nós DTB→FS ainda não) | ❌ |
+| FS (browser read-only) | ✅ | ✅ (lista paginada + viewer + atalhos via X) | ❌ |
+| SVC (systemd) | ✅ | ✅ (lista+detalhe+ações+journal+filtro via X) | ❌ |
 | CMD (allowlist) | ✅ | ✅ 🅱 (categorias→comandos→saída) | ❌ |
 | AJUSTES (display/áudio) | ✅ | ✅ 🅰 (fonte ± = n/a no fb) | ❌ |
 | TESTE DE BOTÕES | ✅ | ✅ 🅰 | ❌ |
@@ -343,6 +355,8 @@ Legenda extra: 🅰 = entregue na Tranche A · 🅱 = previsto p/ Tranche B.
 > **native-fb — paridade essencialmente completa** (Tranche A + B): arquitetura modular
 > (`fb`/`input`/`http`/`ui`/`views` + cJSON), dados via `cyberdeck-agent` (HTTP), double buffer,
 > transliteração UTF-8→ASCII, master→detalhe, paginação, confirmação e as 12 telas + menu FN.
-> **Pequenos gaps remanescentes:** filtro de severidade em LOGS, scan de Wi-Fi/conexões `ss` em
-> NET, escala de fonte (n/a com fonte bitmap). **web-react:** reimplementar esta especificação
+> **Paridade interativa completa** (filtros/ordenação/severidade/scan/conexões/atalhos via X/Y;
+> journal de serviço no SVC). **Gaps menores remanescentes:** navegar nós do Device Tree → FS na
+> tela KERNEL; "pausar" o tail ao vivo de LOGS; escala de fonte e toggle de auto-screenshot
+> (n/a / não aplicáveis na fonte bitmap do fb). **web-react:** reimplementar esta especificação
 > com React/Webpack, mesma casca e tokens.

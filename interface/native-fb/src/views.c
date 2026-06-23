@@ -49,13 +49,17 @@ static cJSON *g_detail = NULL;   /* detalhe (svc/procs/fs-file) */
 static cJSON *g_health = NULL;
 static cJSON *g_volume = NULL;
 static char  *g_cmd_out = NULL;  /* saída do último comando (texto) */
+static char  *g_svc_log = NULL;  /* journal do serviço (SVC detalhe->logs) */
+static char  *g_net_extra = NULL;/* resultado de scan/conexões (NET) */
 
 /* estado master/detail */
 static char fs_path[512] = "/"; static int fs_mode = 0, fs_page = 0;   /* 0=lista 1=arquivo */
-static char sv_unit[176];        static int sv_mode = 0, sv_page = 0, sv_filter = 0;
+static char sv_unit[176];        static int sv_mode = 0, sv_page = 0, sv_filter = 0;  /* sv_mode: 0 lista 1 detalhe 2 logs */
 static int  pr_pid = 0;          static int pr_mode = 0, pr_page = 0, pr_sort = 0, pr_filter = 0;
 static char cmd_cat[40] = "";    static int cmd_mode = 0;              /* 0=cats 1=lista 2=saida */
 static int  kn_page = 0;
+static int  ls_sev = 0;          /* LOGS: severidade 0=all 1=error 2=warning 3=info */
+static int  net_mode = 0;        /* NET: 0 normal 1 scan 2 conexões */
 
 /* subpáginas / filtros */
 static const char *const SUB_STATUS[] = { "AO VIVO", "ENERGIA", "TENDENCIA" };
@@ -63,6 +67,7 @@ static const char *const SUB_DEVICE[] = { "ID", "CPU", "DISPLAY", "BOOT", "INPUT
 static const char *const SUB_TOOLS[]  = { "DISPLAY", "AUDIO" };
 static const char *const LOG_SRC[]    = { "dmesg", "journal", "agent", "kiosk", "ui" };
 static const char *const SD_FILT[]    = { "all", "running", "failed", "cyberdeck" };
+static const char *const LOG_SEV[]    = { "all", "error", "warning", "info" };
 static const char *const PR_SORT[]    = { "cpu", "mem", "pid", "name" };
 static const int NSUB[NVIEWS] = { [V_STATUS]=3, [V_DEVICE]=5, [V_LOGS]=5, [V_TOOLS]=2 };
 
@@ -137,13 +142,13 @@ static void detail_free(void){ if(g_detail){cJSON_Delete(g_detail);g_detail=NULL
 static void view_enter(int s) {
     cache_free(s);
     if (s==V_DEVICE) g_cache[s]=api_get("/api/device");
-    else if (s==V_NET) g_cache[s]=api_get("/api/network/summary");
+    else if (s==V_NET) { net_mode=0; if(g_net_extra){free(g_net_extra);g_net_extra=NULL;} g_cache[s]=api_get("/api/network/summary"); }
     else if (s==V_KERNEL) g_cache[s]=api_get("/api/kernel");
     else if (s==V_PROCS) g_cache[s]=api_get("/api/processes");
     else if (s==V_SVC) g_cache[s]=api_get("/api/systemd/services");
     else if (s==V_CMD) g_cache[s]=api_get("/api/commands");
     else if (s==V_FS) { char p[600]; snprintf(p,sizeof p,"/api/fs/list?path=%s",fs_path); g_cache[s]=api_get(p); }
-    else if (s==V_LOGS) { char p[96]; snprintf(p,sizeof p,"/api/logs?source=%s&lines=120",LOG_SRC[g_sub[V_LOGS]]); g_cache[s]=api_get(p); }
+    else if (s==V_LOGS) { char p[128]; if(ls_sev>0) snprintf(p,sizeof p,"/api/logs?source=%s&severity=%s&lines=120",LOG_SRC[g_sub[V_LOGS]],LOG_SEV[ls_sev]); else snprintf(p,sizeof p,"/api/logs?source=%s&lines=120",LOG_SRC[g_sub[V_LOGS]]); g_cache[s]=api_get(p); }
     else if (s==V_TOOLS) { g_cache[s]=api_get("/api/actions"); if(g_volume){cJSON_Delete(g_volume);g_volume=NULL;} g_volume=api_get("/api/volume"); }
     else if (s==V_MEDIA) g_cache[s]=api_get("/api/media");
     else if (s==V_STORAGE) g_cache[s]=api_get("/api/storage");
@@ -236,8 +241,28 @@ static void net_render(int focus){
     if(ifs)cJSON_ArrayForEach(it,ifs){const char*nm=Js(it,"name","");if(!strcmp(nm,"lo"))continue;if(ifaces[0])strncat(ifaces,", ",sizeof ifaces-strlen(ifaces)-1);strncat(ifaces,nm,sizeof ifaces-strlen(ifaces)-1);}
     y=ui_kv(x,y,w,"INTERFACE",ifaces[0]?ifaces:"-"); y=ui_kv(x,y,w,"IP",ip?ip:"-"); y=ui_kv(x,y,w,"GATEWAY",gw[0]?gw:"-");
     char dnss[80]=""; cJSON *dns=J(d,"dns"),*dn; if(dns)cJSON_ArrayForEach(dn,dns){const char*s=dn->valuestring;if(!s)continue;if(dnss[0])strncat(dnss,", ",sizeof dnss-strlen(dnss)-1);strncat(dnss,s,sizeof dnss-strlen(dnss)-1);}
-    y=ui_kv(x,y,w,"DNS",dnss[0]?dnss:"-"); y=ui_kv(x,y,w,"SSID",Js(d,"ssid","(n/a)")); y+=6;
+    y=ui_kv(x,y,w,"DNS",dnss[0]?dnss:"-"); y=ui_kv(x,y,w,"SSID",Js(d,"ssid","(n/a)")); y+=4;
     for(int i=0;i<2;i++){ int sel=(focus==i),ry=y+i*ROWH; if(sel)fb_fill(x-2,ry-2,w,ROWH,PAL.line2); fb_text(x,ry,"A",PAL.btn_a,sel?PAL.line2:PAL.bg,0); fb_text(x+FB_FONT_W*2,ry,NET_L[i],sel?PAL.accent:PAL.fg,sel?PAL.line2:PAL.bg,0); }
+    y+=2*ROWH+2; fb_text(x,y,"X: buscar redes   Y: conexoes (ss)",PAL.muted,PAL.bg,0); y+=ROWH;
+    if(net_mode){ fb_text(x,y,net_mode==1?"REDES VISIVEIS:":"CONEXOES:",PAL.fg_dim,PAL.bg,0); y+=ROWH;
+        const char*o=g_net_extra?g_net_extra:"(...)"; int cols=w/FB_FONT_W,row=0,maxrow=(cy1()-y)/FB_FONT_H;
+        for(const char*p=o;*p&&row<maxrow;){char buf[200];int bl=0;while(*p&&*p!='\n'&&bl<cols&&bl<199)buf[bl++]=*p++;buf[bl]=0;if(*p=='\n')p++;else while(*p&&*p!='\n')p++;fb_text(x,y+row*FB_FONT_H,buf,PAL.fg,PAL.bg,0);row++;} }
+}
+static int net_nfocus(void){ return 2; }
+static void net_activate(int focus){ if(focus>=0&&focus<2){ post_action(NET_K[focus]); view_enter(V_NET); } }
+static int net_back(void){ if(net_mode){net_mode=0; if(g_net_extra){free(g_net_extra);g_net_extra=NULL;} return 1;} return 0; }
+static void net_set_extra(const char *txt){ if(g_net_extra)free(g_net_extra); g_net_extra=strdup(txt?txt:""); }
+static void net_key(int b){
+    if(b==CDB_X){ /* scan de SSIDs */
+        char*r=http_post("/api/network/wifi/scan","{}"); cJSON*root=r?cJSON_Parse(r):NULL; if(r)free(r);
+        cJSON*d=api_data(root),*ss=d?J(d,"ssids"):NULL; char buf[1024]="";
+        if(ss&&cJSON_IsArray(ss)){cJSON*s;cJSON_ArrayForEach(s,ss){if(s->valuestring){strncat(buf,s->valuestring,sizeof buf-strlen(buf)-2);strncat(buf,"\n",sizeof buf-strlen(buf)-1);}}}
+        net_set_extra(buf[0]?buf:"(nenhuma rede)"); net_mode=1; if(root)cJSON_Delete(root);
+    } else if(b==CDB_Y){ /* conexões (ss) */
+        cJSON*root=api_get("/api/network/connections?limit=40"),*d=api_data(root),*rows=d?J(d,"rows"):NULL; char buf[2048]="";
+        if(rows&&cJSON_IsArray(rows)){cJSON*ln;cJSON_ArrayForEach(ln,rows){if(ln->valuestring){strncat(buf,ln->valuestring,sizeof buf-strlen(buf)-2);strncat(buf,"\n",sizeof buf-strlen(buf)-1);}}}
+        net_set_extra(buf[0]?buf:"(sem conexoes)"); net_mode=2; if(root)cJSON_Delete(root);
+    }
 }
 
 /* =================================================================== LOGS (list+detail) */
@@ -251,11 +276,12 @@ static int logs_visible(char out[][200], int maxn){
     int n=0; while(*p&&n<maxn){ int bl=0; while(*p&&*p!='\n'&&bl<199)out[n][bl++]=*p++; out[n][bl]=0; if(*p=='\n')p++; n++; }
     return n;
 }
-static int logs_rows(void){ return (cy1()-(cy0()+2*ROWH+2))/FB_FONT_H; }
+static int logs_rows(void){ return (cy1()-(cy0()+3*ROWH+2))/FB_FONT_H; }
 static void logs_render(int focus){
     int x=cx(),y=cy0(),w=cw(),sub=g_sub[V_LOGS]; char t[40];
     if(ls_mode==1){ ui_title(x,y,"LOG . detalhe"); y+=ROWH; char *m=ls_line; char ts[80]=""; char *sp=strchr(m,']'); if(m[0]=='['&&sp){int L=sp-m-1;if(L>0&&L<79){memcpy(ts,m+1,L);ts[L]=0;}m=sp+1;while(*m==' ')m++;} if(ts[0])y=ui_kv(x,y,w,"QUANDO",ts); fb_text(x,y,"MENSAGEM",PAL.fg_dim,PAL.bg,0);y+=ROWH; int cols=w/FB_FONT_W,row=0; for(char*q=m;*q&&row<10;){char buf[200];int bl=0;while(*q&&bl<cols&&bl<199)buf[bl++]=*q++;buf[bl]=0;fb_text(x,y+row*FB_FONT_H,buf,PAL.fg,PAL.bg,0);row++;} return; }
-    snprintf(t,sizeof t,"LOGS . %s",LOG_SRC[sub]); ui_title(x,y,t); y+=ROWH; ui_subbar(x,y,LOG_SRC,5,sub); y+=ROWH+2;
+    snprintf(t,sizeof t,"LOGS . %s",LOG_SRC[sub]); ui_title(x,y,t); y+=ROWH; ui_subbar(x,y,LOG_SRC,5,sub); y+=ROWH;
+    { char sv[40]; snprintf(sv,sizeof sv,"X: severidade [%s]",LOG_SEV[ls_sev]); fb_text(x,y,sv,ls_sev?PAL.warn:PAL.muted,PAL.bg,0); y+=ROWH; }
     static char buf[40][200]; int maxr=logs_rows(); if(maxr>40)maxr=40; int n=logs_visible(buf,maxr);
     if(!n){fb_text(x,y,AGENT_OK?"(sem saida)":"agente offline",PAL.muted,PAL.bg,0);return;}
     int cols=w/FB_FONT_W;
@@ -267,6 +293,7 @@ static void logs_render(int focus){
 static int logs_nfocus(void){ if(ls_mode==1)return 0; static char buf[40][200]; int maxr=logs_rows(); if(maxr>40)maxr=40; return logs_visible(buf,maxr); }
 static void logs_activate(int focus){ if(ls_mode==1)return; static char buf[40][200]; int maxr=logs_rows();if(maxr>40)maxr=40; int n=logs_visible(buf,maxr); if(focus>=0&&focus<n){snprintf(ls_line,sizeof ls_line,"%s",buf[focus]);ls_mode=1;} }
 static int logs_back(void){ if(ls_mode==1){ls_mode=0;return 1;} return 0; }
+static void logs_key(int b){ if(ls_mode==1)return; if(b==CDB_X){ ls_sev=(ls_sev+1)%4; g_focus[V_LOGS]=0; view_enter(V_LOGS); } }
 
 /* =================================================================== PROCS */
 static int proc_filter_ok(cJSON *p,int f){ const char*st=Js(p,"state","");const char*comm=Js(p,"comm","");const char*cmd=Js(p,"cmd","");double cpu=Jn(p,"cpu",0);
@@ -310,7 +337,7 @@ static void procs_render(int focus){
     cJSON *d=api_data(g_cache[V_PROCS]),*sm=d?J(d,"summary"):NULL;
     if(sm){char s[100];snprintf(s,sizeof s,"%d proc . run %d . zumbi %d . ~%d%% cpu",(int)Jn(sm,"total",0),(int)Jn(sm,"running",0),(int)Jn(sm,"zombie",0),(int)Jn(sm,"cpu_total",0));fb_text(x,y,s,PAL.fg_dim,PAL.bg,0);}
     y+=ROWH;
-    char ctl[80];snprintf(ctl,sizeof ctl,"sort:%s  filtro:%s  (L1/R1 pag)",PR_SORT[pr_sort],PR_FILT[pr_filter]); fb_text(x,y,ctl,PAL.muted,PAL.bg,0); y+=ROWH+2;
+    char ctl[90];snprintf(ctl,sizeof ctl,"X filtro:%s  Y sort:%s  (L1/R1 pag)",PR_FILT[pr_filter],PR_SORT[pr_sort]); fb_text(x,y,ctl,PAL.muted,PAL.bg,0); y+=ROWH+2;
     cJSON *page[PAGE]; int np; int tot=proc_collect(page,&np); int npg=pg_count(/*n*/0); (void)tot;(void)npg;
     fb_text(x,y,"PID",PAL.fg_dim,PAL.bg,0); fb_text(x+FB_FONT_W*7,y,"CMD",PAL.fg_dim,PAL.bg,0); fb_text(x+w-FB_FONT_W*10,y,"CPU  RSS",PAL.fg_dim,PAL.bg,0); y+=ROWH;
     for(int i=0;i<np;i++){cJSON*p=page[i];int sel=(focus==i);int ry=y+i*ROWH;if(sel)fb_fill(x-2,ry-2,w,ROWH,PAL.line2);
@@ -327,6 +354,7 @@ static void procs_activate(int focus){
 }
 static int procs_back(void){ if(pr_mode==1){pr_mode=0;detail_free();return 1;} return 0; }
 static int procs_page(int dir){ if(pr_mode==1)return 0; pr_page+=dir; if(pr_page<0)pr_page=0; g_focus[V_PROCS]=0; return 1; }
+static void procs_key(int b){ if(pr_mode==1)return; if(b==CDB_X){pr_filter=(pr_filter+1)%7;} else if(b==CDB_Y){pr_sort=(pr_sort+1)%4;} pr_page=0; g_focus[V_PROCS]=0; }
 
 /* =================================================================== FS */
 static const char *fs_type(cJSON *e){ const char*t=Js(e,"type","");
@@ -374,6 +402,14 @@ static int fs_back(void){
     return 0;
 }
 static int fs_page_fn(int dir){ if(fs_mode==1)return 0; fs_page+=dir; if(fs_page<0)fs_page=0; g_focus[V_FS]=0; return 1; }
+/* X: cicla pelos atalhos (bookmarks) do agente */
+static void fs_key(int b){
+    if(b!=CDB_X||fs_mode==1)return;
+    static int bm=0;
+    cJSON*root=api_get("/api/fs/bookmarks"),*d=api_data(root),*arr=d?J(d,"bookmarks"):NULL;
+    if(arr&&cJSON_IsArray(arr)){ int n=cJSON_GetArraySize(arr); if(n){ cJSON*it=cJSON_GetArrayItem(arr,bm%n); bm++; if(it&&it->valuestring){ if(root)cJSON_Delete(root); fs_nav(it->valuestring); return; } } }
+    if(root)cJSON_Delete(root);
+}
 
 /* =================================================================== SVC */
 static int sd_failed(cJSON *s){ return !strcmp(Js(s,"active",""),"failed")||!strcmp(Js(s,"sub",""),"failed"); }
@@ -389,16 +425,19 @@ static int svc_collect(cJSON **outpage,int *np){
 }
 static void svc_render(int focus){
     int x=cx(),y=cy0(),w=cw();
+    if(sv_mode==2){ char t[90];snprintf(t,sizeof t,"SVC LOGS %s",sv_unit);ui_title(x,y,t);y+=ROWH+2;
+        const char*o=g_svc_log?g_svc_log:"(sem journal)";int cols=w/FB_FONT_W,row=0,maxrow=(cy1()-y)/FB_FONT_H;
+        for(const char*p=o;*p&&row<maxrow;){char buf[200];int bl=0;while(*p&&*p!='\n'&&bl<cols&&bl<199)buf[bl++]=*p++;buf[bl]=0;if(*p=='\n')p++;else while(*p&&*p!='\n')p++;unsigned long cc=(strstr(buf,"error")||strstr(buf,"fail"))?PAL.crit:(strstr(buf,"warn"))?PAL.warn:PAL.fg_dim;fb_text(x,y+row*FB_FONT_H,buf,cc,PAL.bg,0);row++;} return; }
     if(sv_mode==1){ char t[80];snprintf(t,sizeof t,"SVC %s",sv_unit);ui_title(x,y,t);y+=ROWH+2; cJSON*d=api_data(g_detail);
         if(!d){fb_text(x,y,"carregando...",PAL.muted,PAL.bg,0);return;} char v[80];
         snprintf(v,sizeof v,"%s/%s",Js(d,"active","-"),Js(d,"sub","-"));y=ui_kv(x,y,w,"ESTADO",v);
         y=ui_kv(x,y,w,"ENABLED",Js(d,"enabled","-")); snprintf(v,sizeof v,"%d",(int)Jn(d,"main_pid",0));y=ui_kv(x,y,w,"PID",v);
         y=ui_kv(x,y,w,"DESDE",Js(d,"started","-")); fb_text(x,y,"DESC",PAL.fg_dim,PAL.bg,0);y+=ROWH; fb_text_clip(x,y,Js(d,"description","-"),w/FB_FONT_W,PAL.fg,PAL.bg,0);y+=ROWH+4;
-        const char*acts[]={"RESTART","STOP","START"};
-        for(int i=0;i<3;i++){int sel=(focus==i),ry=y+i*ROWH;if(sel)fb_fill(x-2,ry-2,w,ROWH,PAL.line2);fb_text(x,ry,"A",PAL.btn_a,sel?PAL.line2:PAL.bg,0);fb_text(x+FB_FONT_W*2,ry,acts[i],sel?PAL.accent:PAL.fg,sel?PAL.line2:PAL.bg,0);} return; }
+        const char*acts[]={"RESTART","STOP","START","LOGS (journal)"};
+        for(int i=0;i<4;i++){int sel=(focus==i),ry=y+i*ROWH;if(sel)fb_fill(x-2,ry-2,w,ROWH,PAL.line2);fb_text(x,ry,"A",PAL.btn_a,sel?PAL.line2:PAL.bg,0);fb_text(x+FB_FONT_W*2,ry,acts[i],sel?PAL.accent:PAL.fg,sel?PAL.line2:PAL.bg,0);} return; }
     ui_title(x,y,"SERVICOS"); y+=ROWH;
     cJSON *d=api_data(g_cache[V_SVC]); (void)d;
-    char ctl[80];snprintf(ctl,sizeof ctl,"filtro:%s  (L1/R1 pag)",SD_FILT[sv_filter]); fb_text(x,y,ctl,PAL.muted,PAL.bg,0); y+=ROWH+2;
+    char ctl[80];snprintf(ctl,sizeof ctl,"X filtro:%s  (L1/R1 pag)",SD_FILT[sv_filter]); fb_text(x,y,ctl,sv_filter?PAL.warn:PAL.muted,PAL.bg,0); y+=ROWH+2;
     cJSON*page[PAGE];int np;svc_collect(page,&np);
     for(int i=0;i<np;i++){cJSON*s=page[i];int sel=(focus==i),ry=y+i*ROWH;if(sel)fb_fill(x-2,ry-2,w,ROWH,PAL.line2);
         const char*sub=Js(s,"sub","");unsigned long sc=!strcmp(sub,"running")?PAL.fg:sd_failed(s)?PAL.crit:PAL.muted;
@@ -407,14 +446,16 @@ static void svc_render(int focus){
         fb_text(x+w-fb_text_w(sub),ry,sub,sc,sel?PAL.line2:PAL.bg,0);}
     if(!np)fb_text(x,y,"(nenhum servico)",PAL.muted,PAL.bg,0);
 }
-static int svc_nfocus(void){ if(sv_mode==1)return 3; cJSON*page[PAGE];int np;svc_collect(page,&np);return np; }
+static int svc_nfocus(void){ if(sv_mode==2)return 0; if(sv_mode==1)return 4; cJSON*page[PAGE];int np;svc_collect(page,&np);return np; }
 static void svc_activate(int focus){
-    if(sv_mode==1){ const char*act[]={"restart","stop","start"}; if(focus<0||focus>2)return; char lbl[100];snprintf(lbl,sizeof lbl,"%s %s",act[focus],sv_unit); confirm_open(CF_SVC,act[focus],sv_unit,lbl); return; }
+    if(sv_mode==1){ if(focus==3){ /* LOGS */ if(g_svc_log){free(g_svc_log);g_svc_log=NULL;} char p[256];snprintf(p,sizeof p,"/api/systemd/logs?unit=%s&lines=120",sv_unit); cJSON*root=api_get(p),*d=api_data(root); g_svc_log=strdup(d?Js(d,"lines","(sem journal)"):"(erro)"); if(root)cJSON_Delete(root); sv_mode=2; return; }
+        const char*act[]={"restart","stop","start"}; if(focus<0||focus>2)return; char lbl[100];snprintf(lbl,sizeof lbl,"%s %s",act[focus],sv_unit); confirm_open(CF_SVC,act[focus],sv_unit,lbl); return; }
     cJSON*page[PAGE];int np;svc_collect(page,&np); if(focus<0||focus>=np)return;
     snprintf(sv_unit,sizeof sv_unit,"%s",Js(page[focus],"unit","")); detail_free(); char p[256];snprintf(p,sizeof p,"/api/systemd/service?unit=%s",sv_unit); g_detail=api_get(p); sv_mode=1; g_focus[V_SVC]=0;
 }
-static int svc_back(void){ if(sv_mode==1){sv_mode=0;detail_free();return 1;} return 0; }
-static int svc_page_fn(int dir){ if(sv_mode==1)return 0; sv_page+=dir;if(sv_page<0)sv_page=0;g_focus[V_SVC]=0;return 1; }
+static int svc_back(void){ if(sv_mode==2){sv_mode=1;return 1;} if(sv_mode==1){sv_mode=0;detail_free();return 1;} return 0; }
+static int svc_page_fn(int dir){ if(sv_mode!=0)return 0; sv_page+=dir;if(sv_page<0)sv_page=0;g_focus[V_SVC]=0;return 1; }
+static void svc_key(int b){ if(sv_mode!=0)return; if(b==CDB_X){sv_filter=(sv_filter+1)%4;sv_page=0;g_focus[V_SVC]=0;} }
 
 /* =================================================================== CMD */
 static void cmd_render(int focus){
@@ -584,16 +625,16 @@ static void storage_activate(int focus){
 }
 
 /* =================================================================== tabela */
-typedef struct { void(*render)(int); int(*nfocus)(void); void(*activate)(int); int(*back)(void); int(*page)(int); } cd_view;
+typedef struct { void(*render)(int); int(*nfocus)(void); void(*activate)(int); int(*back)(void); int(*page)(int); void(*key)(int); } cd_view;
 static const cd_view VIEWS[NVIEWS]={
     [V_HOME]  ={home_render,   home_nfocus, home_activate, NULL,      NULL},
     [V_STATUS]={status_render, NULL,        NULL,          NULL,      NULL},
-    [V_PROCS] ={procs_render,  procs_nfocus,procs_activate,procs_back,procs_page},
-    [V_NET]   ={net_render,    NULL,        NULL,          NULL,      NULL},
-    [V_LOGS]  ={logs_render,   logs_nfocus, logs_activate, logs_back, NULL},
+    [V_PROCS] ={procs_render,  procs_nfocus,procs_activate,procs_back,procs_page, procs_key},
+    [V_NET]   ={net_render,    net_nfocus,  net_activate,  net_back,  NULL,       net_key},
+    [V_LOGS]  ={logs_render,   logs_nfocus, logs_activate, logs_back, NULL,       logs_key},
     [V_DEVICE]={device_render, NULL,        NULL,          NULL,      NULL},
-    [V_FS]    ={fs_render,     fs_nfocus,   fs_activate,   fs_back,   fs_page_fn},
-    [V_SVC]   ={svc_render,    svc_nfocus,  svc_activate,  svc_back,  svc_page_fn},
+    [V_FS]    ={fs_render,     fs_nfocus,   fs_activate,   fs_back,   fs_page_fn, fs_key},
+    [V_SVC]   ={svc_render,    svc_nfocus,  svc_activate,  svc_back,  svc_page_fn,svc_key},
     [V_CMD]   ={cmd_render,    cmd_nfocus,  cmd_activate,  cmd_back,  NULL},
     [V_KERNEL]={kernel_render, NULL,        NULL,          NULL,      kernel_page},
     [V_TOOLS] ={tools_render,  tools_nfocus,tools_activate,NULL,      NULL},
@@ -601,13 +642,8 @@ static const cd_view VIEWS[NVIEWS]={
     [V_MEDIA] ={media_render,  media_nfocus,media_activate,media_back,NULL},
     [V_STORAGE]={storage_render,storage_nfocus,storage_activate,NULL,   NULL},
 };
-static int v_nfocus(int s){ return VIEWS[s].nfocus?VIEWS[s].nfocus():(s==V_NET?2:0); }
-
-/* NET tem focus fixo (2) sem nfocus fn — trata aqui */
-static void v_activate(int s,int focus){
-    if(s==V_NET){ if(focus>=0&&focus<2){post_action(NET_K[focus]);g_section=V_NET;view_enter(V_NET);} return; }
-    if(VIEWS[s].activate)VIEWS[s].activate(focus);
-}
+static int v_nfocus(int s){ return VIEWS[s].nfocus?VIEWS[s].nfocus():0; }
+static void v_activate(int s,int focus){ if(VIEWS[s].activate)VIEWS[s].activate(focus); }
 
 /* =================================================================== FN menu */
 typedef struct { const char*label,*sub; int kind; const char*key; } fn_item;
@@ -642,11 +678,11 @@ static const char *hint_for(int s){
     switch(s){
         case V_HOME:return "A: abrir  FN: menu  L2+R2: shot";
         case V_STATUS:case V_DEVICE:return "L1/R1: subpagina  <- ->: abas  B: voltar";
-        case V_NET:return "A: acao  <- ->: abas  B: voltar";
-        case V_LOGS:return "A: detalhe  L1/R1: origem  <- ->: abas";
-        case V_PROCS:return "A: detalhe  L1/R1: pagina  B: voltar";
-        case V_FS:return "A: abrir  L1/R1: pagina  B: voltar";
-        case V_SVC:return "A: detalhe/acao  L1/R1: pagina  B: voltar";
+        case V_NET:return "A: wifi  X: buscar  Y: ss  B: voltar";
+        case V_LOGS:return "A: detalhe  X: severidade  L1/R1: origem";
+        case V_PROCS:return "A: detalhe  X: filtro  Y: sort  L1/R1: pag";
+        case V_FS:return "A: abrir  X: atalhos  L1/R1: pag  B: voltar";
+        case V_SVC:return "A: detalhe/acao  X: filtro  L1/R1: pag";
         case V_CMD:return "A: executar  B: voltar";
         case V_KERNEL:return "L1/R1: pagina modulos  B: voltar";
         case V_TOOLS:return "A: executar  L1/R1: subpagina  B: voltar";
@@ -678,8 +714,9 @@ void view_handle(const cd_event *ev){
         case CDB_RIGHT: goto_tab(+1); break;
         case CDB_UP: if(nf)g_focus[g_section]=(g_focus[g_section]-1+nf)%nf; break;
         case CDB_DOWN: if(nf)g_focus[g_section]=(g_focus[g_section]+1)%nf; break;
-        case CDB_A: case CDB_START: if(nf||g_section==V_NET)v_activate(g_section,g_focus[g_section]); break;
+        case CDB_A: case CDB_START: if(nf)v_activate(g_section,g_focus[g_section]); break;
         case CDB_B: case CDB_SELECT: view_back(); break;
+        case CDB_X: case CDB_Y: if(VIEWS[g_section].key)VIEWS[g_section].key(b); break;
         case CDB_L1:
             if(VIEWS[g_section].page){VIEWS[g_section].page(-1);}
             else if(NSUB[g_section]){g_sub[g_section]=(g_sub[g_section]-1+NSUB[g_section])%NSUB[g_section];g_focus[g_section]=0;if(g_section==V_LOGS||g_section==V_TOOLS)view_enter(g_section);}
