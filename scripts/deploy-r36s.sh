@@ -57,6 +57,20 @@ if want ui; then
       "root@$HOST:/etc/chromium/policies/managed/cyberdeck-policies.json" >/dev/null
   NEED_UI=1
 fi
+if want react; then
+  # interface web-react: bundle Webpack (build no host) -> /usr/share/cyberdeck-web-react
+  if [ ! -f "$REPO/interface/web-react/dist/index.html" ] && command -v npm >/dev/null 2>&1; then
+    log "web-react -> buildando (npm run build)"
+    ( cd "$REPO/interface/web-react" && ./build.sh ) >/dev/null 2>&1 || true
+  fi
+  if [ -f "$REPO/interface/web-react/dist/index.html" ]; then
+    log "web-react -> /usr/share/cyberdeck-web-react"
+    DST="/usr/share/cyberdeck-web-react"; push "$REPO/interface/web-react/dist" .
+    NEED_UI=1
+  else
+    die "interface/web-react/dist ausente — rode (cd interface/web-react && ./build.sh) primeiro"
+  fi
+fi
 if want fb; then
   # interface nativa + seletor de boot: binários aarch64 estáticos (cross-compila e empurra).
   FB_BIN="$REPO/interface/native-fb/build/cyberdeck-fb"

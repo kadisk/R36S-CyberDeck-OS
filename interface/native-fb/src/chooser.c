@@ -1,8 +1,8 @@
 /*
  * chooser.c — seletor de interface no boot do R36S CyberDeck OS.
- * Desenha duas opções (WEB / NATIVE) no /dev/fb0, navega pelo joypad, confirma com
- * A/Start e tem timeout (~6 s) que cai na ÚLTIMA escolha. Persiste em
- * /var/lib/cyberdeck/interface (texto: "web" | "fb") e imprime a escolha no stdout —
+ * Desenha três opções (WEB / REACT / NATIVE) no /dev/fb0, navega pelo joypad, confirma
+ * com A/Start e tem timeout (~15 s) que cai na ÚLTIMA escolha. Persiste em
+ * /var/lib/cyberdeck/interface (texto: "web" | "react" | "fb") e imprime no stdout —
  * o cyberdeck-session.sh lê o stdout e lança a interface escolhida.
  *
  * Autocontido: linka só fb.c + input.c (sem http/views/cjson).
@@ -22,16 +22,19 @@
 #define PREF_FILE "/var/lib/cyberdeck/interface"
 #define TIMEOUT_S 15
 
-static int read_pref(void) {   /* 0 = web, 1 = fb */
+static int read_pref(void) {   /* 0 = web, 1 = react, 2 = fb */
     FILE *f = fopen(PREF_FILE, "r");
     if (!f) return 0;
     char b[16] = {0}; if (!fgets(b, sizeof b, f)) b[0] = 0; fclose(f);
-    return strncmp(b, "fb", 2) == 0 ? 1 : 0;
+    if (strncmp(b, "react", 5) == 0) return 1;
+    if (strncmp(b, "fb", 2) == 0) return 2;
+    return 0;
 }
+static const char *PREF_NAME[3] = { "web\n", "react\n", "fb\n" };
 static void write_pref(int sel) {
     mkdir(PREF_DIR, 0755);
     FILE *f = fopen(PREF_FILE, "w");
-    if (f) { fputs(sel ? "fb\n" : "web\n", f); fclose(f); }
+    if (f) { fputs(PREF_NAME[sel < 0 || sel > 2 ? 0 : sel], f); fclose(f); }
 }
 
 int main(void) {
@@ -52,8 +55,8 @@ int main(void) {
     long start = time(NULL);
     int confirmed = -1;
 
-    const char *NAMES[2] = { "WEB", "NATIVE" };
-    const char *SUBS[2]  = { "HTML / Chromium", "C / framebuffer" };
+    const char *NAMES[3] = { "WEB", "REACT", "NATIVE" };
+    const char *SUBS[3]  = { "HTML / Chromium", "React / Webpack", "C / framebuffer" };
 
     while (confirmed < 0) {
         long elapsed = time(NULL) - start;
@@ -67,10 +70,10 @@ int main(void) {
         const char *t2 = "escolha a interface";
         fb_text((W - fb_text_w(t2)) / 2, 110, t2, DIM, BG, 0);
 
-        /* dois cards lado a lado */
-        int cw = 220, ch = 120, gap = 40;
-        int total = cw * 2 + gap, x0 = (W - total) / 2, y0 = 180;
-        for (int i = 0; i < 2; i++) {
+        /* três cards lado a lado */
+        int cw = 184, ch = 120, gap = 18;
+        int total = cw * 3 + gap * 2, x0 = (W - total) / 2, y0 = 180;
+        for (int i = 0; i < 3; i++) {
             int x = x0 + i * (cw + gap);
             int on = (i == sel);
             fb_fill(x, y0, cw, ch, on ? SELBG : BG);
@@ -97,8 +100,8 @@ int main(void) {
         cd_event ev;
         if (input_next(&ev, 200) && ev.value == 1) {
             switch (ev.btn) {
-                case CDB_LEFT:  sel = 0; start = time(NULL); break;   /* mexer reinicia o timeout */
-                case CDB_RIGHT: sel = 1; start = time(NULL); break;
+                case CDB_LEFT:  if (sel > 0) sel--; start = time(NULL); break;   /* mexer reinicia o timeout */
+                case CDB_RIGHT: if (sel < 2) sel++; start = time(NULL); break;
                 case CDB_A: case CDB_START: confirmed = sel; break;
                 default: break;
             }
@@ -108,6 +111,6 @@ int main(void) {
     write_pref(confirmed);
     fb_close();
     input_close();
-    printf("%s\n", confirmed ? "fb" : "web");
+    printf("%s", PREF_NAME[confirmed < 0 || confirmed > 2 ? 0 : confirmed]);
     return 0;
 }

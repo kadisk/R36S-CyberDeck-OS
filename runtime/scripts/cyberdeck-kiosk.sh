@@ -6,7 +6,13 @@
 export DISPLAY=:0
 xset -dpms 2>/dev/null; xset s off 2>/dev/null; xset s noblank 2>/dev/null
 
-UI="file:///usr/share/cyberdeck-ui/public/index.html"
+# a URL depende da interface escolhida no seletor: web (vanilla) ou react.
+PREF="$(cat /var/lib/cyberdeck/interface 2>/dev/null)"
+if [ "$PREF" = "react" ]; then
+    UI="file:///usr/share/cyberdeck-web-react/index.html"
+else
+    UI="file:///usr/share/cyberdeck-ui/public/index.html"
+fi
 BIN="$(command -v chromium || command -v chromium-browser || echo chromium)"
 
 exec "$BIN" \

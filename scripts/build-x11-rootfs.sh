@@ -57,6 +57,17 @@ cp "$QEMU" "$RF/usr/bin/" 2>/dev/null || true
 # 2. UI + launchers + serviço + Xorg fbdev + fstab
 install -d "$RF/usr/share/cyberdeck-ui"
 cp -a "$REPO_DIR/interface/web-vanilla/public" "$RF/usr/share/cyberdeck-ui/"
+# interface web-react (bundle Webpack). Precisa estar pré-buildada no host
+# (interface/web-react/build.sh — gera dist/). Sem dist/, a opção REACT não é instalada
+# (a imagem segue válida com WEB+NATIVE) e fica o aviso de como gerar.
+if [ -f "$REPO_DIR/interface/web-react/dist/index.html" ]; then
+    install -d "$RF/usr/share/cyberdeck-web-react"
+    cp -a "$REPO_DIR/interface/web-react/dist/." "$RF/usr/share/cyberdeck-web-react/"
+    echo "[build] web-react instalada (/usr/share/cyberdeck-web-react)"
+else
+    echo "[build] AVISO: interface/web-react/dist ausente — opção REACT NÃO instalada."
+    echo "[build]        gere antes com: (cd interface/web-react && ./build.sh)"
+fi
 install -D -m0755 "$REPO_DIR/runtime/scripts/start-cyberdeck-x.sh" "$RF/usr/local/bin/start-cyberdeck-x.sh"
 install -D -m0755 "$REPO_DIR/runtime/scripts/cyberdeck-kiosk.sh"   "$RF/usr/local/bin/cyberdeck-kiosk.sh"
 install -D -m0644 "$REPO_DIR/runtime/services/cyberdeck-x.service" "$RF/etc/systemd/system/cyberdeck-x.service"

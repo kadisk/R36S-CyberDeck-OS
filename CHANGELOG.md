@@ -4,6 +4,19 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added — 2026-06-23 — interface/web-react: fundação (React + TypeScript + Webpack)
+- 3ª interface oficial em **React + TypeScript + Webpack**, consumindo o mesmo `cyberdeck-agent`.
+  Bundle **único `file://`-safe** (publicPath `./`, CSS via style-loader; Vite quebraria por
+  bloqueio de ES modules no kiosk). 1º corte: casca completa (top bar c/ badge **REACT**, abas,
+  rodapé, menu FN, confirm, toast), **camada de input** portada da `gamepad.js` (Gamepad API +
+  teclado + foco 2D + ponteiro/scroll), cliente do agente, e telas **HOME/STATUS/NET/LOGS/DEVICE**.
+- **Seletor de boot agora tem 3 opções: WEB / REACT / NATIVE** (`chooser.c`; pref
+  `web|react|fb`). `cyberdeck-kiosk.sh` escolhe a URL pela pref; `build-x11-rootfs.sh` instala o
+  bundle em `/usr/share/cyberdeck-web-react`; `deploy-r36s.sh <host> react` p/ dev.
+- Validado no host: `tsc --noEmit` limpo, `webpack` gera `dist/` (182 KiB), e o bundle renderiza
+  no Chrome consumindo o agente (HOME com tiles/saúde/cards, paridade visual com vanilla/fb).
+- 2ª leva: PROCS, FS, SVC, CMD, KERNEL, AJUSTES, MEDIA, STORAGE, KEYS.
+
 ### Fixed — 2026-06-23 — native-fb: paridade interativa real com a web (controles X/Y)
 - Faltavam na `native-fb` os controles secundários que na web são chips focáveis. Mapeados em
   **X/Y** (rodapé documenta cada tela): **PROCS** X=filtro / Y=ordenação; **SVC** X=filtro +

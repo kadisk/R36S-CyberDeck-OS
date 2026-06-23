@@ -23,6 +23,8 @@ fi
 [ -n "$choice" ] || choice="$(cat "$PREF" 2>/dev/null)"
 [ -n "$choice" ] || choice=web
 
+# web e react usam o mesmo caminho (Xorg + Chromium kiosk); o cyberdeck-kiosk.sh
+# escolhe a URL (vanilla ou bundle React) lendo a pref. fb = renderizador nativo.
 case "$choice" in
     fb) exec /usr/local/bin/cyberdeck-fb ;;
     *)  exec /usr/local/bin/start-cyberdeck-x.sh ;;

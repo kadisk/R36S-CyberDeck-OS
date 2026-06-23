@@ -16,7 +16,7 @@ manter as interfaces em **paridade visual e funcional**.
 |-------|-------|--------|--------|-------------|
 | [`web-vanilla/`](web-vanilla/) | HTML/CSS/JS puro (sem build) | Chromium `--kiosk` sobre Xorg/fbdev | **Oficial / referência** | A "cara" atual do CyberDeck; valida-se nela primeiro. Build: `scripts/build-x11-rootfs.sh`. |
 | [`native-fb/`](native-fb/) | C, sem libs (estático) | Desenho 2D direto em `/dev/fb0` (sem X) | **Oficial alternativa (em paridade)** | Leve, boota sem Xorg/Chromium. Compilada e instalada pelo `scripts/build-x11-rootfs.sh` (imagem única); escolhida no boot pelo **seletor** (`cyberdeck-session`). |
-| [`web-react/`](web-react/) | React + Webpack | Chromium `--kiosk` (build estático) | **Planejada** | Mesma especificação da `web-vanilla`, com toolchain de build moderno. |
+| [`web-react/`](web-react/) | React + TypeScript + Webpack | Chromium `--kiosk` (bundle único `file://`) | **Em construção (fundação + 5 telas)** | Mesma especificação/visual da `web-vanilla`. Casca + input + HOME/STATUS/NET/LOGS/DEVICE prontas; resto na 2ª leva. Selecionável no boot (WEB/REACT/NATIVE). Build no host: `interface/web-react/build.sh`. |
 
 ## Princípios comuns
 
