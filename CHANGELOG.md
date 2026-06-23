@@ -4,6 +4,19 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added — 2026-06-23 — interface/web-react: 2ª leva de telas (paridade completa)
+- Telas restantes em React/TS: **PROCS** (filtro/sort em chips + lista paginada + detalhe +
+  sinais), **FS** (browser paginado + viewer + atalhos), **SVC** (resumo + filtro + detalhe +
+  ações + journal), **CMD** (categorias→comandos→saída), **KERNEL** (campos + nós DTB→FS +
+  módulos), **AJUSTES** (fonte/brilho/volume), **MEDIA** (HTML5), **STORAGE** (rootfs/partições/
+  expand/2º cartão), **KEYS** (teste de gamepad). Tabs agora: HOME/STATUS/PROCS/NET/LOGS/DEVICE/
+  FS/SVC/CMD; demais no menu FN.
+- Infra: `usePager` (L1/R1 via pager registrável no store), `fsPath`/`openFs` no store (nó DTB→FS),
+  escala de fonte (zoom no `#content` + `/api/settings`), `#hash` abre seção direto, KEYS faz seu
+  próprio polling de gamepad (input global não navega nessa tela; sai com Start+Select).
+- Validado no host (tsc limpo, bundle 210 KiB) com screenshots das 9 telas consumindo o agente.
+  **web-react agora em paridade completa** com a `web-vanilla`.
+
 ### Added — 2026-06-23 — interface/web-react: fundação (React + TypeScript + Webpack)
 - 3ª interface oficial em **React + TypeScript + Webpack**, consumindo o mesmo `cyberdeck-agent`.
   Bundle **único `file://`-safe** (publicPath `./`, CSS via style-loader; Vite quebraria por

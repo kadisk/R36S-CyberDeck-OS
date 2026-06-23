@@ -99,8 +99,8 @@ export function useInput(): void {
         case "Enter": activate(); break;
         case "f": case "F": actions.toggleFn(); break;
         case "Escape": case "Backspace": actions.back(); break;
-        case "[": actions.subCycle(-1); break;
-        case "]": actions.subCycle(1); break;
+        case "[": actions.lr(-1); break;
+        case "]": actions.lr(1); break;
         case "PageDown": scrollContent(120); break;
         case "PageUp": scrollContent(-120); break;
         default: return;
@@ -150,7 +150,7 @@ export function useInput(): void {
     const GP_RAW: Record<string, number> = { B: 0, A: 1, X: 2, Y: 3, L1: 4, R1: 5, R2: 6, L2: 7, UP: 8, DOWN: 9, LEFT: 10, RIGHT: 11, SELECT: 12, START: 13, FN: 16 };
     const GP_STD: Record<string, number> = { A: 0, B: 1, X: 2, Y: 3, L1: 4, R1: 5, L2: 6, R2: 7, UP: 12, DOWN: 13, LEFT: 14, RIGHT: 15 };
     const mapFor = (gp: Gamepad): Record<string, number> => (gp.mapping === "standard" ? GP_STD : GP_RAW);
-    let prev: boolean[] = [], comboShot = false, raf = 0;
+    let prev: boolean[] = [], comboShot = false, raf = 0, ktExit = false;
     function edge(gp: Gamepad, idx: number | undefined, fn: () => void): void {
       if (idx == null) return;
       const p = !!(gp.buttons[idx] && gp.buttons[idx].pressed);
@@ -161,13 +161,20 @@ export function useInput(): void {
     function poll(): void {
       const pads = hasGamepad ? navigator.getGamepads() : [];
       const gp = pads && pads[0];
-      if (gp) {
+      if (gp && getState().section === "keys") {
+        // tela KEYS: NÃO navega — só Start+Select juntos saem (a tela faz seu próprio polling visual).
+        const M = mapFor(gp);
+        const st = !!(gp.buttons[M.START] && gp.buttons[M.START].pressed);
+        const se = !!(gp.buttons[M.SELECT] && gp.buttons[M.SELECT].pressed);
+        if (st && se) { if (!ktExit) { ktExit = true; actions.back(); } } else ktExit = false;
+        prev = [];
+      } else if (gp) {
         const M = mapFor(gp);
         const l2 = !!(gp.buttons[M.L2] && gp.buttons[M.L2].pressed);
         const r2 = !!(gp.buttons[M.R2] && gp.buttons[M.R2].pressed);
         if (l2 && r2) { if (!comboShot) { comboShot = true; actions.screenshot(); } } else { comboShot = false; }
-        edge(gp, M.L1, () => { if (!confirmOpen()) actions.subCycle(-1); });
-        edge(gp, M.R1, () => { if (!confirmOpen()) actions.subCycle(1); });
+        edge(gp, M.L1, () => { if (!confirmOpen()) actions.lr(-1); });
+        edge(gp, M.R1, () => { if (!confirmOpen()) actions.lr(1); });
         edge(gp, M.A, () => { if (confirmOpen()) actions.resolveConfirm(true); else if (pointerVisible) { if (!clickAtPointer()) activate(); } else activate(); });
         edge(gp, M.B, () => { if (confirmOpen()) actions.resolveConfirm(false); else if (fnOpen()) actions.closeFn(); else actions.back(); });
         edge(gp, M.START, () => { if (!confirmOpen()) activate(); });

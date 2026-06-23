@@ -30,6 +30,12 @@ export default function FnMenu() {
       <div className="fn-box">
         <h3>FUNCTION</h3>
         <div id="fn-list" ref={ref}>
+          <Row icon="=" label="Ajustes" sub="display/áudio" onClick={() => { close(); actions.go("tools"); }} />
+          <Row icon="*" label="Testar botões" sub="gamepad" onClick={() => { close(); actions.go("keys"); }} />
+          <Row icon=">" label="Teste A/V" sub="áudio/vídeo" onClick={() => { close(); actions.go("media"); }} />
+          <Row icon="=" label="Armazenamento" sub="disco/cartão" onClick={() => { close(); actions.go("storage"); }} />
+          <Row icon="K" label="Kernel & DTB" sub="diag" onClick={() => { close(); actions.go("kernel"); }} />
+          <div className="fn-sec">UTILITÁRIOS</div>
           <Row icon="#" label="Screenshot agora" sub="L2+R2" onClick={() => { close(); actions.screenshot(); }} />
           <Row icon="@" label="Trocar p/ Web" sub="reinicia" onClick={() => { close(); actions.action("interface-web", "Trocar p/ interface Web (reinicia a sessão)", true); }} />
           <Row icon="@" label="Trocar p/ Nativa" sub="reinicia" onClick={() => { close(); actions.action("interface-fb", "Trocar p/ interface Nativa (reinicia a sessão)", true); }} />

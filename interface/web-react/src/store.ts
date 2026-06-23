@@ -19,6 +19,9 @@ interface State {
   toast: ToastState | null;
   lastStatus: StatusData | null;
   screenBack: (() => boolean) | null;
+  pager: ((dir: number) => void) | null;
+  fsPath: string;
+  fontScale: number;
 }
 
 const state: State = {
@@ -30,6 +33,9 @@ const state: State = {
   toast: null,
   lastStatus: null,
   screenBack: null,
+  pager: null,
+  fsPath: "/",
+  fontScale: 1,
 };
 
 let version = 0;
@@ -49,6 +55,7 @@ export const actions = {
     state.fnOpen = false;
     state.section = id;
     state.screenBack = null;
+    state.pager = null;
     emit();
   },
   nextTab(dir: number): void {
@@ -63,6 +70,14 @@ export const actions = {
     if (state.section !== "home") actions.go("home");
   },
   registerBack(fn: (() => boolean) | null): void { state.screenBack = fn; },
+  setFsPath(p: string): void { state.fsPath = p; emit(); },
+  openFs(p: string): void { state.fsPath = p; actions.go("fs"); },   // abrir um caminho no FS (ex.: nó DTB)
+  registerPager(fn: ((dir: number) => void) | null): void { state.pager = fn; },
+  // L1/R1: telas que paginam registram um pager (tem prioridade); senão, troca subpágina.
+  lr(dir: number): void {
+    if (typeof state.pager === "function") state.pager(dir);
+    else actions.subCycle(dir);
+  },
 
   getSub(id: string): number { return state.subs[id] || 0; },
   setSub(id: string, idx: number): void { state.subs[id] = idx; emit(); },
@@ -114,6 +129,24 @@ export const actions = {
       .catch((e: AgentError) => actions.toast(e.business ? e.message : "agente offline", true));
     if (danger && label) actions.openConfirm(label).then((ok) => { if (ok) doIt(); });
     else doIt();
+  },
+  // escala de fonte: zoom no #content (mantém barras fixas). Porta do app.js.
+  applyFontScale(scale: number): number {
+    scale = Math.max(0.7, Math.min(1.8, Number(scale) || 1));
+    state.fontScale = scale;
+    const c = document.getElementById("content");
+    if (c) (c.style as any).zoom = String(scale);
+    emit();
+    return scale;
+  },
+  setFontScale(delta: number): void {
+    const s = actions.applyFontScale(Math.round((state.fontScale + delta) * 100) / 100);
+    actions.toast("fonte " + Math.round(s * 100) + "%");
+    api.post("/api/settings", { fontScale: s }).catch(() => {});
+  },
+  resetFontScale(): void {
+    actions.applyFontScale(1); actions.toast("fonte 100%");
+    api.post("/api/settings", { fontScale: 1 }).catch(() => {});
   },
   volume(key: string): void {
     api.post("/api/actions", { key })

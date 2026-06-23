@@ -333,23 +333,23 @@ Legenda extra: 🅰 = entregue na Tranche A · 🅱 = previsto p/ Tranche B.
 | Fonte do dado | agente (HTTP) | agente (HTTP) 🅰 | agente (HTTP) |
 | HOME cockpit (saúde+tiles+cards) | ✅ | ✅ 🅰 | ✅ |
 | STATUS (live/energia/tendência) | ✅ | ✅ 🅰 | ✅ |
-| PROCS (lista+detalhe+sinais) | ✅ | ✅ (filtro/sort via X/Y) | ❌ (2ª leva) |
+| PROCS (lista+detalhe+sinais) | ✅ | ✅ (filtro/sort via X/Y) | ✅ (filtro/sort chips + paginação) |
 | NET | ✅ | ✅ (estado+ações+scan+conexões via X/Y) | ✅ (estado+ações+scan+ss) |
 | LOGS (lista+detalhe) | ✅ | ✅ (origem L1/R1 + severidade via X) | ✅ (origem+severidade+detalhe) |
 | DEVICE | ✅ | ✅ (ID/CPU/DISPLAY/BOOT/INPUT) | ✅ (ID/CPU/DISPLAY/BOOT/INPUT) |
-| KERNEL & DTB | ✅ | ✅ (campos + nós DTB→FS via A; módulos = contagem) | ❌ (2ª leva) |
-| FS (browser read-only) | ✅ | ✅ (lista paginada + viewer + atalhos via X) | ❌ (2ª leva) |
-| SVC (systemd) | ✅ | ✅ (lista+detalhe+ações+journal+filtro via X) | ❌ (2ª leva) |
-| CMD (allowlist) | ✅ | ✅ 🅱 (categorias→comandos→saída) | ❌ (2ª leva) |
-| AJUSTES (display/áudio) | ✅ | ✅ 🅰 (fonte ± = n/a no fb) | ❌ (2ª leva) |
-| TESTE DE BOTÕES | ✅ | ✅ 🅰 | ❌ (2ª leva) |
-| MEDIA (teste A/V) | ✅ (HTML5) | ✅ (mpv via agente) | ❌ (2ª leva) |
-| ARMAZENAMENTO (disco/cartão) | ✅ | ✅ | ❌ (2ª leva) |
-| Menu FN | ✅ | ✅ 🅰 (+ Kernel) | ✅ (utilitários+energia+trocar UI) |
+| KERNEL & DTB | ✅ | ✅ (campos + nós DTB→FS via A; módulos = contagem) | ✅ (campos + nós DTB→FS + módulos) |
+| FS (browser read-only) | ✅ | ✅ (lista paginada + viewer + atalhos via X) | ✅ (lista paginada + viewer + atalhos) |
+| SVC (systemd) | ✅ | ✅ (lista+detalhe+ações+journal+filtro via X) | ✅ (lista+detalhe+ações+journal+filtro) |
+| CMD (allowlist) | ✅ | ✅ 🅱 (categorias→comandos→saída) | ✅ (categorias→comandos→saída) |
+| AJUSTES (display/áudio) | ✅ | ✅ 🅰 (fonte ± = n/a no fb) | ✅ (fonte/brilho/volume) |
+| TESTE DE BOTÕES | ✅ | ✅ 🅰 | ✅ (cells + analógicos) |
+| MEDIA (teste A/V) | ✅ (HTML5) | ✅ (mpv via agente) | ✅ (HTML5) |
+| ARMAZENAMENTO (disco/cartão) | ✅ | ✅ | ✅ (rootfs/partições/expand/2º cartão) |
+| Menu FN | ✅ | ✅ 🅰 (+ Kernel) | ✅ (telas + utilitários + energia + trocar UI) |
 | Screenshot (L2+R2) | ✅ | ✅ 🅱 (fbgrab+netpbm no build) | ✅ (via agente) |
-| Confirmação de ações perigosas | ✅ | ✅ 🅰🅱 (actions + systemd + sinais) | ✅ (FN/energia) |
+| Confirmação de ações perigosas | ✅ | ✅ 🅰🅱 (actions + systemd + sinais) | ✅ (sinais/systemd/expand/energia) |
 | Camada de input (gamepad+teclado+foco 2D) | ✅ | ✅ 🅰 | ✅ (porta da gamepad.js) |
-| Escala de fonte persistida | ✅ | ➖ (fonte fixa 8x16) | ❌ (2ª leva) |
+| Escala de fonte persistida | ✅ | ➖ (fonte fixa 8x16) | ✅ (zoom no #content + /api/settings) |
 | Cores fixas de botão | ✅ | ✅ 🅰 | ✅ |
 | Double buffering (sem flicker) | ➖ | ✅ 🅰 | ➖ |
 
@@ -361,7 +361,8 @@ Legenda extra: 🅰 = entregue na Tranche A · 🅱 = previsto p/ Tranche B.
 > "pausar" o tail ao vivo de LOGS; escala de fonte e toggle de auto-screenshot
 > (n/a / não aplicáveis na fonte bitmap do fb).
 >
-> **web-react — fundação + telas núcleo (1º corte):** React + TypeScript + Webpack (bundle único
-> `file://`-safe), casca completa, camada de input portada da `gamepad.js`, cliente do agente, e
-> as telas HOME/STATUS/NET/LOGS/DEVICE. 2ª leva: PROCS, FS, SVC, CMD, KERNEL, AJUSTES, MEDIA,
-> STORAGE, KEYS. Selecionável no boot (WEB / REACT / NATIVE).
+> **web-react — paridade completa** (React + TypeScript + Webpack; bundle único `file://`-safe):
+> casca, camada de input portada da `gamepad.js` (gamepad+teclado+foco 2D+ponteiro), cliente do
+> agente, e **todas as telas** (HOME/STATUS/PROCS/NET/LOGS/DEVICE/FS/SVC/CMD + KERNEL/AJUSTES/
+> MEDIA/STORAGE/KEYS via menu FN), com filtros/ordenação/paginação, master→detalhe, confirmação,
+> escala de fonte e nós DTB→FS. Selecionável no boot (WEB / REACT / NATIVE).

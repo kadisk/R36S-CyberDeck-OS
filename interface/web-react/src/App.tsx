@@ -2,6 +2,7 @@
 // Monta a camada de input e o poll global de /api/status.
 import { useEffect } from "react";
 import { useStore, actions } from "./store";
+import { sectionOf } from "./sections";
 import { onAgentChange, api } from "./lib/api";
 import { useInput } from "./input/useInput";
 import { SCREENS } from "./screens/registry";
@@ -18,7 +19,11 @@ export default function App() {
   useInput();
 
   useEffect(() => {
+    // abrir direto numa seção via #hash (ex.: index.html#procs) — útil p/ teste
+    const h = (location.hash || "").replace("#", "");
+    if (h && sectionOf(h)) actions.go(h);
     onAgentChange(actions.setAgent);
+    api.get<{ fontScale?: number }>("/api/settings", { timeout: 4000 }).then((s) => actions.applyFontScale(s.fontScale || 1)).catch(() => {});
     const tick = () => api.get<StatusData>("/api/status", { timeout: 4000 }).then(actions.setStatus).catch(() => {});
     tick();
     const t = setInterval(tick, 2000);
