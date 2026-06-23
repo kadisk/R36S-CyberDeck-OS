@@ -32,6 +32,7 @@ const volume = require("./lib/volume");
 const screenshot = require("./lib/screenshot");
 const kernel = require("./lib/kernel");
 const health = require("./lib/health");
+const media = require("./lib/media");
 
 const PORT = parseInt(process.argv[2] || "8080", 10);
 let AGENT_VERSION = "0.0.0";
@@ -105,6 +106,11 @@ async function handleGet(res, pathname, q) {
     case pathname === "/api/volume":
       return ok(res, await volume.get());
 
+    case pathname === "/api/media":
+      return ok(res, media.list());
+    case pathname === "/api/media/status":
+      return ok(res, media.status());
+
     default:
       return fail(res, "NOT_FOUND", "rota não encontrada: " + pathname);
   }
@@ -130,6 +136,10 @@ async function handlePost(res, pathname, body) {
       return ok(res, await screenshot.capture(body.version || AGENT_VERSION));
     case "/api/network/wifi/scan":
       return ok(res, await wifi.scan());
+    case "/api/media/play":
+      return ok(res, media.play(String(body.path || "")));
+    case "/api/media/stop":
+      return ok(res, media.stop());
     default:
       return fail(res, "NOT_FOUND", "rota não encontrada: " + pathname);
   }

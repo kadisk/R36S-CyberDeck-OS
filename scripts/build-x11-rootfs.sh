@@ -31,7 +31,7 @@ PKGS="xserver-xorg-core xserver-xorg-video-fbdev xserver-xorg-input-evdev \
       xinit x11-xserver-utils chromium fonts-dejavu-core ca-certificates zram-tools \
       nodejs iproute2 wireless-tools wpasupplicant rfkill iw isc-dhcp-client \
       openssh-server avahi-daemon libnss-mdns systemd-timesyncd \
-      fbcat fbgrab netpbm scrot alsa-utils"
+      fbcat fbgrab netpbm scrot alsa-utils mpv ffmpeg"
 
 DEBOOTSTRAP="$(command -v debootstrap || true)"
 [ -z "$DEBOOTSTRAP" ] && [ -x /tmp/dbs/out/usr/sbin/debootstrap ] && \
@@ -85,6 +85,9 @@ done
 # dispatcher de sessão: seletor de interface no boot + lança a UI escolhida (web/fb)
 install -D -m0755 "$REPO_DIR/runtime/scripts/cyberdeck-session.sh"       "$RF/usr/local/bin/cyberdeck-session.sh"
 install -D -m0644 "$REPO_DIR/runtime/services/cyberdeck-session.service" "$RF/etc/systemd/system/cyberdeck-session.service"
+# samples de mídia (tela de TESTE A/V) -> /root/media (o usuário adiciona os dele depois)
+install -d "$RF/root/media"
+[ -d "$REPO_DIR/assets/av-samples" ] && cp -a "$REPO_DIR/assets/av-samples/." "$RF/root/media/" 2>/dev/null || true
 mkdir -p "$RF/etc/X11/xorg.conf.d"
 cat > "$RF/etc/X11/xorg.conf.d/99-fbdev.conf" <<'EOF'
 Section "Device"

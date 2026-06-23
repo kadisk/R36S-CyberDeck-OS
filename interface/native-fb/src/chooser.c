@@ -48,7 +48,7 @@ int main(void) {
     unsigned long LINE = fb_pack(0x15, 0x4a, 0x30);
 
     int sel = read_pref();          /* começa na última escolha */
-    int W = fb_w(), H = fb_h();
+    int W = fb_w();
     long start = time(NULL);
     int confirmed = -1;
 

@@ -331,6 +331,7 @@ Legenda extra: 🅰 = entregue na Tranche A · 🅱 = previsto p/ Tranche B.
 | CMD (allowlist) | ✅ | ✅ 🅱 (categorias→comandos→saída) | ❌ |
 | AJUSTES (display/áudio) | ✅ | ✅ 🅰 (fonte ± = n/a no fb) | ❌ |
 | TESTE DE BOTÕES | ✅ | ✅ 🅰 | ❌ |
+| MEDIA (teste A/V) | ✅ (HTML5) | ✅ (mpv via agente) | ❌ |
 | Menu FN | ✅ | ✅ 🅰 (+ Kernel) | ❌ |
 | Screenshot (L2+R2) | ✅ | ✅ 🅱 (fbgrab+netpbm no build) | ❌ |
 | Confirmação de ações perigosas | ✅ | ✅ 🅰🅱 (actions + systemd + sinais) | ❌ |

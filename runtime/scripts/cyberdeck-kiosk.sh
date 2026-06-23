@@ -16,4 +16,5 @@ exec "$BIN" \
     --user-data-dir=/var/lib/cyberdeck-chromium \
     --no-first-run --fast --fast-start --disable-translate --noerrdialogs \
     --disable-features=Translate,TranslateUI --check-for-update-interval=31536000 \
-    --disable-pinch --overscroll-history-navigation=0
+    --disable-pinch --overscroll-history-navigation=0 \
+    --allow-file-access-from-files --autoplay-policy=no-user-gesture-required

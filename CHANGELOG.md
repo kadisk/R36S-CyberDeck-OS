@@ -4,6 +4,21 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added — 2026-06-23 — Áudio/vídeo + tela de TESTE A/V + samples (Fase 4)
+- **Player/codecs**: `mpv` + `ffmpeg` no build (`build-x11-rootfs.sh`). Validado no R36S:
+  toca áudio (mp3/ogg/flac/wav via ALSA) e vídeo por software (mp4/H.264, webm/VP9, mkv);
+  vídeo na tela via `mpv --vo=drm` (KMS).
+- **Samples** sintéticos minúsculos gerados por `scripts/gen-av-samples.sh` (ffmpeg),
+  versionados em `assets/av-samples/` e instalados em `/root/media` pelo build.
+- **Agente** `lib/media.js` + rotas `GET /api/media`, `GET /api/media/status`,
+  `POST /api/media/play {path}`, `POST /api/media/stop` (path saneado p/ `/root/media`;
+  mpv: áudio `--no-video` em bg, vídeo `--vo=drm`).
+- **Tela TESTE A/V** nas duas interfaces (via menu FN): **web** toca inline com
+  `<audio>`/`<video src=file://>` (Chromium; flags `--allow-file-access-from-files`,
+  `--autoplay-policy=no-user-gesture-required`); **native-fb** toca via agente (áudio em
+  bg; vídeo via mpv DRM).
+- **`scripts/sdcard/sd-push-media.sh`**: copia mídia do host p/ `/root/media` num cartão.
+
 ### Changed — 2026-06-23 — Barra superior enxuta + badge do tipo de interface (web + fb)
 - **Badge do TIPO de interface** no canto superior esquerdo: `WEB` (web-vanilla) / `NATIVE`
   (native-fb) — deixa claro qual UI está rodando.

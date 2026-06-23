@@ -21,6 +21,7 @@
     { id: "systemd", title: "SVC",     icon: "*", desc: "Serviços systemd",         group: "SISTEMA",     tab: true },
     { id: "cmd",     title: "CMD",     icon: ">", desc: "Comandos prontos",         group: "AÇÕES",       tab: true },
     { id: "tools",   title: "AJUSTES", icon: "+", desc: "Display, áudio, fonte",     group: "AÇÕES",       tab: false },
+    { id: "media",   title: "MEDIA",   icon: ">", desc: "Teste de áudio/vídeo",      group: "DIAGNÓSTICO", tab: false },
     { id: "keys",    title: "KEYS",    icon: "@", desc: "Teste de gamepad",         group: "DIAGNÓSTICO", tab: false },
   ];
   CD.META = META;
@@ -942,6 +943,52 @@
     },
     show: function () { refocus(this.el); },
     back: function () { return false; },
+  });
+
+  /* ============================ MEDIA (teste A/V) ============================ */
+  reg({
+    id: "media", live: false,
+    build: function () { var el = h("div", { cls: "view", id: "view-media" }); this.el = el; return el; },
+    show: function () { this.render(); },
+    render: function () {
+      var self = this, el = UI.clear(this.el);
+      el.appendChild(title("TESTE A/V"));
+      el.appendChild(hintB("A toca · B para/volta · áudio e vídeo de vários formatos"));
+      this.player = h("div", { cls: "media-player" }); el.appendChild(this.player);
+      var host = h("div"); el.appendChild(host);
+      asyncRender(host, function () { return api.get("/api/media"); }, function (d) {
+        var items = d.items || [];
+        if (!items.length) { host.appendChild(UI.empty("sem mídia em " + (d.dir || "/root/media"))); refocus(self.el); return; }
+        var list = h("div", { cls: "list" });
+        items.forEach(function (it) {
+          list.appendChild(row([
+            { t: it.kind === "video" ? "VID" : "AUD", cls: "fstype t-" + it.kind },
+            { t: it.name, grow: true },
+            { t: it.ext.toUpperCase(), cls: "r" },
+            { t: UI.fmt.bytes(it.size), cls: "r" },
+          ], function () { self.playItem(it); }, true));
+        });
+        host.appendChild(list);
+        refocus(self.el);
+      });
+    },
+    playItem: function (it) {
+      var p = UI.clear(this.player);
+      var src = "file://" + it.path;
+      if (it.kind === "video") {
+        var v = h("video", { src: src, controls: "controls", autoplay: "autoplay" });
+        v.style.maxWidth = "100%"; v.style.maxHeight = "200px"; v.style.display = "block";
+        p.appendChild(v); try { v.play(); } catch (e) {}
+      } else {
+        var a = h("audio", { src: src, controls: "controls", autoplay: "autoplay" });
+        p.appendChild(a); try { a.play(); } catch (e) {}
+      }
+      p.appendChild(h("div", { cls: "hint", text: "tocando: " + it.name + " (" + it.ext + ")" }));
+    },
+    back: function () {
+      if (this.player && this.player.firstChild) { UI.clear(this.player); return true; }   // para a mídia primeiro
+      return false;
+    },
   });
 
   CD.views = V;

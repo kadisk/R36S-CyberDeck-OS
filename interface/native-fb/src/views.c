@@ -20,7 +20,7 @@ cd_status STATUS;
 int AGENT_OK = 0;
 
 enum { V_HOME, V_STATUS, V_PROCS, V_NET, V_LOGS, V_DEVICE, V_FS, V_SVC, V_CMD,
-       V_KERNEL, V_TOOLS, V_KEYS, NVIEWS };
+       V_KERNEL, V_TOOLS, V_KEYS, V_MEDIA, NVIEWS };
 
 const char *const TAB_TITLES[] = { "HOME", "STATUS", "PROCS", "NET", "LOGS", "DEVICE", "FS", "SVC", "CMD" };
 int TAB_COUNT = 9;
@@ -145,6 +145,7 @@ static void view_enter(int s) {
     else if (s==V_FS) { char p[600]; snprintf(p,sizeof p,"/api/fs/list?path=%s",fs_path); g_cache[s]=api_get(p); }
     else if (s==V_LOGS) { char p[96]; snprintf(p,sizeof p,"/api/logs?source=%s&lines=120",LOG_SRC[g_sub[V_LOGS]]); g_cache[s]=api_get(p); }
     else if (s==V_TOOLS) { g_cache[s]=api_get("/api/actions"); if(g_volume){cJSON_Delete(g_volume);g_volume=NULL;} g_volume=api_get("/api/volume"); }
+    else if (s==V_MEDIA) g_cache[s]=api_get("/api/media");
     else if (s==V_HOME) refresh_health();
 }
 
@@ -496,6 +497,34 @@ static void keys_render(int focus){
     fb_text(x,y+5*(cellh+6)+4,"Start+Select juntos: sair",PAL.fg_dim,PAL.bg,0);
 }
 
+/* =================================================================== MEDIA (teste A/V) */
+static cJSON *media_item(int i){ cJSON *d=api_data(g_cache[V_MEDIA]),*arr=d?J(d,"items"):NULL; return (arr&&cJSON_IsArray(arr))?cJSON_GetArrayItem(arr,i):NULL; }
+static int media_n(void){ cJSON *d=api_data(g_cache[V_MEDIA]),*arr=d?J(d,"items"):NULL; return (arr&&cJSON_IsArray(arr))?cJSON_GetArraySize(arr):0; }
+static void media_render(int focus){
+    int x=cx(),y=cy0(),w=cw(); ui_title(x,y,"TESTE A/V"); y+=ROWH;
+    cJSON *d=api_data(g_cache[V_MEDIA]);
+    if(!d){fb_text(x,y,AGENT_OK?"carregando...":"agente offline",PAL.muted,PAL.bg,0);return;}
+    fb_text(x,y,"A: tocar   B: parar/voltar",PAL.muted,PAL.bg,0); y+=ROWH+2;
+    int N=media_n();
+    if(!N){fb_text(x,y,"sem midia em /root/media",PAL.muted,PAL.bg,0);return;}
+    for(int i=0;i<N;i++){cJSON*it=media_item(i);int sel=(focus==i),ry=y+i*ROWH;if(ry+ROWH>cy1())break;
+        if(sel)fb_fill(x-2,ry-2,w,ROWH,PAL.line2);
+        const char*kind=Js(it,"kind","");const char*tag=!strcmp(kind,"video")?"VID":"AUD";
+        fb_text(x,ry,tag,PAL.fg_dim,sel?PAL.line2:PAL.bg,0);
+        fb_text_clip(x+FB_FONT_W*4,ry,Js(it,"name","?"),(w/FB_FONT_W)-10,sel?PAL.accent:PAL.fg,sel?PAL.line2:PAL.bg,0);
+        const char*ex=Js(it,"ext","");fb_text(x+w-fb_text_w(ex),ry,ex,PAL.muted,sel?PAL.line2:PAL.bg,0);}
+}
+static int media_nfocus(void){ return media_n(); }
+static void media_activate(int focus){
+    cJSON*it=media_item(focus); if(!it)return;
+    const char*p=Js(it,"path",""); if(!p[0])return;
+    char body[600]; snprintf(body,sizeof body,"{\"path\":\"%s\"}",p);
+    /* vídeo: o mpv (--vo=drm via agente) toma a tela; áudio toca em background */
+    post_msg("/api/media/play", body);
+    set_toast(Js(it,"name","tocando"), 0);
+}
+static int media_back(void){ char*r=http_post("/api/media/stop","{}"); if(r)free(r); return 0; }
+
 /* =================================================================== tabela */
 typedef struct { void(*render)(int); int(*nfocus)(void); void(*activate)(int); int(*back)(void); int(*page)(int); } cd_view;
 static const cd_view VIEWS[NVIEWS]={
@@ -511,6 +540,7 @@ static const cd_view VIEWS[NVIEWS]={
     [V_KERNEL]={kernel_render, NULL,        NULL,          NULL,      kernel_page},
     [V_TOOLS] ={tools_render,  tools_nfocus,tools_activate,NULL,      NULL},
     [V_KEYS]  ={keys_render,   NULL,        NULL,          NULL,      NULL},
+    [V_MEDIA] ={media_render,  media_nfocus,media_activate,media_back,NULL},
 };
 static int v_nfocus(int s){ return VIEWS[s].nfocus?VIEWS[s].nfocus():(s==V_NET?2:0); }
 
@@ -525,6 +555,7 @@ typedef struct { const char*label,*sub; int kind; const char*key; } fn_item;
 static fn_item FN_ITEMS[]={
     {"Ajustes","display/audio",0,"10"},
     {"Testar botoes","gamepad",0,"11"},
+    {"Teste A/V","audio/video",0,"12"},
     {"Kernel & DTB","diag",0,"9"},
     {"Screenshot agora","L2+R2",1,NULL},
     {"Trocar p/ Web","reinicia",2,"interface-web"},
@@ -560,6 +591,7 @@ static const char *hint_for(int s){
         case V_KERNEL:return "L1/R1: pagina modulos  B: voltar";
         case V_TOOLS:return "A: executar  L1/R1: subpagina  B: voltar";
         case V_KEYS:return "aperte botoes  Start+Select: sair";
+        case V_MEDIA:return "A: tocar  B: parar/voltar";
         default:return "";
     }
 }
@@ -567,7 +599,7 @@ static void goto_tab(int dir){ if(g_section>=TAB_COUNT){g_section=0;view_enter(0
 static void view_back(void){
     int s=g_section;
     if(VIEWS[s].back&&VIEWS[s].back()){g_focus[s]=0;return;}
-    if(s==V_KERNEL||s==V_TOOLS||s==V_KEYS){g_section=V_HOME;view_enter(V_HOME);return;}
+    if(s==V_KERNEL||s==V_TOOLS||s==V_KEYS||s==V_MEDIA){g_section=V_HOME;view_enter(V_HOME);return;}
     if(s!=V_HOME){g_section=V_HOME;view_enter(V_HOME);}
 }
 
