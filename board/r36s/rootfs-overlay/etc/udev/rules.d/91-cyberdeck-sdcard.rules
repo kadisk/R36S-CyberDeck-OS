@@ -1,0 +1,5 @@
+# 91-cyberdeck-sdcard.rules — auto-monta o 2º cartão (slot extra) em /media/sdcard.
+# Em qualquer add/remove de microSD, re-dispara o cyberdeck-mountcard, que monta o
+# cartão que NÃO carrega a rootfs (ou desmonta, se foi removido). Não-destrutivo.
+SUBSYSTEM=="block", KERNEL=="mmcblk[0-9]p[0-9]", ACTION=="add", RUN+="/usr/bin/systemctl --no-block start cyberdeck-mountcard.service"
+SUBSYSTEM=="block", KERNEL=="mmcblk[0-9]", ACTION=="remove", RUN+="/usr/bin/systemctl --no-block restart cyberdeck-mountcard.service"

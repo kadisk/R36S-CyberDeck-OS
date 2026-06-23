@@ -4,6 +4,18 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added — 2026-06-23 — Gerenciador de armazenamento: expandir rootfs + 2º cartão (Fase 5)
+- **Auto-expand da rootfs**: `cyberdeck-growfs.{sh,service}` (1º boot, idempotente) cresce a p2
+  ext4 p/ o cartão inteiro (`growpart`+`resize2fs` online, sem perda de dados). Pacotes
+  `cloud-guest-utils`/`e2fsprogs`/`exfatprogs` no build. Ação manual **"Expandir rootfs"** na UI.
+- **2º cartão (slot extra)**: `cyberdeck-mount-card.{sh}` + `cyberdeck-mountcard.service` +
+  udev `91-cyberdeck-sdcard.rules` montam o microSD que não carrega a rootfs em `/media/sdcard`
+  (boot + hotplug, não-destrutivo). `media.js` passa a ver `/media/sdcard` (TESTE A/V).
+- **Agente** `lib/storage.js` + rotas `GET /api/storage`, `POST /api/storage/{expand,mount,unmount}`;
+  ação `expand-rootfs` (dangerous). 
+- **Tela ARMAZENAMENTO** (menu FN) nas duas interfaces: uso da rootfs, tamanho do cartão, espaço
+  expansível + "Expandir rootfs" (confirmação), e o 2º cartão (montar/desmontar, espaço).
+
 ### Added — 2026-06-23 — Áudio/vídeo + tela de TESTE A/V + samples (Fase 4)
 - **Player/codecs**: `mpv` + `ffmpeg` no build (`build-x11-rootfs.sh`). Validado no R36S:
   toca áudio (mp3/ogg/flac/wav via ALSA) e vídeo por software (mp4/H.264, webm/VP9, mkv);

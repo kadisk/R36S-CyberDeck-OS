@@ -1,0 +1,14 @@
+# systemd unit — monta o 2º cartão (slot extra do R36S) em /media/sdcard.
+# Roda no boot e é (re)disparado por udev no hotplug (91-cyberdeck-sdcard.rules).
+
+[Unit]
+Description=R36S CyberDeck — montar 2º cartão em /media/sdcard
+After=local-fs.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/cyberdeck-mount-card.sh
+
+[Install]
+WantedBy=multi-user.target

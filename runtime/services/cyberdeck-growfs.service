@@ -1,0 +1,17 @@
+# systemd unit — expande a rootfs p/ o cartão inteiro no 1º boot (idempotente).
+# growpart + resize2fs online. Roda cedo, antes do agente/UI. Ver cyberdeck-growfs.sh.
+
+[Unit]
+Description=R36S CyberDeck — expandir rootfs no 1o boot (growpart + resize2fs)
+DefaultDependencies=no
+After=local-fs.target
+Before=cyberdeck-agent.service cyberdeck-session.service multi-user.target
+ConditionPathExists=!/var/lib/cyberdeck/.fs-expanded
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/cyberdeck-growfs.sh
+
+[Install]
+WantedBy=multi-user.target

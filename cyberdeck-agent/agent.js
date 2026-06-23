@@ -33,6 +33,7 @@ const screenshot = require("./lib/screenshot");
 const kernel = require("./lib/kernel");
 const health = require("./lib/health");
 const media = require("./lib/media");
+const storage = require("./lib/storage");
 
 const PORT = parseInt(process.argv[2] || "8080", 10);
 let AGENT_VERSION = "0.0.0";
@@ -111,6 +112,9 @@ async function handleGet(res, pathname, q) {
     case pathname === "/api/media/status":
       return ok(res, media.status());
 
+    case pathname === "/api/storage":
+      return ok(res, await storage.summary());
+
     default:
       return fail(res, "NOT_FOUND", "rota não encontrada: " + pathname);
   }
@@ -140,6 +144,12 @@ async function handlePost(res, pathname, body) {
       return ok(res, media.play(String(body.path || "")));
     case "/api/media/stop":
       return ok(res, media.stop());
+    case "/api/storage/expand":
+      return ok(res, await storage.expand());
+    case "/api/storage/mount":
+      return ok(res, await storage.mountCard());
+    case "/api/storage/unmount":
+      return ok(res, await storage.unmountCard());
     default:
       return fail(res, "NOT_FOUND", "rota não encontrada: " + pathname);
   }

@@ -94,9 +94,11 @@ if want services || want net; then
   NEED_SVC=1
 fi
 if want net || want all; then
-  log "regra udev -> /etc/udev/rules.d"
+  log "regras udev -> /etc/udev/rules.d (wifi + 2º cartão)"
   scp $SSH_OPTS "$REPO/board/r36s/rootfs-overlay/etc/udev/rules.d/90-cyberdeck-wifi.rules" \
       "root@$HOST:/etc/udev/rules.d/90-cyberdeck-wifi.rules" >/dev/null
+  scp $SSH_OPTS "$REPO/board/r36s/rootfs-overlay/etc/udev/rules.d/91-cyberdeck-sdcard.rules" \
+      "root@$HOST:/etc/udev/rules.d/91-cyberdeck-sdcard.rules" >/dev/null
   NEED_UDEV=1
 fi
 

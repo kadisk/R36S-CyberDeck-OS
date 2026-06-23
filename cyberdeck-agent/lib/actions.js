@@ -9,6 +9,7 @@ const { backlightDir } = require("./status");
 const { run } = require("./exec");
 const volume = require("./volume");
 const wifi = require("./wifi");
+const storage = require("./storage");
 
 function wifiMsg(s) {
   if (!s) return "Wi-Fi: sem estado";
@@ -58,6 +59,7 @@ const ACTIONS = {
   "reload-ui":      { label: "Recarregar UI",               dangerous: true,  fn: async () => svc("restart", "cyberdeck-session.service", "recarregando UI") },
   "restart-agent":  { label: "Reiniciar cyberdeck-agent",   dangerous: true,  fn: async () => svc("restart", "cyberdeck-agent.service", "reiniciando agente") },
   "restart-kiosk":  { label: "Reiniciar sessão",            dangerous: true,  fn: async () => svc("restart", "cyberdeck-session.service", "reiniciando sessão") },
+  "expand-rootfs":  { label: "Expandir rootfs",             dangerous: true,  fn: async () => { const r = await storage.expand(); return { msg: r.msg }; } },
   "interface-web":  { label: "Interface: Web",              dangerous: true,  fn: async () => { setInterface("web"); return svc("restart", "cyberdeck-session.service", "trocando p/ Web (reiniciando sessão)"); } },
   "interface-fb":   { label: "Interface: Nativa",           dangerous: true,  fn: async () => { setInterface("fb");  return svc("restart", "cyberdeck-session.service", "trocando p/ Nativa (reiniciando sessão)"); } },
   "reboot":         { label: "Reiniciar sistema",           dangerous: true,  fn: async () => later("reboot", "reiniciando") },

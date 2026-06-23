@@ -21,6 +21,7 @@
     { id: "systemd", title: "SVC",     icon: "*", desc: "Serviços systemd",         group: "SISTEMA",     tab: true },
     { id: "cmd",     title: "CMD",     icon: ">", desc: "Comandos prontos",         group: "AÇÕES",       tab: true },
     { id: "tools",   title: "AJUSTES", icon: "+", desc: "Display, áudio, fonte",     group: "AÇÕES",       tab: false },
+    { id: "storage", title: "DISCO",   icon: "=", desc: "Armazenamento e partições",  group: "SISTEMA",     tab: false },
     { id: "media",   title: "MEDIA",   icon: ">", desc: "Teste de áudio/vídeo",      group: "DIAGNÓSTICO", tab: false },
     { id: "keys",    title: "KEYS",    icon: "@", desc: "Teste de gamepad",         group: "DIAGNÓSTICO", tab: false },
   ];
@@ -942,6 +943,64 @@
       this.el = el; return el;
     },
     show: function () { refocus(this.el); },
+    back: function () { return false; },
+  });
+
+  /* ============================ STORAGE (armazenamento) ============================ */
+  reg({
+    id: "storage", live: false,
+    build: function () { var el = h("div", { cls: "view", id: "view-storage" }); this.el = el; return el; },
+    show: function () { this.render(); },
+    render: function () {
+      var self = this, el = UI.clear(this.el);
+      el.appendChild(title("ARMAZENAMENTO"));
+      var host = h("div"); el.appendChild(host);
+      asyncRender(host, function () { return api.get("/api/storage"); }, function (d) {
+        var r = d.rootfs || {};
+        if (r.usepct >= 0) host.appendChild(UI.gauge("ROOTFS", r.usepct));
+        host.appendChild(UI.kv("DISPOSITIVO", r.dev || "—"));
+        host.appendChild(UI.kv("ROOTFS", r.size >= 0 ? (UI.fmt.bytes(r.used) + " / " + UI.fmt.bytes(r.size) + " (livre " + UI.fmt.bytes(r.avail) + ")") : "—"));
+        host.appendChild(UI.kv("CARTÃO (disco)", UI.fmt.bytes(d.disk_bytes)));
+        var exp = d.expandable_bytes;
+        host.appendChild(UI.kv("EXPANSÍVEL", exp > 0 ? UI.fmt.bytes(exp) : (d.expanded ? "já no máximo" : "—")));
+        if (exp > 1048576) {
+          var bar = h("div", { cls: "list" });
+          bar.appendChild(row([{ t: "Expandir rootfs p/ o cartão inteiro", grow: true }, { t: "+" + UI.fmt.bytes(exp), cls: "r" }],
+            function () { self.expand(); }, true));
+          host.appendChild(bar);
+        }
+        // 2º cartão
+        host.appendChild(h("div", { cls: "sub", text: "2º CARTÃO (slot extra)" }));
+        var sc = d.second_card || {};
+        if (!sc.present) host.appendChild(h("div", { cls: "hint", text: "nenhum 2º cartão detectado" }));
+        else {
+          host.appendChild(UI.kv("DISPOSITIVO", sc.dev || "—"));
+          host.appendChild(UI.kv("ESTADO", sc.mounted ? ("montado em " + sc.mount + " (" + (sc.fstype || "?") + ")") : "não montado"));
+          if (sc.mounted && sc.size >= 0) host.appendChild(UI.kv("ESPAÇO", UI.fmt.bytes(sc.avail) + " livre de " + UI.fmt.bytes(sc.size)));
+          else if (sc.size_bytes >= 0) host.appendChild(UI.kv("TAMANHO", UI.fmt.bytes(sc.size_bytes)));
+          var la = h("div", { cls: "list" });
+          la.appendChild(row([{ t: sc.mounted ? "Desmontar 2º cartão" : "Montar 2º cartão", grow: true }],
+            function () { self.card(sc.mounted ? "unmount" : "mount"); }, true));
+          host.appendChild(la);
+          if (sc.mounted) host.appendChild(h("div", { cls: "hint", text: "arquivos de mídia aqui aparecem em TESTE A/V" }));
+        }
+        refocus(self.el);
+      });
+    },
+    expand: function () {
+      var self = this;
+      UI.confirm("EXPANDIR ROOTFS\nusa o cartão inteiro (não apaga dados)").then(function (ok) {
+        if (!ok) return;
+        UI.toast("expandindo…");
+        api.post("/api/actions", { key: "expand-rootfs" }).then(function (r) { UI.toast(r.msg || "ok"); self.render(); })
+          .catch(function (e) { UI.toast(e.message, true); });
+      });
+    },
+    card: function (op) {
+      var self = this;
+      api.post("/api/storage/" + op, {}).then(function (r) { UI.toast(r.msg || "ok"); self.render(); })
+        .catch(function (e) { UI.toast(e.message, true); });
+    },
     back: function () { return false; },
   });
 

@@ -10,7 +10,7 @@ const fs = require("fs");
 const path = require("path");
 const { spawn } = require("child_process");
 
-const ROOTS = ["/root/media"];           // raízes permitidas de mídia
+const ROOTS = ["/root/media", "/media/sdcard"];   // raízes de mídia (inclui o 2º cartão)
 const AUDIO = new Set(["mp3", "ogg", "oga", "opus", "flac", "wav", "m4a", "aac"]);
 const VIDEO = new Set(["mp4", "webm", "mkv", "avi", "mov", "m4v", "ogv"]);
 

@@ -20,7 +20,7 @@ cd_status STATUS;
 int AGENT_OK = 0;
 
 enum { V_HOME, V_STATUS, V_PROCS, V_NET, V_LOGS, V_DEVICE, V_FS, V_SVC, V_CMD,
-       V_KERNEL, V_TOOLS, V_KEYS, V_MEDIA, NVIEWS };
+       V_KERNEL, V_TOOLS, V_KEYS, V_MEDIA, V_STORAGE, NVIEWS };
 
 const char *const TAB_TITLES[] = { "HOME", "STATUS", "PROCS", "NET", "LOGS", "DEVICE", "FS", "SVC", "CMD" };
 int TAB_COUNT = 9;
@@ -146,6 +146,7 @@ static void view_enter(int s) {
     else if (s==V_LOGS) { char p[96]; snprintf(p,sizeof p,"/api/logs?source=%s&lines=120",LOG_SRC[g_sub[V_LOGS]]); g_cache[s]=api_get(p); }
     else if (s==V_TOOLS) { g_cache[s]=api_get("/api/actions"); if(g_volume){cJSON_Delete(g_volume);g_volume=NULL;} g_volume=api_get("/api/volume"); }
     else if (s==V_MEDIA) g_cache[s]=api_get("/api/media");
+    else if (s==V_STORAGE) g_cache[s]=api_get("/api/storage");
     else if (s==V_HOME) refresh_health();
 }
 
@@ -525,6 +526,56 @@ static void media_activate(int focus){
 }
 static int media_back(void){ char*r=http_post("/api/media/stop","{}"); if(r)free(r); return 0; }
 
+/* =================================================================== STORAGE */
+static const char *hbytes(double n, char *buf, int sz){
+    const char *u[]={"B","K","M","G","T"}; int i=0;
+    if(n<0){snprintf(buf,sz,"-");return buf;}
+    while(n>=1024 && i<4){n/=1024;i++;}
+    if(i==0)snprintf(buf,sz,"%d%s",(int)n,u[i]); else snprintf(buf,sz,"%.1f%s",n,u[i]);
+    return buf;
+}
+static int st_can_expand(void){ cJSON*d=api_data(g_cache[V_STORAGE]); return d && Jn(d,"expandable_bytes",-1)>1048576; }
+static int st_has_card(void){ cJSON*d=api_data(g_cache[V_STORAGE]),*sc=d?J(d,"second_card"):NULL; return sc && (int)Jn(sc,"present",0); }
+static int st_card_mounted(void){ cJSON*d=api_data(g_cache[V_STORAGE]),*sc=d?J(d,"second_card"):NULL; return sc && (int)Jn(sc,"mounted",0); }
+static void storage_render(int focus){
+    int x=cx(),y=cy0(),w=cw(); ui_title(x,y,"ARMAZENAMENTO"); y+=ROWH+2;
+    cJSON*d=api_data(g_cache[V_STORAGE]);
+    if(!d){fb_text(x,y,AGENT_OK?"carregando...":"agente offline",PAL.muted,PAL.bg,0);return;}
+    cJSON*r=J(d,"rootfs"); char a[24],b[24],v[80];
+    if(r){ int up=(int)Jn(r,"usepct",-1); if(up>=0)y=ui_gauge(x,y,w,"ROOTFS",up)+2;
+        y=ui_kv(x,y,w,"DISPOSITIVO",Js(r,"dev","-"));
+        snprintf(v,sizeof v,"%s / %s",hbytes(Jn(r,"used",-1),a,sizeof a),hbytes(Jn(r,"size",-1),b,sizeof b)); y=ui_kv(x,y,w,"USO",v); }
+    y=ui_kv(x,y,w,"CARTAO",hbytes(Jn(d,"disk_bytes",-1),a,sizeof a));
+    double ex=Jn(d,"expandable_bytes",-1);
+    y=ui_kv(x,y,w,"EXPANSIVEL", ex>0?hbytes(ex,a,sizeof a):((int)Jn(d,"expanded",0)?"ja no maximo":"-"));
+    int fi=0;
+    if(st_can_expand()){ int sel=(focus==fi),ry=y; if(sel)fb_fill(x-2,ry-2,w,ROWH,PAL.line2);
+        fb_text(x,ry,"A",PAL.btn_a,sel?PAL.line2:PAL.bg,0);
+        snprintf(v,sizeof v,"Expandir rootfs (+%s)",hbytes(ex,a,sizeof a));
+        fb_text(x+FB_FONT_W*2,ry,v,sel?PAL.accent:PAL.fg,sel?PAL.line2:PAL.bg,0); y+=ROWH; fi++; }
+    y+=4; fb_text(x,y,"2o CARTAO (slot extra)",PAL.fg_dim,PAL.bg,0); y+=ROWH;
+    cJSON*sc=J(d,"second_card");
+    if(!st_has_card()){ fb_text(x,y,"nenhum 2o cartao",PAL.muted,PAL.bg,0); }
+    else {
+        y=ui_kv(x,y,w,"DISPOSITIVO",Js(sc,"dev","-"));
+        if(st_card_mounted()){ snprintf(v,sizeof v,"montado %s (%s)",Js(sc,"mount","/media/sdcard"),Js(sc,"fstype","?")); y=ui_kv(x,y,w,"ESTADO",v);
+            snprintf(v,sizeof v,"%s livre de %s",hbytes(Jn(sc,"avail",-1),a,sizeof a),hbytes(Jn(sc,"size",-1),b,sizeof b)); y=ui_kv(x,y,w,"ESPACO",v); }
+        else { snprintf(v,sizeof v,"%s",hbytes(Jn(sc,"size_bytes",-1),a,sizeof a)); y=ui_kv(x,y,w,"TAMANHO (nao montado)",v); }
+        int sel=(focus==fi),ry=y; if(sel)fb_fill(x-2,ry-2,w,ROWH,PAL.line2);
+        fb_text(x,ry,"A",PAL.btn_a,sel?PAL.line2:PAL.bg,0);
+        fb_text(x+FB_FONT_W*2,ry,st_card_mounted()?"Desmontar 2o cartao":"Montar 2o cartao",sel?PAL.accent:PAL.fg,sel?PAL.line2:PAL.bg,0);
+    }
+}
+static int storage_nfocus(void){ return (st_can_expand()?1:0) + (st_has_card()?1:0); }
+static void storage_activate(int focus){
+    int fi=0;
+    if(st_can_expand()){ if(focus==fi){ confirm_open(CF_ACTION,"expand-rootfs",NULL,"Expandir rootfs (usa o cartao inteiro)"); return; } fi++; }
+    if(st_has_card() && focus==fi){
+        char*rr=http_post(st_card_mounted()?"/api/storage/unmount":"/api/storage/mount","{}");
+        if(rr)free(rr); set_toast(st_card_mounted()?"desmontando":"montando",0); view_enter(V_STORAGE);
+    }
+}
+
 /* =================================================================== tabela */
 typedef struct { void(*render)(int); int(*nfocus)(void); void(*activate)(int); int(*back)(void); int(*page)(int); } cd_view;
 static const cd_view VIEWS[NVIEWS]={
@@ -541,6 +592,7 @@ static const cd_view VIEWS[NVIEWS]={
     [V_TOOLS] ={tools_render,  tools_nfocus,tools_activate,NULL,      NULL},
     [V_KEYS]  ={keys_render,   NULL,        NULL,          NULL,      NULL},
     [V_MEDIA] ={media_render,  media_nfocus,media_activate,media_back,NULL},
+    [V_STORAGE]={storage_render,storage_nfocus,storage_activate,NULL,   NULL},
 };
 static int v_nfocus(int s){ return VIEWS[s].nfocus?VIEWS[s].nfocus():(s==V_NET?2:0); }
 
@@ -556,6 +608,7 @@ static fn_item FN_ITEMS[]={
     {"Ajustes","display/audio",0,"10"},
     {"Testar botoes","gamepad",0,"11"},
     {"Teste A/V","audio/video",0,"12"},
+    {"Armazenamento","disco/cartao",0,"13"},
     {"Kernel & DTB","diag",0,"9"},
     {"Screenshot agora","L2+R2",1,NULL},
     {"Trocar p/ Web","reinicia",2,"interface-web"},
@@ -592,6 +645,7 @@ static const char *hint_for(int s){
         case V_TOOLS:return "A: executar  L1/R1: subpagina  B: voltar";
         case V_KEYS:return "aperte botoes  Start+Select: sair";
         case V_MEDIA:return "A: tocar  B: parar/voltar";
+        case V_STORAGE:return "A: acao  B: voltar";
         default:return "";
     }
 }
@@ -599,7 +653,7 @@ static void goto_tab(int dir){ if(g_section>=TAB_COUNT){g_section=0;view_enter(0
 static void view_back(void){
     int s=g_section;
     if(VIEWS[s].back&&VIEWS[s].back()){g_focus[s]=0;return;}
-    if(s==V_KERNEL||s==V_TOOLS||s==V_KEYS||s==V_MEDIA){g_section=V_HOME;view_enter(V_HOME);return;}
+    if(s==V_KERNEL||s==V_TOOLS||s==V_KEYS||s==V_MEDIA||s==V_STORAGE){g_section=V_HOME;view_enter(V_HOME);return;}
     if(s!=V_HOME){g_section=V_HOME;view_enter(V_HOME);}
 }
 

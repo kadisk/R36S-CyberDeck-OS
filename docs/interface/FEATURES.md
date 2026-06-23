@@ -332,6 +332,7 @@ Legenda extra: 🅰 = entregue na Tranche A · 🅱 = previsto p/ Tranche B.
 | AJUSTES (display/áudio) | ✅ | ✅ 🅰 (fonte ± = n/a no fb) | ❌ |
 | TESTE DE BOTÕES | ✅ | ✅ 🅰 | ❌ |
 | MEDIA (teste A/V) | ✅ (HTML5) | ✅ (mpv via agente) | ❌ |
+| ARMAZENAMENTO (disco/cartão) | ✅ | ✅ | ❌ |
 | Menu FN | ✅ | ✅ 🅰 (+ Kernel) | ❌ |
 | Screenshot (L2+R2) | ✅ | ✅ 🅱 (fbgrab+netpbm no build) | ❌ |
 | Confirmação de ações perigosas | ✅ | ✅ 🅰🅱 (actions + systemd + sinais) | ❌ |

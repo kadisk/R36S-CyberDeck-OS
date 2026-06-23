@@ -31,7 +31,8 @@ PKGS="xserver-xorg-core xserver-xorg-video-fbdev xserver-xorg-input-evdev \
       xinit x11-xserver-utils chromium fonts-dejavu-core ca-certificates zram-tools \
       nodejs iproute2 wireless-tools wpasupplicant rfkill iw isc-dhcp-client \
       openssh-server avahi-daemon libnss-mdns systemd-timesyncd \
-      fbcat fbgrab netpbm scrot alsa-utils mpv ffmpeg"
+      fbcat fbgrab netpbm scrot alsa-utils mpv ffmpeg \
+      cloud-guest-utils e2fsprogs exfatprogs"
 
 DEBOOTSTRAP="$(command -v debootstrap || true)"
 [ -z "$DEBOOTSTRAP" ] && [ -x /tmp/dbs/out/usr/sbin/debootstrap ] && \
@@ -85,6 +86,12 @@ done
 # dispatcher de sessão: seletor de interface no boot + lança a UI escolhida (web/fb)
 install -D -m0755 "$REPO_DIR/runtime/scripts/cyberdeck-session.sh"       "$RF/usr/local/bin/cyberdeck-session.sh"
 install -D -m0644 "$REPO_DIR/runtime/services/cyberdeck-session.service" "$RF/etc/systemd/system/cyberdeck-session.service"
+# armazenamento: auto-expand da rootfs (1º boot) + montar 2º cartão (slot extra)
+install -D -m0755 "$REPO_DIR/runtime/scripts/cyberdeck-growfs.sh"        "$RF/usr/local/bin/cyberdeck-growfs.sh"
+install -D -m0644 "$REPO_DIR/runtime/services/cyberdeck-growfs.service"  "$RF/etc/systemd/system/cyberdeck-growfs.service"
+install -D -m0755 "$REPO_DIR/runtime/scripts/cyberdeck-mount-card.sh"    "$RF/usr/local/bin/cyberdeck-mount-card.sh"
+install -D -m0644 "$REPO_DIR/runtime/services/cyberdeck-mountcard.service" "$RF/etc/systemd/system/cyberdeck-mountcard.service"
+install -D -m0644 "$REPO_DIR/board/r36s/rootfs-overlay/etc/udev/rules.d/91-cyberdeck-sdcard.rules" "$RF/etc/udev/rules.d/91-cyberdeck-sdcard.rules"
 # samples de mídia (tela de TESTE A/V) -> /root/media (o usuário adiciona os dele depois)
 install -d "$RF/root/media"
 [ -d "$REPO_DIR/assets/av-samples" ] && cp -a "$REPO_DIR/assets/av-samples/." "$RF/root/media/" 2>/dev/null || true
@@ -161,6 +168,8 @@ systemctl enable cyberdeck-session.service
 systemctl disable cyberdeck-x.service 2>/dev/null || true
 systemctl enable cyberdeck-agent.service
 systemctl enable cyberdeck-net.service
+systemctl enable cyberdeck-growfs.service    # expande a rootfs no 1o boot
+systemctl enable cyberdeck-mountcard.service # monta o 2o cartao em /media/sdcard
 echo "root:cyberdeck" | chpasswd
 # SSH: login root por senha (rede LAN do handheld). avahi -> ssh root@r36s-cyberdeck.local
 systemctl enable ssh || true
