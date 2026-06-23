@@ -138,12 +138,10 @@
   function updateTopbar(d) {
     var set = function (id, t) { var e = document.getElementById(id); if (e) e.textContent = t; };
     set("tb-host", d.host || "host —");
+    // rede: só ON/OFF (sem IP) — barra mais limpa
     var n = (d.net && d.net[0]) || {};
-    var ipEl = document.getElementById("tb-ip");
-    if (ipEl) { var hasIp = !!n.ip; ipEl.textContent = hasIp ? n.ip : "NET OFF"; ipEl.className = "tb" + (hasIp ? "" : " warn"); }
-    var load1 = d.load_arr ? d.load_arr[0] : null;
-    var loadEl = document.getElementById("tb-load");
-    if (loadEl) { loadEl.textContent = "load " + (load1 != null ? load1 : (d.load || "—")); loadEl.className = "tb " + UI.level("loadPerCore", load1, d.cores); }
+    var netEl = document.getElementById("tb-net");
+    if (netEl) { var hasIp = !!n.ip; netEl.textContent = hasIp ? "NET ON" : "NET OFF"; netEl.className = "tb" + (hasIp ? " ok" : " warn"); }
     var temp = document.getElementById("tb-temp");
     if (temp) { temp.textContent = d.temp >= 0 ? d.temp + "°C" : "—°C"; temp.className = "tb " + UI.level("temp", d.temp); }
     var bat = document.getElementById("tb-bat"), b = d.battery || {};

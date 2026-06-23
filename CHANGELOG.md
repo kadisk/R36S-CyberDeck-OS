@@ -4,6 +4,14 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Changed — 2026-06-23 — Barra superior enxuta + badge do tipo de interface (web + fb)
+- **Badge do TIPO de interface** no canto superior esquerdo: `WEB` (web-vanilla) / `NATIVE`
+  (native-fb) — deixa claro qual UI está rodando.
+- Barra superior **menos poluída** nas duas interfaces: removidos **load** e **IP**; rede agora
+  é só **NET ON/OFF**; bateria só **%** (+ `AC` quando carregando).
+- Ajustes em `index.html`/`app.js`/`style.css` (web) e `ui.c` (native-fb); `deploy-r36s.sh`
+  passa a recarregar a UI reiniciando `cyberdeck-session` (não mais `cyberdeck-x`).
+
 ### Added — 2026-06-23 — Seletor de interface no boot + imagem unificada (Fase 3)
 - **Imagem única** (Debian): a `build-x11-rootfs.sh` agora cross-compila e instala **as duas
   interfaces** (`cyberdeck-fb`) + o **seletor** (`cyberdeck-chooser`), além do dispatcher.

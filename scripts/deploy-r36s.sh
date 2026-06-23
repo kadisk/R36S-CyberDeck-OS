@@ -109,12 +109,13 @@ log "recarregando e reiniciando serviços (sem mexer no Wi-Fi p/ não cair o SSH
   [ "$NEED_SVC" = 1 ]  && echo "systemctl daemon-reload"
   [ "$NEED_UDEV" = 1 ] && echo "udevadm control --reload-rules 2>/dev/null || true"
   [ "$NEED_AGENT" = 1 ] && echo "systemctl restart cyberdeck-agent 2>/dev/null || true"
-  [ "$NEED_UI" = 1 ]   && echo "systemctl restart cyberdeck-x 2>/dev/null || true"
+  # UI (web) e/ou native-fb: a entrada de boot é o cyberdeck-session (seletor + UI).
+  # Reiniciá-lo recarrega a interface ativa (mostra o seletor por ~6s e relança a pref).
+  { [ "$NEED_UI" = 1 ] || [ "$NEED_FB" = 1 ]; } && echo "systemctl restart cyberdeck-session 2>/dev/null || true"
   echo "echo OK"
 } | sshd "bash -s"
 
 [ "$NEED_NET" = 1 ] && log "obs: net.sh/serviço/udev atualizados no disco — valem no próximo boot/plug (não reiniciei p/ não cair o SSH)."
-[ "$NEED_FB" = 1 ] && log "obs: binário native-fb atualizado no disco — vale no próximo respawn do tty1/boot (use --reboot p/ aplicar já)."
 log "deploy concluído em $HOST ($WHAT)."
 
 if [ "$REBOOT" = 1 ]; then

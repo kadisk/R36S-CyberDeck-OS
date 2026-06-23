@@ -66,7 +66,15 @@ void ui_topbar(void) {
     int W = fb_w();
     fb_fill(0, 0, W, UI_TOPBAR_H, PAL.panel);
     fb_fill(0, UI_TOPBAR_H, W, 1, PAL.line);
-    fb_text(UI_PAD, 2, "R36S//CYBERDECK", PAL.accent, PAL.panel, 0);
+
+    /* marca + badge do TIPO de interface (NATIVE) */
+    int lx = UI_PAD;
+    fb_text(lx, 2, "R36S//CYBERDECK", PAL.accent, PAL.panel, 0);
+    lx += fb_text_w("R36S//CYBERDECK") + 6;
+    int bw = fb_text_w("NATIVE") + 6;
+    fb_fill(lx, 1, bw, FB_FONT_H + 1, PAL.accent);
+    fb_text(lx + 3, 2, "NATIVE", PAL.bg, PAL.accent, 0);
+    lx += bw + UI_PAD;
 
     /* relógio à direita */
     time_t t = time(NULL); struct tm *tm = localtime(&t);
@@ -74,7 +82,7 @@ void ui_topbar(void) {
     int rx = W - UI_PAD - fb_text_w(clk);
     fb_text(rx, 2, clk, PAL.fg_dim, PAL.panel, 0);
 
-    /* bateria/temp/load à esquerda do relógio */
+    /* bateria à esquerda do relógio: só % (+ AC quando carregando) */
     char seg[64];
     int bpct = STATUS.bat_trust_low && STATUS.bat_est >= 0 ? STATUS.bat_est
                : (STATUS.bat_pct >= 0 ? STATUS.bat_pct : STATUS.bat_est);
@@ -91,14 +99,12 @@ void ui_topbar(void) {
         rx -= UI_PAD + fb_text_w(seg); fb_text(rx, 2, seg, tc, PAL.panel, 0);
     }
 
-    /* host/ip à esquerda */
-    int lx = UI_PAD + fb_text_w("R36S//CYBERDECK") + UI_PAD;
+    /* host + rede (só ON/OFF, sem IP) */
     snprintf(seg, sizeof seg, "%s", STATUS.host[0] ? STATUS.host : "host -");
     fb_text(lx, 2, seg, PAL.fg_dim, PAL.panel, 0); lx += fb_text_w(seg) + UI_PAD;
-    if (STATUS.has_ip) fb_text(lx, 2, STATUS.ip, PAL.fg_dim, PAL.panel, 0);
-    else               fb_text(lx, 2, "NET OFF", PAL.warn, PAL.panel, 0);
-
-    if (!AGENT_OK) fb_text(lx, 2, "AGENTE OFF", PAL.crit, PAL.panel, 0);
+    if (!AGENT_OK)          fb_text(lx, 2, "AGENTE OFF", PAL.crit, PAL.panel, 0);
+    else if (STATUS.has_ip) fb_text(lx, 2, "NET ON", PAL.fg_dim, PAL.panel, 0);
+    else                    fb_text(lx, 2, "NET OFF", PAL.warn, PAL.panel, 0);
 }
 
 void ui_tabs(int active) {

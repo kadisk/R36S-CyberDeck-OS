@@ -48,9 +48,11 @@ body.pointer-on, body.pointer-on * { cursor: default !important; }
   background: var(--panel); border-bottom: 1px solid var(--line);
 }
 .brand { color: var(--accent); font-weight: bold; letter-spacing: 1px; font-size: 14px; }
+/* badge do TIPO de interface (WEB/NATIVE) no canto superior esquerdo */
+.brand-ui { color: var(--bg); background: var(--accent); font-weight: bold; font-size: 11px; padding: 1px 5px; border-radius: 3px; margin-left: 1px; letter-spacing: .5px; }
 .spacer { flex: 1; }
 .tb { color: var(--fg-dim); font-size: 13px; white-space: nowrap; }
-.tb.ok { color: var(--fg-dim); }
+.tb.ok { color: var(--ok); }
 #tb-bat.warn, .tb.warn { color: var(--warn); }
 #tb-bat.crit, .tb.crit, #tb-temp.crit { color: var(--crit); }
 

@@ -71,8 +71,11 @@ hardware diretamente** — sempre pede ao agente. Veja a [§7 Contrato do agente
 - Ícones de estado em ASCII: loading `...`, vazio `[ ]`, erro `/!\`.
 
 ### Casca (shell) — comum a todas as telas
-- **Top bar** (28px): marca `R36S//CYBERDECK` · host · IP (ou `NET OFF`) · load · temp · bateria · relógio.
-  - bateria: usa estimativa OCV (`~NN%`) quando o `capacity` do rk817 é duvidoso; sufixo `AC` ao carregar; `<25%` amarelo, `<10%` vermelho.
+- **Top bar** (28px): marca `R36S//CYBERDECK` + **badge do TIPO de interface** (`WEB`/`NATIVE`,
+  canto superior esquerdo) · host · **NET ON/OFF** · temp · bateria · relógio. Mantida **enxuta**:
+  sem `load` e sem IP (só ON/OFF da rede).
+  - bateria: só **%** (+ `AC` quando carregando); usa estimativa OCV (`~NN%`) quando o `capacity`
+    do rk817 é duvidoso; `<25%` amarelo, `<10%` vermelho.
 - **Barra de abas** (30px): uma aba por seção com `tab:true`; ativa = sublinhado ciano.
 - **Conteúdo** central rolável.
 - **Rodapé** (26px): hints contextuais (botões coloridos) · estado do agente · última tecla.
