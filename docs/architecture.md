@@ -60,7 +60,7 @@
 | Rootfs / Buildroot| `buildroot/`, `docs/buildroot/`       |
 | Stack gráfico     | `docs/graphics/`, `board/r36s/overlays`|
 | Runtime web       | `runtime/`, `docs/web-ui/`            |
-| UI                | `cyberdeck-ui/`                       |
+| UI                | `interface/web-vanilla/`              |
 | Referência ArkOS  | `artifacts/arkos-reference/`, `docs/hardware/` |
 
 ## Fluxo de dados da UI (planejado)

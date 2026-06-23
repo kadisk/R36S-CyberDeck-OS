@@ -1,0 +1,4 @@
+{
+  "_comment": "Policy gerenciada do Chromium no CyberDeck OS — kiosk. Desliga a barra/pop-up de tradução de página (oferta pt->en aparecia no boot). Lido por /usr/bin/chromium em /etc/chromium/policies/managed/.",
+  "TranslateEnabled": false
+}

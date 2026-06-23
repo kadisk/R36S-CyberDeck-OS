@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# sd-update-ui.sh — atualiza SÓ a UI web (cyberdeck-ui/public) num cartão já gravado,
+# sd-update-ui.sh — atualiza SÓ a UI web (interface/web-vanilla/public) num cartão já gravado,
 # sem regravar os 4GB. Monta a rootfs (p2) e copia para /usr/share/cyberdeck-ui/public.
 # Iteração rápida de HTML/JS/CSS. PRECISA SUDO. Não regrava a imagem.
 #
@@ -8,7 +8,7 @@ set -eu
 SELF="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$SELF/sdcard-lib.sh"
 REPO="$(cd "$SELF/../.." && pwd)"
-SRC="$REPO/cyberdeck-ui/public"
+SRC="$REPO/interface/web-vanilla/public"
 
 CARD="${1:-}"
 [ -n "$CARD" ] || die "uso: sudo $0 <nome-do-cartao | /dev/sdX>"

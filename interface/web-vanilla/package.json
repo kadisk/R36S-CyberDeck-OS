@@ -1,8 +1,8 @@
 {
-  "name": "cyberdeck-ui",
+  "name": "cyberdeck-web-vanilla",
   "version": "0.8.0",
   "private": true,
-  "description": "Interface HTML/JS do R36S CyberDeck OS (640x480, kiosk, navegação por botões)",
+  "description": "Interface web vanilla (HTML/CSS/JS) do R36S CyberDeck OS (640x480, kiosk, navegação por botões)",
   "scripts": {
     "dev": "python3 -m http.server 8080 --directory public",
     "serve": "python3 -m http.server 8080 --directory public"

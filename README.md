@@ -25,7 +25,7 @@ certo** — está em [`docs/JORNADA.md`](docs/JORNADA.md).
 
 - Uma distro Linux enxuta para o R36S, cuja cara é uma **UI web própria** (640×480).
 - Um **CyberDeck**: status do sistema, rede, ferramentas, logs — não um console.
-- A UI ([`cyberdeck-ui/`](cyberdeck-ui/)) é HTML/JS sem dependências, em modo kiosk.
+- A UI ([`interface/web-vanilla/`](interface/web-vanilla/)) é HTML/JS sem dependências, em modo kiosk.
 
 ## No aparelho real
 
@@ -75,7 +75,7 @@ Pipeline de construção ([`scripts/build-x11-rootfs.sh`](scripts/build-x11-root
 
 ```
 debootstrap Debian bookworm arm64 (2 estágios, qemu-aarch64-static)
-  → instala xserver-xorg (fbdev) + chromium + zram + a cyberdeck-ui
+  → instala xserver-xorg (fbdev) + chromium + zram + a UI web (interface/web-vanilla)
   → compila e instala cyberdeck-agent (dados do sistema)
   → clona a região de boot do ArkOS (MBR + bootloader + FAT) byte-a-byte
   → escreve nosso boot.ini (root=UUID, console=tty1) + DTB do painel
@@ -261,7 +261,7 @@ unit e sinais são validados por regex/allowlist. Detalhes em [`docs/STACK.md`](
 ```bash
 find cyberdeck-agent -name '*.js' -exec node --check {} \;   # sintaxe do backend
 node cyberdeck-agent/agent.js 8080 &                          # sobe o agente
-( cd cyberdeck-ui/public && python3 -m http.server 8090 )     # serve a UI
+( cd interface/web-vanilla/public && python3 -m http.server 8090 )  # serve a UI
 # abra http://localhost:8090  (640x480) — ou index.html#procs p/ ir direto numa aba
 ```
 
@@ -274,10 +274,12 @@ node cyberdeck-agent/agent.js 8080 &                          # sobe o agente
 ## Estrutura do repositório
 
 ```
-cyberdeck-ui/    UI web (HTML/CSS/JS, public/js/*) — a cara do CyberDeck (HOME + abas)
-cyberdeck-agent/ backend Node.js modular (agent.js + lib/*.js) — JSON de hw/SO/FS/systemd/procs/rede/logs
-cyberdeck-fb/    UI nativa alternativa (renderizador 2D em C no framebuffer)
-scripts/         build-x11-rootfs.sh + inspeção do ArkOS + kit de SD (sdcard/)
+interface/       opções de interface gráfica (uma stack por subpasta) — ver interface/README.md
+  web-vanilla/   UI web (HTML/CSS/JS, public/js/*) — a cara oficial do CyberDeck (HOME + abas)
+  native-fb/     UI nativa em C, desenhada direto no framebuffer (sem X) — opção oficial alternativa
+  web-react/     UI web em React/Webpack (planejada)
+cyberdeck-agent/ backend Node.js modular (agent.js + lib/*.js) — JSON de hw/SO/FS/systemd/procs/rede/logs (compartilhado por todas as interfaces)
+scripts/         build-x11-rootfs.sh + update-r36s.sh/deploy-r36s.sh (SSH) + inspeção do ArkOS + kit de SD (sdcard/)
 runtime/         serviços systemd + scripts de inicialização (Xorg/kiosk/agent)
 board/r36s/      arquivos da placa (boot.ini, overlays)
 artifacts/       artefatos de referência extraídos do ArkOS (boot/DTB)
@@ -293,7 +295,7 @@ front-end) como referência reaproveitável em [`docs/STACK.md`](docs/STACK.md).
 
 ## Licença
 
-O **código próprio deste projeto** (UI web, `cyberdeck-agent`, `cyberdeck-fb`,
+O **código próprio deste projeto** (interfaces em `interface/`, `cyberdeck-agent`,
 scripts e docs) está sob a licença **MIT** — ver [`LICENSE`](LICENSE).
 
 Componentes de **terceiros** mantêm suas próprias licenças e **não** são cobertos

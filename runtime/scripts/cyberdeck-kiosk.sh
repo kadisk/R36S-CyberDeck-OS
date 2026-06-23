@@ -15,5 +15,5 @@ exec "$BIN" \
     --window-size=640,480 --window-position=0,0 \
     --user-data-dir=/var/lib/cyberdeck-chromium \
     --no-first-run --fast --fast-start --disable-translate --noerrdialogs \
-    --disable-features=Translate --check-for-update-interval=31536000 \
+    --disable-features=Translate,TranslateUI --check-for-update-interval=31536000 \
     --disable-pinch --overscroll-history-navigation=0

@@ -142,7 +142,7 @@ lib/health.js     agrega severidade (nível + alertas) p/ a HOME
 
 ## 4. Camada 3 — Front-end (HTML/CSS/JS)
 
-UI **vanilla, sem framework, sem build** (`cyberdeck-ui/public/`), organizada em
+UI **vanilla, sem framework, sem build** (`interface/web-vanilla/public/`), organizada em
 módulos por `<script>` global (`window.CD`) — **sem ES modules**, porque carrega por
 `file://` (o Chromium bloqueia `import` nesse esquema):
 
@@ -208,7 +208,7 @@ js/gamepad.js  input (teclado + Gamepad API + ponteiro REAL do X + scroll)
 |--------|---------------------------|
 | Base Linux / boot | `scripts/build-x11-rootfs.sh`, `board/r36s/boot/`, `runtime/services/` |
 | Backend Node | `cyberdeck-agent/agent.js` (roteador) + `cyberdeck-agent/lib/*.js` (domínios) |
-| Front-end | `cyberdeck-ui/public/` (`index.html`, `app.js`, `style.css`, `js/*.js`) |
+| Front-end | `interface/web-vanilla/public/` (`index.html`, `app.js`, `style.css`, `js/*.js`) |
 | Empacotar/gravar | `scripts/sdcard/` (gravação segura por nome de cartão) |
 | Histórico/decisões | `docs/JORNADA.md` |
 

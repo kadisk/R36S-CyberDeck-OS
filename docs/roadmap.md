@@ -26,7 +26,7 @@ Abordagem em fases. Cada fase tem um critério de "feito" verificável.
 
 ## Fase 3 — Tela e input  ◄ **NÚCLEO FUNCIONANDO no R36S ✅**
 - [x] Painel ativo 640×480 (fbcon/`/dev/fb0`, **32bpp**); `/dev/dri/card0` presente.
-- [x] **Renderizador 2D próprio** (`cyberdeck-fb`) desenhando UI no framebuffer.
+- [x] **Renderizador 2D próprio** (`interface/native-fb`) desenhando UI no framebuffer.
 - [x] Gamepad `odroidgo3-joypad` (`/dev/input/event1`) **mapeado e navegando** a UI.
 - [x] **Backlight controlável** (L2/R2 → `/sys/class/backlight/backlight/brightness`).
 - [x] Bateria (RK817) lida no STATUS (`/sys/class/power_supply`).
@@ -42,11 +42,11 @@ Narrativa e causa-raiz: [`JORNADA.md`](JORNADA.md) (Fase 4).
       carrega: o **blob Mali (2020) tem GBM antigo** (sem `gbm_bo_get_offset`),
       incompatível com WPE/wlroots do bookworm. **Não há flag que resolva.**
 - **Conclusão:** web acelerada neste hardware exige driver Mali **aberto e moderno**
-  → ver Fase 5. (O renderizador nativo `cyberdeck-fb` segue como UI funcional.)
+  → ver Fase 5. (O renderizador nativo `interface/native-fb` segue como UI funcional.)
 
 ## Fase 5 — Runtime web NA TELA  ◄ **✅ VENCIDA (via BSP + X11 + Chromium)**
 A UI HTML/JS renderiza no R36S! Caminho vencedor: **kernel BSP** (painel acende) +
-**Xorg fbdev** + **Chromium kiosk** com a `cyberdeck-ui` (`scripts/build-x11-rootfs.sh`,
+**Xorg fbdev** + **Chromium kiosk** com a `interface/web-vanilla` (`scripts/build-x11-rootfs.sh`,
 imagem `x11`). Detalhes/lições: [`testing/results/phase5-x11-2026-06-15.md`](testing/results/phase5-x11-2026-06-15.md).
 - [x] UI web exibindo no aparelho físico.
 - [x] **Navegável pelo gamepad** — o Chromium expõe o joypad pela **Gamepad API**;

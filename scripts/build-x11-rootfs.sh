@@ -55,7 +55,7 @@ cp "$QEMU" "$RF/usr/bin/" 2>/dev/null || true
 
 # 2. UI + launchers + serviço + Xorg fbdev + fstab
 install -d "$RF/usr/share/cyberdeck-ui"
-cp -a "$REPO_DIR/cyberdeck-ui/public" "$RF/usr/share/cyberdeck-ui/"
+cp -a "$REPO_DIR/interface/web-vanilla/public" "$RF/usr/share/cyberdeck-ui/"
 install -D -m0755 "$REPO_DIR/runtime/scripts/start-cyberdeck-x.sh" "$RF/usr/local/bin/start-cyberdeck-x.sh"
 install -D -m0755 "$REPO_DIR/runtime/scripts/cyberdeck-kiosk.sh"   "$RF/usr/local/bin/cyberdeck-kiosk.sh"
 install -D -m0644 "$REPO_DIR/runtime/services/cyberdeck-x.service" "$RF/etc/systemd/system/cyberdeck-x.service"
@@ -68,6 +68,8 @@ install -D -m0644 "$REPO_DIR/runtime/services/cyberdeck-agent.service" "$RF/etc/
 install -D -m0755 "$REPO_DIR/runtime/scripts/cyberdeck-net.sh"        "$RF/usr/local/bin/cyberdeck-net.sh"
 install -D -m0644 "$REPO_DIR/runtime/services/cyberdeck-net.service"  "$RF/etc/systemd/system/cyberdeck-net.service"
 install -D -m0644 "$REPO_DIR/board/r36s/rootfs-overlay/etc/udev/rules.d/90-cyberdeck-wifi.rules" "$RF/etc/udev/rules.d/90-cyberdeck-wifi.rules"
+# policy gerenciada do Chromium (desliga a barra de tradução de página no kiosk)
+install -D -m0644 "$REPO_DIR/board/r36s/rootfs-overlay/etc/chromium/policies/managed/cyberdeck-policies.json" "$RF/etc/chromium/policies/managed/cyberdeck-policies.json"
 mkdir -p "$RF/etc/X11/xorg.conf.d"
 cat > "$RF/etc/X11/xorg.conf.d/99-fbdev.conf" <<'EOF'
 Section "Device"

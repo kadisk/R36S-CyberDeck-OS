@@ -4,6 +4,29 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Changed — 2026-06-23 — Interfaces reorganizadas em `interface/` (uma stack por subpasta)
+- `cyberdeck-ui/` → **`interface/web-vanilla/`** (UI web HTML/CSS/JS, oficial).
+- `cyberdeck-fb/` → **`interface/native-fb/`** (renderizador nativo em C no framebuffer).
+- Novo placeholder **`interface/web-react/`** (UI web em React/Webpack, planejada) e
+  **`interface/README.md`** descrevendo as opções e o status de cada uma.
+- `cyberdeck-agent/` **permanece na raiz** (backend Node compartilhado por todas as interfaces).
+- Caminhos de **origem** atualizados em `scripts/build-x11-rootfs.sh`, `scripts/create-minimal-rootfs.sh`,
+  `scripts/deploy-r36s.sh`, `scripts/sdcard/sd-update-ui.sh`, `.gitignore` e docs. Os caminhos
+  de **instalação no dispositivo** (`/usr/share/cyberdeck-ui`, `/usr/local/bin/cyberdeck-fb`)
+  foram mantidos para não quebrar o contrato de deploy.
+
+### Added — 2026-06-23 — Auto-update via SSH com reboot (`scripts/update-r36s.sh`)
+- Novo entrypoint que atualiza **todos** os componentes a quente via SSH (UI, agente, scripts,
+  serviços, udev e o binário `native-fb`), **reinicia o aparelho e espera ele voltar**, e
+  lista no fim **o que ainda exige regravar o cartão** (região de boot/kernel BSP, DTB, layout
+  de partição). `scripts/deploy-r36s.sh` ganhou o componente `fb` e a flag `--reboot`.
+- Objetivo: tornar a regravação do cartão um **último recurso**.
+
+### Added — 2026-06-23 — Especificação de funcionalidades da interface (`docs/interface/FEATURES.md`)
+- Documento robusto e **stack-agnóstico** com todas as telas, contrato de input, contrato com o
+  agente e design tokens da `web-vanilla` — base para levar a `native-fb` à paridade, construir a
+  `web-react` e qualquer outra stack de interface.
+
 ### Changed — 2026-06-17 — Documentação atualizada (README, STACK, CONTEXTO-LLM, UI README)
 - Sincronizada com o estado atual (v0.8.0): endpoints novos (`/api/volume`, `/api/health`,
   `/api/ping`, settings, screenshot versionado, ações de áudio), libs novas (volume/health/

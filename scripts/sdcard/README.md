@@ -63,7 +63,7 @@ sudo scripts/sdcard/sd-edit-extlinux.sh cartao-teste-r36s && echo "ok, pode boot
 | `sd-revoke.sh <fp\|nome>` | não | remove da lista |
 | `sd-image.sh add/list/rm` | não | registra imagens por apelido |
 | `sd-update.sh <cartao> [imagem]` | **sim** | grava imagem (apelido) no cartão (nome); memoriza o vínculo |
-| `sd-update-ui.sh <cartao>` | **sim** | atualiza só a UI web (`cyberdeck-ui/public`) sem regravar |
+| `sd-update-ui.sh <cartao>` | **sim** | atualiza só a UI web (`interface/web-vanilla/public`) sem regravar |
 | `sd-set-logo.sh <cartao>` | **sim** | troca o logo de boot (welcome) na BOOT, sem regravar |
 | `sd-get-screenshots.sh <cartao> [destino]` | **sim** | copia os prints (`/root/screenshots`) p/ o host (monta rootfs **read-only**) |
 | `sd-clear-screenshots.sh <cartao>` | **sim** | **apaga** os prints (`/root/screenshots/*.png`) do cartão (rootfs rw) |

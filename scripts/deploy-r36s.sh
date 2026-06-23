@@ -4,17 +4,25 @@
 # reinicia os serviços. Usa tar-sobre-ssh (não exige rsync no device).
 #
 # Uso:
-#   scripts/deploy-r36s.sh [ip|host] [componente]
+#   scripts/deploy-r36s.sh [ip|host] [componente] [--reboot]
 #     host       : default r36s-cyberdeck.local (ou IP da aba NET)
-#     componente : all (default) | ui | agent | scripts | services | net
+#     componente : all (default) | ui | agent | fb | scripts | services | net
+#     --reboot   : reinicia o aparelho ao final (reboot em background, fecha o SSH limpo)
 #
 # Senha root: cyberdeck. Ignora known_hosts (host key muda a cada reflash).
 set -eu
 SELF="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO="$(cd "$SELF/.." && pwd)"
 
-HOST="${1:-r36s-cyberdeck.local}"
-WHAT="${2:-all}"
+REBOOT=0; POS=()
+for a in "$@"; do
+  case "$a" in
+    --reboot) REBOOT=1 ;;
+    *) POS+=("$a") ;;
+  esac
+done
+HOST="${POS[0]:-r36s-cyberdeck.local}"
+WHAT="${POS[1]:-all}"
 
 # ControlMaster: reaproveita UMA conexão p/ todas as chamadas -> pede senha só 1x
 # por deploy (e 0x se a chave estiver instalada, ver scripts/ssh-setup-key-r36s.sh).
@@ -37,12 +45,33 @@ sshd true 2>/dev/null || die "não conectou em root@$HOST (aparelho ligado? IP c
 log "conectado em $HOST — enviando: $WHAT"
 
 want() { [ "$WHAT" = "all" ] || [ "$WHAT" = "$1" ]; }
-NEED_AGENT=0; NEED_UI=0; NEED_NET=0; NEED_UDEV=0; NEED_SVC=0
+NEED_AGENT=0; NEED_UI=0; NEED_NET=0; NEED_UDEV=0; NEED_SVC=0; NEED_FB=0
 
 if want ui; then
   log "UI -> /usr/share/cyberdeck-ui/public"
-  DST="/usr/share/cyberdeck-ui"; push "$REPO/cyberdeck-ui" public
+  DST="/usr/share/cyberdeck-ui"; push "$REPO/interface/web-vanilla" public
+  # policy gerenciada do Chromium (desliga a barra de tradução de página no kiosk)
+  log "policy chromium -> /etc/chromium/policies/managed"
+  sshd "mkdir -p /etc/chromium/policies/managed"
+  scp $SSH_OPTS "$REPO/board/r36s/rootfs-overlay/etc/chromium/policies/managed/cyberdeck-policies.json" \
+      "root@$HOST:/etc/chromium/policies/managed/cyberdeck-policies.json" >/dev/null
   NEED_UI=1
+fi
+if want fb; then
+  # native-fb é um binário aarch64 estático: cross-compila no host e empurra por scp.
+  FB_BIN="$REPO/interface/native-fb/build/cyberdeck-fb"
+  if [ ! -x "$FB_BIN" ] && command -v aarch64-linux-gnu-gcc >/dev/null 2>&1; then
+    log "native-fb -> compilando (aarch64 static)"
+    bash "$REPO/interface/native-fb/build.sh" >/dev/null 2>&1 || true
+  fi
+  if [ -x "$FB_BIN" ]; then
+    log "native-fb -> /usr/local/bin/cyberdeck-fb"
+    scp $SSH_OPTS "$FB_BIN" "root@$HOST:/usr/local/bin/cyberdeck-fb.new" >/dev/null
+    sshd "chmod +x /usr/local/bin/cyberdeck-fb.new && mv -f /usr/local/bin/cyberdeck-fb.new /usr/local/bin/cyberdeck-fb"
+    NEED_FB=1
+  else
+    log "AVISO: native-fb não compilado (sem aarch64-linux-gnu-gcc?) — pulei o componente fb"
+  fi
 fi
 if want agent; then
   log "agente -> /usr/local/lib/cyberdeck-agent"
@@ -81,4 +110,10 @@ log "recarregando e reiniciando serviços (sem mexer no Wi-Fi p/ não cair o SSH
 } | sshd "bash -s"
 
 [ "$NEED_NET" = 1 ] && log "obs: net.sh/serviço/udev atualizados no disco — valem no próximo boot/plug (não reiniciei p/ não cair o SSH)."
+[ "$NEED_FB" = 1 ] && log "obs: binário native-fb atualizado no disco — vale no próximo respawn do tty1/boot (use --reboot p/ aplicar já)."
 log "deploy concluído em $HOST ($WHAT)."
+
+if [ "$REBOOT" = 1 ]; then
+  log "reiniciando $HOST (reboot em background p/ a sessão SSH fechar limpa)…"
+  sshd "sync; (sleep 1 && reboot) >/dev/null 2>&1 &" || true
+fi
