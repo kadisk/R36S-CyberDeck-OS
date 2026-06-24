@@ -28,6 +28,11 @@ void fb_text_clip(int x, int y, const char *s, int max_chars, unsigned long fg, 
 
 int  fb_text_w(const char *s);   /* largura em px = strlen*FB_FONT_W */
 
+/* texto ampliado por fator inteiro (cada pixel = bloco scale×scale) */
+void fb_char_scaled(int x, int y, char ch, unsigned long fg, unsigned long bg, int show_bg, int scale);
+void fb_text_scaled(int x, int y, const char *s, unsigned long fg, unsigned long bg, int show_bg, int scale);
+int  fb_text_w_scaled(const char *s, int scale);
+
 /* blit do backbuffer p/ o /dev/fb0 (uma vez por frame) */
 void fb_present(void);
 

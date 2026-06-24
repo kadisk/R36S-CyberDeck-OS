@@ -64,15 +64,15 @@ int main(void) {
         if (remain <= 0) { confirmed = sel; break; }
 
         fb_clear(BG);
-        /* título */
+        /* título (fonte 2x) */
         const char *t1 = "R36S // CYBERDECK OS";
-        fb_text((W - fb_text_w(t1)) / 2, 70, t1, ACC, BG, 0);
+        fb_text_scaled((W - fb_text_w_scaled(t1, 2)) / 2, 44, t1, ACC, BG, 0, 2);
         const char *t2 = "escolha a interface";
-        fb_text((W - fb_text_w(t2)) / 2, 110, t2, DIM, BG, 0);
+        fb_text_scaled((W - fb_text_w_scaled(t2, 2)) / 2, 90, t2, DIM, BG, 0, 2);
 
-        /* três cards lado a lado */
-        int cw = 184, ch = 120, gap = 18;
-        int total = cw * 3 + gap * 2, x0 = (W - total) / 2, y0 = 180;
+        /* três cards lado a lado (nome em 2x, subtítulo em 1x) */
+        int cw = 184, ch = 130, gap = 18;
+        int total = cw * 3 + gap * 2, x0 = (W - total) / 2, y0 = 176;
         for (int i = 0; i < 3; i++) {
             int x = x0 + i * (cw + gap);
             int on = (i == sel);
@@ -84,16 +84,16 @@ int main(void) {
             fb_fill(x + cw - 2, y0, 2, ch, on ? SELBG : LINE);
             unsigned long namec = on ? SELFG : FG;
             unsigned long subc  = on ? SELFG : MUT;
-            fb_text(x + (cw - fb_text_w(NAMES[i])) / 2, y0 + 38, NAMES[i], namec, on ? SELBG : BG, 0);
-            fb_text(x + (cw - fb_text_w(SUBS[i])) / 2, y0 + 70, SUBS[i], subc, on ? SELBG : BG, 0);
+            fb_text_scaled(x + (cw - fb_text_w_scaled(NAMES[i], 2)) / 2, y0 + 40, NAMES[i], namec, on ? SELBG : BG, 0, 2);
+            fb_text(x + (cw - fb_text_w(SUBS[i])) / 2, y0 + 92, SUBS[i], subc, on ? SELBG : BG, 0);
         }
 
-        /* rodapé: controles + contagem */
-        const char *hint = "<- ->: mover    A/Start: confirmar";
-        fb_text((W - fb_text_w(hint)) / 2, 340, hint, DIM, BG, 0);
+        /* rodapé: controles + contagem (fonte 2x) */
+        const char *hint = "<- ->: mover   A/Start: confirmar";
+        fb_text_scaled((W - fb_text_w_scaled(hint, 2)) / 2, 336, hint, DIM, BG, 0, 2);
         char cd[64];
         snprintf(cd, sizeof cd, "iniciando %s em %ds...", NAMES[sel], remain);
-        fb_text((W - fb_text_w(cd)) / 2, 372, cd, MUT, BG, 0);
+        fb_text_scaled((W - fb_text_w_scaled(cd, 2)) / 2, 376, cd, MUT, BG, 0, 2);
 
         fb_present();
 

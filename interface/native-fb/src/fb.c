@@ -130,6 +130,26 @@ void fb_text_clip(int x, int y, const char *s, int max_chars, unsigned long fg, 
 
 int fb_text_w(const char *s) { char b[1024]; utf8_fold(s, b, sizeof b); return (int)strlen(b) * FONT_W; }
 
+/* desenha um glyph ampliado por um fator inteiro (cada pixel vira um bloco scale×scale). */
+void fb_char_scaled(int x, int y, char ch, unsigned long fg, unsigned long bg, int show_bg, int scale) {
+    if (scale < 1) scale = 1;
+    if (scale == 1) { fb_char(x, y, ch, fg, bg, show_bg); return; }
+    unsigned char u = (unsigned char)ch;
+    if (u < FONT_FIRST || u > FONT_LAST) u = '?';
+    const unsigned char *g = font8x16[u - FONT_FIRST];
+    for (int row = 0; row < FONT_H; row++)
+        for (int col = 0; col < FONT_W; col++) {
+            if (g[row] & (0x80 >> col))      fb_fill(x + col * scale, y + row * scale, scale, scale, fg);
+            else if (show_bg)                fb_fill(x + col * scale, y + row * scale, scale, scale, bg);
+        }
+}
+void fb_text_scaled(int x, int y, const char *s, unsigned long fg, unsigned long bg, int show_bg, int scale) {
+    if (scale < 1) scale = 1;
+    char buf[1024]; utf8_fold(s, buf, sizeof buf);
+    for (const char *q = buf; *q; q++, x += FONT_W * scale) fb_char_scaled(x, y, *q, fg, bg, show_bg, scale);
+}
+int fb_text_w_scaled(const char *s, int scale) { return fb_text_w(s) * (scale < 1 ? 1 : scale); }
+
 void fb_present(void) {
     if (g_fb && g_back) memcpy(g_fb, g_back, g_size);
 }
