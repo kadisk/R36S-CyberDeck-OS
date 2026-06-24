@@ -44,7 +44,7 @@ echo web > /var/lib/cyberdeck/interface          # começa em web p/ provar a na
 nohup "$CHOOSER" >/tmp/chooser.out 2>&1 &
 CH=$!
 sleep 1.5; shot selector
-tap R A                                          # move p/ NATIVE + confirma
+tap R R A                                        # WEB->REACT->NATIVE + confirma (seletor de 3 opções)
 sleep 1; wait "$CH" 2>/dev/null
 echo "pref após seletor: $(cat /var/lib/cyberdeck/interface)"
 

@@ -64,7 +64,14 @@ emulador: boota no aparelho, acende o painel e navega pelos botões.
 
 ## Galeria
 
-Capturas de tela **reais do R36S físico** (640×480), tiradas no próprio aparelho (`L2+R2`).
+Capturas **reais do R36S físico** (640×480), extraídas do `/dev/fb0` durante a navegação
+**automatizada pelo gamepad** ([`scripts/test/`](scripts/test/)). Mostram a interface
+**native-fb** (renderizador C) — visual idêntico às demais (mesmos tokens). O **seletor de
+boot** abaixo escolhe entre WEB / REACT / NATIVE.
+
+![Seletor de interface no boot](docs/screenshots/selector.png)
+
+<sub>Seletor de boot: WEB / REACT / NATIVE, navegável pelo gamepad (timeout cai na última escolha).</sub>
 
 ![HOME — cockpit do CyberDeck](docs/screenshots/home.png)
 
@@ -73,12 +80,18 @@ Capturas de tela **reais do R36S físico** (640×480), tiradas no próprio apare
 
 | | | |
 |---|---|---|
-| ![STATUS ao vivo](docs/screenshots/status-live.png) | ![STATUS energia](docs/screenshots/status-energy.png) | ![PROCS](docs/screenshots/procs.png) |
-| **STATUS** — CPU/RAM/temp/load ao vivo | **STATUS · ENERGIA** — bateria por OCV (rk817) | **PROCS** — processos via `/proc` |
-| ![NET](docs/screenshots/net.png) | ![FS](docs/screenshots/fs.png) | ![SVC](docs/screenshots/svc.png) |
-| **NET** — interfaces, rota, DNS, conexões | **FS** — navegação read-only do rootfs | **SVC** — systemd: status, logs, ações |
-| ![LOGS](docs/screenshots/logs.png) | ![CMD](docs/screenshots/cmd.png) | ![DEVICE](docs/screenshots/device.png) |
-| **LOGS** — dmesg / journal / unidades | **CMD** — comandos por categoria (allowlist) | **DEVICE** — hardware, kernel, boot |
+| ![STATUS ao vivo](docs/screenshots/status-live.png) | ![STATUS energia](docs/screenshots/status-energy.png) | ![STATUS tendência](docs/screenshots/status-trend.png) |
+| **STATUS** — CPU/RAM/temp/load ao vivo | **STATUS · ENERGIA** — bateria por OCV (rk817) | **STATUS · TENDÊNCIA** — sparklines da sessão |
+| ![PROCS](docs/screenshots/procs.png) | ![PROCS detalhe](docs/screenshots/procs-detail.png) | ![NET](docs/screenshots/net.png) |
+| **PROCS** — processos via `/proc` (filtro/sort) | **PROCS · detalhe** — por PID + sinais | **NET** — interfaces, rota, DNS, conexões |
+| ![LOGS](docs/screenshots/logs.png) | ![FS](docs/screenshots/fs.png) | ![SVC](docs/screenshots/svc.png) |
+| **LOGS** — dmesg / journal / unidades | **FS** — navegação read-only do rootfs | **SVC** — systemd: status, logs, ações |
+| ![CMD](docs/screenshots/cmd.png) | ![DEVICE](docs/screenshots/device.png) | ![KERNEL](docs/screenshots/kernel.png) |
+| **CMD** — comandos por categoria (allowlist) | **DEVICE** — hardware, kernel, boot | **KERNEL** — kernel + Device Tree (nós→FS) |
+| ![AJUSTES](docs/screenshots/ajustes.png) | ![TESTE A/V](docs/screenshots/media.png) | ![ARMAZENAMENTO](docs/screenshots/storage.png) |
+| **AJUSTES** — display/áudio (brilho, volume) | **TESTE A/V** — áudio/vídeo (mpv/HTML5) | **ARMAZENAMENTO** — partições, expandir, 2º cartão |
+| ![KEYS](docs/screenshots/keys.png) | | |
+| **TESTE DE BOTÕES** — gamepad ao vivo | | |
 
 ## Base e como ela foi montada
 
