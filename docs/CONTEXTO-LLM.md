@@ -3,20 +3,30 @@
 > **Como usar:** cole este documento inteiro no início da conversa com um modelo de IA
 > que **não tem acesso ao repositório**, antes de fazer perguntas. Ele é autocontido:
 > descreve o que é o projeto, o hardware, a arquitetura, as decisões, o estado atual e
-> as restrições. Atualizado em 2026-06-17 (UI+agente **v0.8.0**).
+> as restrições. Atualizado em 2026-06-23 (**três interfaces oficiais** em paridade +
+> seletor de boot; áudio/vídeo; gerenciador de armazenamento).
 
 ---
 
 ## 1. O que é
 
 Distribuição **Linux embarcada** que transforma o handheld **R36S** (console de jogos
-barato, Rockchip RK3326) num **CyberDeck portátil**: um computador de bolso cuja
-interface é uma **aplicação web rodando em kiosk**, controlada pelo **gamepad**, capaz
-de **inspecionar e administrar** o sistema. **Não é distro de jogos** (sem
-EmulationStation, sem emuladores).
+barato, Rockchip RK3326) num **CyberDeck portátil**: um computador de bolso, controlado
+pelo **gamepad**, capaz de **inspecionar e administrar** o sistema. **Não é distro de
+jogos** (sem EmulationStation, sem emuladores).
 
-A interface (CyberDeck UI) é um painel técnico: status, dispositivo, navegação no
-filesystem, serviços systemd, processos, rede, logs, comandos e ações do sistema.
+A interface é um **painel técnico**: status, dispositivo, navegação no filesystem,
+serviços systemd, processos, rede, logs, kernel/DTB, comandos, ações, **teste de A/V** e
+**gerenciador de armazenamento**.
+
+**Três interfaces oficiais em paridade**, escolhidas num **seletor no boot** e
+consumindo o **mesmo backend** (`cyberdeck-agent`):
+- **web-vanilla** — HTML/CSS/JS puro (sem build), Chromium kiosk. Referência.
+- **native-fb** — C desenhando direto no `/dev/fb0` (sem X/Chromium). Leve.
+- **web-react** — React + TypeScript + Webpack, Chromium kiosk (bundle `file://`).
+
+Trocáveis em runtime (menu FN → Trocar interface) e no seletor de boot (WEB/REACT/NATIVE,
+pref em `/var/lib/cyberdeck/interface`).
 
 ---
 
@@ -47,9 +57,9 @@ A versão que funciona combina três decisões descobertas na prática:
 | **Boot** | região de boot **clonada do ArkOS** (U-Boot + **kernel BSP 4.4** + DTB `rk3326-r35s-linux.dtb`) | só o kernel+DTB BSP **acende o painel** deste lote; mainline não sobe |
 | **Rootfs** | **Debian bookworm arm64** (debootstrap) | base limpa e atual, sem herdar o ArkOS |
 | **Tela** | **Xorg** com driver **fbdev** em `/dev/fb0` (render por **software**) | evita Wayland/GBM do blob Mali (antigo demais) |
-| **UI** | **Chromium `--kiosk`** abrindo `file://…/cyberdeck-ui/public/index.html` | navegador padrão; software rendering basta p/ UI leve |
-| **Input** | **Gamepad API** do Chromium + driver **joystick do Xorg** p/ o ponteiro | dispensa teclado virtual |
-| **Dados** | **`cyberdeck-agent`** (backend Node.js) servindo JSON em `127.0.0.1:8080` | alimenta todas as telas |
+| **Interface** | **seletor no boot** → web-vanilla/web-react (**Chromium `--kiosk`**, `file://`) ou native-fb (**`/dev/fb0`** direto) | uma stack por gosto; web = SW render basta, native-fb = sem X/Chromium |
+| **Input** | **Gamepad API** do Chromium (web) · **evdev** direto (native-fb) | dispensa teclado virtual |
+| **Dados** | **`cyberdeck-agent`** (backend Node.js) servindo JSON em `127.0.0.1:8080` | alimenta as três interfaces |
 
 > O ArkOS é usado **só como referência de boot/hardware** — sua imagem é somente-leitura
 > e nunca é modificada. O rootfs final é Debian.
@@ -59,12 +69,15 @@ A versão que funciona combina três decisões descobertas na prática:
 ## 4. Arquitetura (3 camadas desacopladas)
 
 ```
-FRONT-END (HTML/CSS/JS, kiosk)  --fetch JSON-->  BACKEND (Node.js, localhost)  -->  LINUX (/proc, /sys, systemd, comandos)
+INTERFACE (web kiosk OU native-fb)  --HTTP JSON-->  AGENTE (Node.js, localhost)  -->  LINUX (/proc, /sys, systemd, comandos)
 ```
 
-- A UI roda por **`file://`** (origem `null`); o agente libera **CORS `*`**.
-- A UI **não toca no SO direto** — tudo passa pelo agente.
-- O agente roda como **root** (via systemd) → lê tudo e executa ações.
+- A camada de **interface é trocável** (web-vanilla / native-fb / web-react); o **agente é
+  o mesmo** para as três. Adicionar uma interface = falar HTTP com o agente.
+- As UIs **web** rodam por **`file://`** (origem `null`) → o agente libera **CORS `*`**; a
+  **native-fb** fala HTTP direto (sem navegador).
+- Nenhuma interface **toca no SO direto** — tudo passa pelo agente, que roda como **root**
+  (via systemd) → lê tudo e executa ações (allowlist).
 
 ### 4a. Backend — `cyberdeck-agent/`
 
@@ -89,8 +102,11 @@ POST /api/systemd/action {action,unit}
 /api/network/{summary,connections}
 /api/logs?source=&severity=&q=         (dmesg/journal/unidades)
 /api/commands  ·  POST /api/commands/exec {key}      (allowlist)
-/api/actions   ·  POST /api/actions {key}            (brilho/volume/audio-test/reboot/… allowlist)
+/api/actions   ·  POST /api/actions {key}            (brilho/volume/audio-test/wifi-*/expand-rootfs/interface-web|react|fb/reboot/… allowlist)
+/api/media     ·  POST /api/media/{play,stop}        (lista /root/media + 2º cartão; toca via mpv)
+/api/storage   ·  POST /api/storage/{mount,unmount}  (rootfs/partições/expandir/2º cartão)
 /api/volume                             nível de áudio atual {pct,muted,control} (rk817)
+/api/network/wifi/scan (POST)           SSIDs visíveis (dongle USB)
 /api/health  ·  /api/ping               severidade agregada (HOME) · versão do agente
 GET/POST /api/settings {fontScale}     (preferências persistentes)
 POST /api/screenshot {version}          PNG sequencial em /root/screenshots/v<versão>/shot-NNNN.png
@@ -103,25 +119,32 @@ POST /api/screenshot {version}          PNG sequencial em /root/screenshots/v<ve
   limites de entradas/tamanho e detecção de binário.
 - Nome de unit (regex), sinais e ações (allowlist/Set), PID validado. PID 1 protegido.
 
-### 4b. Front-end — `cyberdeck-ui/public/`
+### 4b. Front-end — três interfaces em `interface/` (uma stack por subpasta)
 
-- **Vanilla JS, sem framework, sem build.** Carrega por `file://`, então **sem ES
-  modules** — os scripts compartilham o namespace global `window.CD`, incluídos por ordem.
-- Arquivos: `index.html`, `style.css`, `app.js` (router/polling/relógio + **menu FN** +
-  screenshot) e `js/`: `state.js`, `api.js`, `ui.js` (helpers DOM + confirm/toast +
-  **btnize**), `views.js` (todas as telas), `gamepad.js` (input).
-- **Telas:** HOME (cockpit: alertas + metric tiles + cards) · STATUS (AO VIVO/ENERGIA/
-  TENDÊNCIA) · DEVICE (ID/CPU/DISPLAY/BOOT/INPUT, mini-cards) · KERNEL (kernel+DTB) · FS ·
-  SVC (systemd) · PROCS · NET · LOGS · CMD (allowlist) · AJUSTES (DISPLAY/AUDIO) ·
-  TESTE DE BOTÕES.
-- **Subpáginas/paginação por L1/R1** (minimiza scroll em 640×480). **Padrão
-  mestre→detalhe** em FS/SVC/PROCS (B volta). **Menu FN** (botão Function) concentra
-  Ajustes/Testar botões/Auto screenshot/Screenshot/energia. **Modal de confirmação** p/
-  ações perigosas. Referências de botão com **cor fixa** (A vermelho/B amarelo/X azul/
-  Y verde; resto branco) via `CD.ui.btnize`. Estados OK/warn/crit/loading e **erro
-  amigável** quando o agente está offline (rodapé “agente: OFF”).
-- **Versão (semver)** casada entre `CD.VERSION`, os dois `package.json` e `/api/ping`;
-  os screenshots são organizados por versão (`v<versão>/`).
+Especificação stack-agnóstica (telas, contrato de input, design tokens, matriz de
+paridade) em **`docs/interface/FEATURES.md`**. As três consomem o mesmo agente e têm o
+**mesmo visual** (640×480, paleta verde/terminal, mesmos tokens):
+
+- **`interface/web-vanilla/`** — Vanilla JS, **sem framework/build**, por `file://` (**sem
+  ES modules**; namespace global `window.CD`). `app.js` (router/polling/FN/screenshot) +
+  `js/`: `state.js`, `api.js`, `ui.js` (helpers+confirm/toast+**btnize**), `views.js`
+  (todas as telas), `gamepad.js` (input). **Referência.**
+- **`interface/native-fb/`** — C estático, sem libs, desenha no `/dev/fb0` (double buffer);
+  módulos `fb/input/http/ui/views` + cJSON vendorizado. Lê o joypad por **evdev**.
+  Controles secundários (filtros/sort/severidade/scan) mapeados em **X/Y**.
+- **`interface/web-react/`** — **React + TypeScript + Webpack**; bundle único `file://`-safe
+  (publicPath `./`, CSS via style-loader; Vite quebraria por ES modules no kiosk). Camada de
+  input portada da `gamepad.js`; store via `useSyncExternalStore`.
+
+**Telas (em todas):** HOME (alertas + metric tiles + cards) · STATUS (AO VIVO/ENERGIA/
+TENDÊNCIA) · PROCS · NET · LOGS · DEVICE · FS · SVC · CMD · e, pelo **menu FN**: KERNEL
+(kernel+DTB, nós→FS) · AJUSTES (DISPLAY/AUDIO) · TESTE A/V · ARMAZENAMENTO · TESTE DE BOTÕES.
+**Subpáginas/paginação por L1/R1**, **mestre→detalhe** (B volta), **modal de confirmação**
+p/ ações perigosas, cor fixa dos botões (A vermelho/B amarelo/X azul/Y verde; resto branco),
+e **erro amigável** quando o agente está offline ("agente: OFF").
+
+**Seletor de boot** (`cyberdeck-chooser`, C/framebuffer): 3 cards WEB/REACT/NATIVE; o
+`cyberdeck-session` lê a escolha e lança a interface; timeout cai na última.
 
 ---
 
@@ -146,25 +169,33 @@ POST /api/screenshot {version}          PNG sequencial em /root/screenshots/v<ve
   movimento relativo; `deadzone` + `ConstantDeceleration` p/ suavizar). JS **não move** o
   ponteiro do X — só rastreia via `mousemove` para o A clicar no lugar certo.
 - Teclado (dev): setas/Enter/Esc navegam; **+/−** mudam fonte; **F12/PrintScreen** screenshot.
+- **No boot**, o seletor mostra WEB/REACT/NATIVE (←→ + A/Start; timeout cai na última).
+- A **native-fb** não tem ponteiro analógico; ela mapeia os controles secundários da web
+  (filtros/ordenação/severidade/scan/atalhos) nos botões **X/Y** (indicados no rodapé).
 
 ---
 
 ## 6. Build e deploy
 
 - **Construir imagem:** `sudo scripts/build-x11-rootfs.sh` (debootstrap Debian arm64 +
-  Xorg fbdev + Chromium + Node + UI + agente + clona boot do ArkOS + empacota `.img`,
-  registra como apelido `x11`).
-- **Gravar no cartão (por NOME, com allowlist de segurança):**
-  `sudo scripts/sdcard/sd-update.sh <cartao> x11`.
-- **Iteração rápida (sem regravar 4 GB):** `sudo scripts/sdcard/sd-update-ui.sh <cartao>`
-  empurra só `cyberdeck-ui/public/` + `cyberdeck-agent/` (UI + agente). **Não instala
-  pacotes apt nem aplica `xorg.conf.d`** — mudanças de sistema exigem rebuild + flash.
-- **Recuperar screenshots:** `sudo scripts/sdcard/sd-get-screenshots.sh <cartao>`
-  (monta rootfs read-only e copia `/root/screenshots`, organizados por `v<versão>/`).
-- **Limpar screenshots do cartão:** `sudo scripts/sdcard/sd-clear-screenshots.sh <cartao>`
-  (evita misturar prints de versões antigas numa nova validação).
-- Serviços systemd: `cyberdeck-agent.service` (backend, sobe antes da UI) e
-  `cyberdeck-x.service` (Xorg + Chromium kiosk).
+  Xorg fbdev + Chromium + Node + mpv/ffmpeg + **as 3 interfaces** + seletor/sessão + agente
+  + clona boot do ArkOS + empacota `.img`, apelido `x11`). A **web-react** precisa do bundle
+  pré-buildado no host: `(cd interface/web-react && ./build.sh)` antes do build (senão a opção
+  REACT não é instalada; a imagem segue válida com WEB+NATIVE).
+- **Gravar no cartão (por NOME, allowlist de segurança):** `sudo scripts/sdcard/sd-update.sh <cartao> x11`.
+- **Atualizar por SSH (sem regravar):** `scripts/update-r36s.sh <host>` (tudo) ou
+  `scripts/deploy-r36s.sh <host> [ui|react|fb|agent|…]` — empurra componentes e reinicia
+  serviços; `--reboot` opcional. (Mudanças de pacote apt / `xorg.conf.d` / kernel/partições
+  ainda exigem rebuild + flash.)
+- **Bateria de teste automatizada:** `scripts/test/test-r36s.sh <host>` — finge ser o
+  gamepad (uinput→evdev), navega todas as telas da native-fb, captura via `fbgrab` e baixa
+  os artefatos. Foi a fonte dos screenshots da galeria.
+- **Recuperar/limpar screenshots do cartão:** `sd-get-screenshots.sh` / `sd-clear-screenshots.sh`.
+- Serviços systemd: `cyberdeck-agent.service` (backend) e **`cyberdeck-session.service`**
+  (roda o seletor `cyberdeck-chooser` e lança a interface escolhida — web=Xorg+Chromium,
+  fb=native). `cyberdeck-growfs`/`cyberdeck-mountcard` (armazenamento) e `cyberdeck-net` (Wi-Fi).
+  Caminhos no device: `/usr/share/cyberdeck-ui` (vanilla), `/usr/share/cyberdeck-web-react`
+  (react), `/usr/local/bin/cyberdeck-fb` (native).
 
 ---
 
@@ -176,8 +207,10 @@ POST /api/screenshot {version}          PNG sequencial em /root/screenshots/v<ve
   limitar listas grandes, cache curto p/ chamadas caras.
 - **Segurança** — nada de shell arbitrário; ações perigosas com confirmação; FS read-only;
   sanitizar input; allowlist no backend.
-- **Front-end** — HTML/CSS/JS puro, **sem build, sem framework**, compatível com Chromium
-  do Debian bookworm, funcionando por `file://` (sem ES modules).
+- **Interfaces** — manter **paridade** (spec em `docs/interface/FEATURES.md`) e os mesmos
+  tokens/visual. `web-vanilla`: HTML/CSS/JS puro, **sem build/sem framework/sem ES modules**
+  (roda por `file://`). `web-react`: React+TS+**Webpack** (bundle único `file://`-safe;
+  **não usar Vite** — ES modules quebram no kiosk). `native-fb`: **C sem libs** (estático).
 - **Backend** — Node sem dependências (ou o mínimo absoluto); `execFile`/`spawn` (não
   `exec` de string); timeouts; JSON consistente.
 - **Não quebrar** os scripts de build/rootfs/sdcard existentes.
@@ -186,16 +219,18 @@ POST /api/screenshot {version}          PNG sequencial em /root/screenshots/v<ve
 
 ## 8. Estado atual (o que está validado e o que NÃO)
 
-- ✅ **Validado no R36S físico (via screenshots, até v0.7.1):** UI/cockpit, gamepad,
-  dados ao vivo, ponteiro pelo analógico, escala de fonte persistida, screenshot
-  versionado/sequencial, subpáginas/paginação (L1/R1), menu FN, foco refinado, cores dos
-  botões, NET checklist, CMD allowlist, KERNEL/DTB.
-- ✅ Validado **no host (PC Ubuntu)**: `node --check` em todo o backend/front; smoke test
-  headless (Chrome) das telas sem exceções; endpoints com erro gracioso onde dependem do aparelho.
-- ⚠️ **NÃO testado no R36S físico ainda:** o **áudio** (v0.8.0) — controle de volume e
-  testes de saída alto-falante/fone dependem do controle certo do rk817 (descoberto via
-  `amixer scontrols`) e do roteamento "Playback Path"; a **tela de teste de botões**
-  (combo Start+Select, acender por índice). Dependem de rebuild+flash + escuta/uso real.
+- ✅ **Validado no R36S físico:** seletor de boot (3 opções, gamepad), **as três
+  interfaces** rodando (web-vanilla, native-fb com navegação automatizada por todas as
+  telas + X/Y, web-react); dados ao vivo, paginação/subpáginas (L1/R1), menu FN, confirmação,
+  cores dos botões, KERNEL/DTB (nós→FS), **expansão do rootfs** no 1º boot (3.9→6.5 G), layout
+  de partições, screenshot via `fbgrab`. Galeria em `docs/screenshots/` extraída do `/dev/fb0`.
+- ✅ Validado **no host (PC)**: `node --check` no backend; `tsc --noEmit` + build do web-react;
+  smoke headless (Chrome) consumindo o agente.
+- ⚠️ **Pendências conhecidas:** **flash limpo** da imagem unificada validado ponta a ponta
+  (o cartão de dev foi atualizado por SSH, ainda com partição antiga); **2º cartão** testado
+  com um cartão real; e o **dongle Wi-Fi RTL8188 é instável** (erros `fw read cmd failed` —
+  hardware; o console do kernel foi silenciado p/ não poluir a tela). A escuta real do áudio
+  no alto-falante depende de uso manual.
 
 > **Regra do projeto:** nunca afirmar que algo foi “testado no R36S físico” se não foi.
 
@@ -204,16 +239,17 @@ POST /api/screenshot {version}          PNG sequencial em /root/screenshots/v<ve
 ## 9. Mapa do repositório
 
 ```
-cyberdeck-ui/      UI web (public/index.html, style.css, app.js, js/*.js)
-cyberdeck-agent/   backend Node (agent.js + lib/*.js)
-cyberdeck-fb/      UI nativa alternativa (renderizador 2D em C no framebuffer) — paralela
-runtime/           serviços systemd + scripts de boot (Xorg/kiosk/agent)
-scripts/           build-x11-rootfs.sh + inspeção do ArkOS + kit sdcard/ (gravação segura)
+interface/         interfaces gráficas oficiais (uma stack por subpasta) — ver interface/README.md
+  web-vanilla/     UI web (public/index.html, style.css, app.js, js/*.js) — referência
+  native-fb/       UI nativa em C no framebuffer (src/*.c, chooser.c, cJSON) — leve
+  web-react/       UI React + TypeScript + Webpack (src/*.tsx) — em paridade
+cyberdeck-agent/   backend Node (agent.js + lib/*.js) — compartilhado pelas 3 interfaces
+runtime/           serviços systemd + scripts de boot (seletor/sessão/Xorg/kiosk/agent/net/growfs)
+scripts/           build-x11-rootfs.sh + update-r36s.sh/deploy-r36s.sh (SSH) + test/ (bateria gamepad) + kit sdcard/
 board/r36s/        arquivos da placa (boot.ini, logo, overlays)
-artifacts/         artefatos de referência (boot/DTB extraídos do ArkOS, imagens)
+artifacts/         artefatos de referência (boot/DTB do ArkOS); uitest/ (capturas, gitignored)
 experiments/       tentativas que NÃO entraram (Wayland/Mali, mainline, uinput)
-docs/              documentação: STACK.md (arquitetura), JORNADA.md (história/becos),
-                   roadmap.md, hardware/, graphics/, boot/, testing/
+docs/              STACK.md, JORNADA.md, roadmap.md, interface/FEATURES.md (spec), screenshots/, hardware/…
 CHANGELOG.md       histórico de mudanças
 ```
 
@@ -224,5 +260,7 @@ CHANGELOG.md       histórico de mudanças
 - **BSP** = kernel/DTB do fornecedor (Rockchip 4.4) que faz o painel funcionar.
 - **fbdev** = driver de framebuffer do Xorg (render por software, sem GPU).
 - **kiosk** = navegador em tela cheia, sem barras, como se fosse o “app”.
-- **agente** = `cyberdeck-agent`, o backend Node local.
+- **agente** = `cyberdeck-agent`, o backend Node local (compartilhado pelas 3 interfaces).
+- **seletor** = `cyberdeck-chooser`, tela de boot que escolhe WEB/REACT/NATIVE.
+- **native-fb / web-react** = interfaces alternativas (C no framebuffer / React+TS+Webpack).
 - **allowlist** = lista fechada de comandos/ações permitidos (em vez de shell livre).
